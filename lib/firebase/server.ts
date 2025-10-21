@@ -21,23 +21,34 @@ export function getAdminApp() {
   }
 
   try {
-    // Decode base64-encoded service account JSON
+    // Prefer base64 JSON if present
     const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-    
-    if (!serviceAccountJson) {
+
+    let serviceAccount: any | null = null;
+
+    if (serviceAccountJson) {
+      serviceAccount = JSON.parse(
+        Buffer.from(serviceAccountJson, 'base64').toString('utf-8')
+      );
+    } else {
+      // Fallback to discrete env vars
+      const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
+      const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
+      const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+      if (projectId && clientEmail && privateKey) {
+        serviceAccount = { projectId, clientEmail, privateKey };
+      }
+    }
+
+    if (!serviceAccount) {
       throw new Error(
-        'FIREBASE_SERVICE_ACCOUNT_JSON environment variable is not set. ' +
-        'Please set it to a base64-encoded service account JSON.'
+        'Missing Firebase admin credentials. Provide either FIREBASE_SERVICE_ACCOUNT_JSON (base64) or FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_CLIENT_EMAIL, FIREBASE_ADMIN_PRIVATE_KEY.'
       );
     }
 
-    // Decode from base64
-    const serviceAccount = JSON.parse(
-      Buffer.from(serviceAccountJson, 'base64').toString('utf-8')
-    );
-
     adminApp = initializeApp({
-      credential: cert(serviceAccount),
+      credential: cert(serviceAccount as any),
       storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
 
