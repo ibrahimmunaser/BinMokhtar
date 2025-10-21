@@ -66,3 +66,16 @@ export async function updateUserProfile(user: User, data: { displayName?: string
     return { error: error.message };
   }
 }
+
+// Export aliases for backward compatibility
+export const signOut = signOutUser;
+export const registerWithEmail = signUpWithEmail;
+export const resetPassword = sendPasswordResetEmail;
+
+/**
+ * Sign in with Google (placeholder - needs Google provider setup)
+ */
+export async function signInWithGoogle() {
+  // TODO: Implement Google sign-in with GoogleAuthProvider
+  throw new Error('Google sign-in not yet implemented. Please use email/password.');
+}
