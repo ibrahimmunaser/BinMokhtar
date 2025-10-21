@@ -71,20 +71,23 @@ export default function CategoryPage() {
 
     // Apply sorting
     switch (sortOption) {
-      case 'price-asc':
+      case 'priceAsc':
         filtered.sort((a, b) => (a.price || a.basePrice) - (b.price || b.basePrice));
         break;
-      case 'price-desc':
+      case 'priceDesc':
         filtered.sort((a, b) => (b.price || b.basePrice) - (a.price || a.basePrice));
         break;
-      case 'newest':
+      case 'new':
         filtered.sort((a, b) => {
           const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : (a.createdAt as any).seconds * 1000;
           const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : (b.createdAt as any).seconds * 1000;
           return bTime - aTime;
         });
         break;
+      case 'featured':
+      case 'popular':
       default:
+        // Keep original order for featured/popular
         break;
     }
 
