@@ -17,7 +17,7 @@ const faqs = [
       },
       {
         q: 'Can I track my order?',
-        a: 'Absolutely! Once your order ships, you'll receive a tracking number via email. You can also track your order on our Track Order page.',
+        a: 'Absolutely! Once your order ships, you\'ll receive a tracking number via email. You can also track your order on our Track Order page.',
       },
     ],
   },
@@ -30,11 +30,11 @@ const faqs = [
       },
       {
         q: 'How do I initiate a return?',
-        a: 'Contact our customer service team with your order number. We'll provide you with a return label and instructions.',
+        a: 'Contact our customer service team with your order number. We\'ll provide you with a return label and instructions.',
       },
       {
         q: 'Do you offer exchanges?',
-        a: 'Yes! We're happy to exchange items for a different size or color. Contact us within 14 days of receiving your order.',
+        a: 'Yes! We\'re happy to exchange items for a different size or color. Contact us within 14 days of receiving your order.',
       },
     ],
   },
@@ -43,7 +43,7 @@ const faqs = [
     questions: [
       {
         q: 'How do I choose the right size?',
-        a: 'Please refer to our detailed Size Guide page. We provide measurements for height, chest, and length. If you're between sizes, we recommend sizing up.',
+        a: 'Please refer to our detailed Size Guide page. We provide measurements for height, chest, and length. If you\'re between sizes, we recommend sizing up.',
       },
       {
         q: 'What fabrics do you use?',
@@ -133,7 +133,7 @@ export default function FAQPage() {
         <div className="mt-20 bg-bmr-night text-surface-2 rounded-lg p-8 lg:p-12 text-center">
           <h2 className="font-display text-2xl lg:text-3xl mb-4">Still have questions?</h2>
           <p className="opacity-90 mb-8 max-w-2xl mx-auto">
-            Can't find the answer you're looking for? Our customer support team is here to help.
+            Can\'t find the answer you\'re looking for? Our customer support team is here to help.
           </p>
           <a href="/contact" className="inline-block bg-surface-2 text-bmr-ink px-8 py-4 rounded-lg font-medium hover:bg-surface-3 transition-colors">
             Contact Us
