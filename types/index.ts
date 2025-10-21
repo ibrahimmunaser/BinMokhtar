@@ -96,9 +96,14 @@ export interface Product {
   care?: string;
   status: ProductStatus;
   basePrice: number; // in cents
+  price?: number; // in cents (alias for basePrice or computed price)
   currency: Currency;
   featured: boolean;
   tags: string[]; // slugified tags
+  // Product-level aggregated attributes from variants
+  sizes?: string[]; // available sizes across variants
+  colors?: string[]; // available colors across variants
+  sleeve?: string; // sleeve type if applicable
   createdAt: Timestamp | Date;
   updatedAt: Timestamp | Date;
   defaultImage?: ProductImage;
