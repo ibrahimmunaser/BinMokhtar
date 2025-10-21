@@ -1,7 +1,7 @@
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signOut,
+  signOut as firebaseSignOut,
   sendPasswordResetEmail as firebaseSendPasswordResetEmail,
   updateProfile,
   User,
@@ -42,7 +42,7 @@ export async function signUpWithEmail(
 
 export async function signOutUser() {
   try {
-    await signOut(auth);
+    await firebaseSignOut(auth);
     return { error: null };
   } catch (error: any) {
     return { error: error.message };
