@@ -1,0 +1,157 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ========================================================================
+    // Helper Functions
+    // ========================================================================
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.role == 'ADMIN';
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ========================================================================
+    // Settings & Configuration (Public read, Admin write)
+    // ========================================================================
+
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /menus/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /home/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ========================================================================
+    // Products & Variants (Public read, Admin write)
+    // ========================================================================
+
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+
+      // Product images subcollection
+      match /images/{imageId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+
+      // Product options subcollection
+      match /options/{optionId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
+
+    match /variants/{variantId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ========================================================================
+    // Carts (Session-based or user-based)
+    // ========================================================================
+
+    match /carts/{cartId} {
+      // Allow read/write for the cart owner (by cartId matching userId or sessionId)
+      allow read, write: if true; // Relaxed for guest checkout
+      // In production, tighten this with session tokens or auth checks
+
+      match /items/{itemId} {
+        allow read, write: if true; // Match parent cart permissions
+        allow create: if request.resource.data.qty >= 1 
+                      && request.resource.data.qty <= 99
+                      && request.resource.data.priceAtAdd is number;
+        allow update: if request.resource.data.qty >= 1 
+                      && request.resource.data.qty <= 99;
+      }
+    }
+
+    // ========================================================================
+    // Orders (User read own, Admin write)
+    // ========================================================================
+
+    match /orders/{orderId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow create: if isAdmin(); // Only server (Admin SDK) creates orders
+      allow update, delete: if isAdmin();
+
+      match /items/{itemId} {
+        allow read: if isOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.userId) || isAdmin();
+        allow write: if isAdmin();
+      }
+    }
+
+    // ========================================================================
+    // Reviews (Public read approved, Admin write)
+    // ========================================================================
+
+    match /reviews/{reviewId} {
+      allow read: if resource.data.approved == true || isAdmin();
+      allow create: if true; // Allow public submission
+      allow update, delete: if isAdmin();
+    }
+
+    // ========================================================================
+    // Collections & Content (Public read, Admin write)
+    // ========================================================================
+
+    match /collections/{collectionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /pages/{pageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ========================================================================
+    // Leads (Public create, Admin read)
+    // ========================================================================
+
+    match /leads/{leadId} {
+      allow read: if isAdmin();
+      allow create: if true; // Allow newsletter signups
+      allow update, delete: if isAdmin();
+    }
+
+    match /bulkLeads/{leadId} {
+      allow read: if isAdmin();
+      allow create: if true; // Allow bulk order form submissions
+      allow update, delete: if isAdmin();
+    }
+
+    // ========================================================================
+    // Stripe Events (Admin only, for idempotency tracking)
+    // ========================================================================
+
+    match /stripeEvents/{eventId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ========================================================================
+    // Deny all other paths
+    // ========================================================================
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

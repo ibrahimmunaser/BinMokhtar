@@ -1,0 +1,64 @@
+:root {
+  /* BMR Brand Colors */
+  --bmr-bg: #F5F2EE;
+  --bmr-fg: #111111;
+  --bmr-muted: #8B8277;
+  --bmr-stone: #756B5B;
+  --bmr-ink: #2B2B2B;
+  --bmr-night: #2F3A4A;
+  --bmr-keffiyeh: #111111;
+  --bmr-acc-red: #C62828;
+  --bmr-acc-green: #1E7F51;
+
+  /* Surfaces */
+  --surface-1: #F5F2EE;
+  --surface-2: #FFFFFF;
+  --surface-3: #EFECE7;
+  --line: #DDD6CE;
+
+  /* Semantic aliases */
+  --text-primary: var(--bmr-fg);
+  --text-secondary: var(--bmr-muted);
+  --text-tertiary: var(--bmr-stone);
+  --bg-primary: var(--surface-2);
+  --bg-secondary: var(--surface-1);
+  --bg-tertiary: var(--surface-3);
+  --border-default: var(--line);
+
+  /* Spacing */
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-lg: 12px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bmr-bg: #171614;
+    --surface-2: #1E1D1B;
+    --surface-3: #22211F;
+    --bmr-fg: #F5F2EE;
+    --bmr-ink: #EDEBE7;
+    --line: #3A3834;
+
+    /* Update semantic aliases for dark mode */
+    --text-primary: var(--bmr-fg);
+    --bg-primary: var(--surface-2);
+    --bg-secondary: var(--bmr-bg);
+    --bg-tertiary: var(--surface-3);
+    --border-default: var(--line);
+
+    /* Dark mode shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+  }
+}
+
+
