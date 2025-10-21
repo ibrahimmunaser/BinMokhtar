@@ -57,40 +57,47 @@ export default function ShopPage() {
 
     // Apply filters
     if (filters.categories.length > 0) {
-      filtered = filtered.filter((p) => filters.categories.includes(p.categoryId));
+      filtered = filtered.filter((p) => filters.categories.includes(p.category));
     }
     if (filters.sizes.length > 0) {
       filtered = filtered.filter((p) =>
-        p.sizes?.some((s) => filters.sizes.includes(s))
+        p.sizes?.some((s: string) => filters.sizes.includes(s))
       );
     }
     if (filters.colors.length > 0) {
       filtered = filtered.filter((p) =>
-        p.colors?.some((c) => filters.colors.includes(c))
+        p.colors?.some((c: string) => filters.colors.includes(c))
       );
     }
-    if (filters.sleeves.length > 0) {
+    if (filters.sleeves && filters.sleeves.length > 0) {
       filtered = filtered.filter((p) =>
-        p.sleeve && filters.sleeves.includes(p.sleeve)
+        p.sleeve && filters.sleeves!.includes(p.sleeve)
       );
     }
     if (filters.priceRange[0] > 0 || filters.priceRange[1] < 100000) {
-      filtered = filtered.filter(
-        (p) => p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1]
-      );
+      filtered = filtered.filter((p) => {
+        const productPrice = p.price || p.basePrice;
+        return productPrice >= filters.priceRange[0] && productPrice <= filters.priceRange[1];
+      });
     }
 
     // Apply sorting
     switch (sortOption) {
-      case 'price-asc':
-        filtered.sort((a, b) => a.price - b.price);
+      case 'priceAsc':
+        filtered.sort((a, b) => (a.price || a.basePrice) - (b.price || b.basePrice));
         break;
-      case 'price-desc':
-        filtered.sort((a, b) => b.price - a.price);
+      case 'priceDesc':
+        filtered.sort((a, b) => (b.price || b.basePrice) - (a.price || a.basePrice));
         break;
-      case 'newest':
-        filtered.sort((a, b) => b.createdAt - a.createdAt);
+      case 'new':
+        filtered.sort((a, b) => {
+          const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : (a.createdAt as any).seconds * 1000;
+          const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : (b.createdAt as any).seconds * 1000;
+          return bTime - aTime;
+        });
         break;
+      case 'featured':
+      case 'popular':
       default:
         break;
     }

@@ -10,44 +10,48 @@ import type { NavItem, Language, Currency } from '@/types';
 const defaultNavigation: NavItem[] = [
   {
     id: 'shop',
-    label: 'SHOP',
-    position: 'primary',
+    labelEn: 'SHOP',
+    labelAr: 'متجر',
+    sort: 1,
     children: [
       { 
         id: 'men', 
-        label: 'Men', 
+        labelEn: 'Men', 
+        labelAr: 'رجال',
         href: '/category/men',
-        position: 'primary',
+        sort: 1,
         children: [
           {
             id: 'thobes',
-            label: 'Thobes',
+            labelEn: 'Thobes',
+            labelAr: 'ثياب',
             href: '/category/thobes',
-            position: 'primary',
+            sort: 1,
             children: [
-              { id: 'short-sleeve', label: 'Short Sleeve', href: '/category/thobes/short-sleeve', position: 'primary' },
-              { id: 'long-sleeve', label: 'Long Sleeve', href: '/category/thobes/long-sleeve', position: 'primary' },
+              { id: 'short-sleeve', labelEn: 'Short Sleeve', labelAr: 'كم قصير', href: '/category/thobes/short-sleeve', sort: 1 },
+              { id: 'long-sleeve', labelEn: 'Long Sleeve', labelAr: 'كم طويل', href: '/category/thobes/long-sleeve', sort: 2 },
             ]
           }
         ]
       },
-      { id: 'shemaghs', label: 'Shemaghs', href: '/category/shemaghs', position: 'primary' },
-      { id: 'yemeni-shals', label: 'Yemeni Shals', href: '/category/yemeni-shals', position: 'primary' },
+      { id: 'shemaghs', labelEn: 'Shemaghs', labelAr: 'شماغ', href: '/category/shemaghs', sort: 2 },
+      { id: 'yemeni-shals', labelEn: 'Yemeni Shals', labelAr: 'شال يمني', href: '/category/yemeni-shals', sort: 3 },
       {
         id: 'women',
-        label: 'Women',
+        labelEn: 'Women',
+        labelAr: 'نساء',
         href: '/category/women',
-        position: 'primary',
+        sort: 4,
         children: [
-          { id: 'hijabs', label: 'Hijabs', href: '/category/hijabs', position: 'primary' },
-          { id: 'abayas', label: 'Abayas', href: '/category/abayas', position: 'primary' },
+          { id: 'hijabs', labelEn: 'Hijabs', labelAr: 'حجاب', href: '/category/hijabs', sort: 1 },
+          { id: 'abayas', labelEn: 'Abayas', labelAr: 'عباية', href: '/category/abayas', sort: 2 },
         ]
       },
-      { id: 'kids', label: 'Kids', href: '/category/kids', position: 'primary' },
+      { id: 'kids', labelEn: 'Kids', labelAr: 'أطفال', href: '/category/kids', sort: 5 },
     ]
   },
-  { id: 'about', label: 'ABOUT', href: '/about', position: 'primary' },
-  { id: 'contact', label: 'CONTACT', href: '/contact', position: 'primary' },
+  { id: 'about', labelEn: 'ABOUT', labelAr: 'عن', href: '/about', sort: 2 },
+  { id: 'contact', labelEn: 'CONTACT', labelAr: 'اتصل', href: '/contact', sort: 3 },
 ];
 
 interface MobileNavDrawerProps {
@@ -201,7 +205,7 @@ function MobileNavItem({
           className="w-full flex items-center justify-between py-3 text-base font-medium hover:text-muted transition-colors"
           style={{ paddingLeft }}
         >
-          <span>{item.label}</span>
+          <span>{item.labelEn}</span>
           {isExpanded ? (
             <ChevronUp className="w-4 h-4" />
           ) : (
@@ -235,7 +239,7 @@ function MobileNavItem({
       className="block py-2.5 text-sm hover:text-muted transition-colors"
       style={{ paddingLeft }}
     >
-      {item.label}
+      {item.labelEn}
     </Link>
   );
 }

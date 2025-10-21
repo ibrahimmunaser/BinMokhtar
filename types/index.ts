@@ -26,6 +26,21 @@ export interface MenuDoc {
 }
 
 // ============================================================================
+// Categories
+// ============================================================================
+
+export interface Category {
+  id: string;
+  slug: string;
+  name: string;
+  nameAr?: string;
+  description?: string;
+  descriptionAr?: string;
+  heroImage?: string;
+  sort?: number;
+}
+
+// ============================================================================
 // Settings & Configuration
 // ============================================================================
 
@@ -185,11 +200,16 @@ export interface CartItem {
   productId: string;
   qty: number;
   priceAtAdd: number; // in cents
+  price?: number; // in cents (alias for priceAtAdd)
   title: string;
+  name?: string; // alias for title
   sku: string;
   imageUrl?: string;
+  image?: string; // alias for imageUrl
+  slug?: string; // product slug for linking
   size?: string;
   length?: string;
+  sleeve?: string; // alias for length
   color?: string;
 }
 
@@ -313,6 +333,27 @@ export interface ShemaghTab {
   labelAr: string;
   categoryFilter?: ProductCategory;
   tagFilter?: string;
+}
+
+export interface HomeSettings {
+  heroSlides?: HeroSlide[];
+  mosaicTiles?: MosaicTile[];
+  shemaghTabs?: ShemaghTab[];
+  featuredCategories?: string[]; // category IDs
+  bestSellerIds?: string[]; // product IDs
+  showNewsletter?: boolean;
+  topBar?: {
+    leftLine?: string;
+    rightLine?: string;
+  };
+}
+
+export interface HeaderSettings {
+  announcement?: string;
+  announcementAr?: string;
+  showSearch?: boolean;
+  showCart?: boolean;
+  showAccount?: boolean;
 }
 
 // ============================================================================

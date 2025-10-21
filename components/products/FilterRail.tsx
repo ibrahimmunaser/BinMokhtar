@@ -24,9 +24,10 @@ export function FilterRail({
   const [priceMax, setPriceMax] = useState(filters.priceRange[1]);
 
   const toggleCategory = (id: string) => {
-    const newCategories = filters.categories.includes(id)
-      ? filters.categories.filter((c) => c !== id)
-      : [...filters.categories, id];
+    const categoryId = id as any; // Type assertion for category ID
+    const newCategories = filters.categories.includes(categoryId)
+      ? filters.categories.filter((c) => c !== categoryId)
+      : [...filters.categories, categoryId];
     onChange({ ...filters, categories: newCategories });
   };
 
@@ -45,9 +46,10 @@ export function FilterRail({
   };
 
   const toggleSleeve = (sleeve: string) => {
-    const newSleeves = filters.sleeves.includes(sleeve)
-      ? filters.sleeves.filter((s) => s !== sleeve)
-      : [...filters.sleeves, sleeve];
+    const currentSleeves = filters.sleeves || [];
+    const newSleeves = currentSleeves.includes(sleeve)
+      ? currentSleeves.filter((s) => s !== sleeve)
+      : [...currentSleeves, sleeve];
     onChange({ ...filters, sleeves: newSleeves });
   };
 
@@ -65,7 +67,7 @@ export function FilterRail({
             <label key={cat.id} className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                checked={filters.categories.includes(cat.id)}
+                checked={filters.categories.includes(cat.id as any)}
                 onChange={() => toggleCategory(cat.id)}
                 className="w-4 h-4 border-border"
               />
@@ -127,7 +129,7 @@ export function FilterRail({
                 key={sleeve}
                 onClick={() => toggleSleeve(sleeve)}
                 className={`px-4 py-2 border text-sm capitalize ${
-                  filters.sleeves.includes(sleeve)
+                  filters.sleeves?.includes(sleeve)
                     ? 'border-bmr-black bg-bmr-black text-bmr-white'
                     : 'border-border hover:border-bmr-black'
                 } transition-colors`}

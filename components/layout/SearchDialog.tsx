@@ -36,8 +36,8 @@ export function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
     query.length > 1
       ? products?.filter(
           (p) =>
-            p.name.toLowerCase().includes(query.toLowerCase()) ||
-            p.subtitle?.toLowerCase().includes(query.toLowerCase())
+            p.titleEn.toLowerCase().includes(query.toLowerCase()) ||
+            p.subtitleEn?.toLowerCase().includes(query.toLowerCase())
         ) || []
       : [];
 
@@ -78,23 +78,23 @@ export function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
                       onClick={onClose}
                       className="flex items-center gap-4 p-3 hover:bg-border transition-colors"
                     >
-                      {product.thumbnail && (
+                      {product.defaultImage && (
                         <div className="w-16 h-20 bg-border flex-shrink-0 relative">
                           <Image
-                            src={product.thumbnail}
-                            alt={product.name}
+                            src={product.defaultImage.url}
+                            alt={product.titleEn}
                             fill
                             className="object-cover"
                           />
                         </div>
                       )}
                       <div className="flex-1">
-                        <div className="font-display text-sm">{product.name}</div>
-                        {product.subtitle && (
-                          <div className="text-xs text-muted">{product.subtitle}</div>
+                        <div className="font-display text-sm">{product.titleEn}</div>
+                        {product.subtitleEn && (
+                          <div className="text-xs text-muted">{product.subtitleEn}</div>
                         )}
                         <div className="text-sm font-medium mt-1">
-                          {formatPrice(product.price, currency)}
+                          {formatPrice(product.price || product.basePrice, currency)}
                         </div>
                       </div>
                     </Link>

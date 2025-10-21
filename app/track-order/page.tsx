@@ -137,7 +137,9 @@ export default function TrackOrderPage() {
                 <div>
                   <h2 className="text-2xl font-display mb-2">Order #{order.id}</h2>
                   <p className="text-sm text-muted">
-                    Placed on {new Date(order.createdAt.seconds * 1000).toLocaleDateString()}
+                    Placed on {order.createdAt instanceof Date 
+                      ? order.createdAt.toLocaleDateString() 
+                      : new Date((order.createdAt as any).seconds * 1000).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="text-right">
@@ -153,26 +155,26 @@ export default function TrackOrderPage() {
                 <h3 className="font-medium mb-4">Order Items</h3>
                 {order.items.map((item) => (
                   <div key={item.id} className="flex gap-4">
-                    {item.image && (
+                    {item.imageUrl && (
                       <div className="w-16 h-20 bg-border flex-shrink-0">
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
                       </div>
                     )}
                     <div className="flex-1">
-                      <h4 className="font-medium text-sm">{item.name}</h4>
-                      {(item.size || item.color || item.sleeve) && (
+                      <h4 className="font-medium text-sm">{item.title}</h4>
+                      {(item.size || item.color || item.length) && (
                         <p className="text-xs text-muted mt-1">
                           {item.size && <span>Size: {item.size}</span>}
-                          {item.size && (item.color || item.sleeve) && <span> · </span>}
+                          {item.size && (item.color || item.length) && <span> · </span>}
                           {item.color && <span className="capitalize">Color: {item.color}</span>}
-                          {item.color && item.sleeve && <span> · </span>}
-                          {item.sleeve && <span className="capitalize">{item.sleeve} Sleeve</span>}
+                          {item.color && item.length && <span> · </span>}
+                          {item.length && <span className="capitalize">{item.length}</span>}
                         </p>
                       )}
                       <p className="text-xs text-muted mt-1">Qty: {item.qty}</p>
                     </div>
                     <div className="text-sm">
-                      {formatPrice(item.price * item.qty, 'USD')}
+                      {formatPrice(item.unitPrice * item.qty, 'USD')}
                     </div>
                   </div>
                 ))}
@@ -203,10 +205,10 @@ export default function TrackOrderPage() {
             <div className="border border-border p-6 lg:p-8">
               <h3 className="font-medium mb-4">Shipping Address</h3>
               <address className="not-italic text-sm text-muted">
-                {order.shippingAddress.fullName || order.shippingAddress.name}<br />
-                {order.shippingAddress.address || order.shippingAddress.line1}<br />
-                {order.shippingAddress.line2 && <>{order.shippingAddress.line2}<br /></>}
-                {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip || order.shippingAddress.postal}<br />
+                {order.shippingAddress.fullName}<br />
+                {order.shippingAddress.address}<br />
+                {order.shippingAddress.address2 && <>{order.shippingAddress.address2}<br /></>}
+                {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip}<br />
                 {order.shippingAddress.country}
               </address>
             </div>

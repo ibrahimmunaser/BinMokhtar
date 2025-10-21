@@ -33,13 +33,13 @@ export function CartTable() {
         <div key={item.id} className="flex gap-4 pb-6 border-b border-border">
           {/* Thumbnail */}
           <Link
-            href={`/product/${item.slug}`}
+            href={`/product/${item.slug || item.productId}`}
             className="w-24 h-32 bg-border relative flex-shrink-0"
           >
-            {item.image && (
+            {(item.image || item.imageUrl) && (
               <Image
-                src={item.image}
-                alt={item.name}
+                src={item.image || item.imageUrl || ''}
+                alt={item.name || item.title}
                 fill
                 className="object-cover"
                 sizes="96px"
@@ -51,16 +51,16 @@ export function CartTable() {
           <div className="flex-1 min-w-0">
             <div className="flex justify-between gap-4">
               <div>
-                <Link href={`/product/${item.slug}`} className="font-display hover:underline">
-                  {item.name}
+                <Link href={`/product/${item.slug || item.productId}`} className="font-display hover:underline">
+                  {item.name || item.title}
                 </Link>
-                {(item.size || item.color || item.sleeve) && (
+                {(item.size || item.color || item.sleeve || item.length) && (
                   <div className="mt-1 text-sm text-muted">
                     {item.size && <span>Size: {item.size}</span>}
-                    {item.size && (item.color || item.sleeve) && <span> · </span>}
+                    {item.size && (item.color || item.sleeve || item.length) && <span> · </span>}
                     {item.color && <span className="capitalize">Color: {item.color}</span>}
-                    {item.color && item.sleeve && <span> · </span>}
-                    {item.sleeve && <span className="capitalize">{item.sleeve} Sleeve</span>}
+                    {item.color && (item.sleeve || item.length) && <span> · </span>}
+                    {(item.sleeve || item.length) && <span className="capitalize">{item.sleeve || item.length}</span>}
                   </div>
                 )}
               </div>
@@ -96,7 +96,7 @@ export function CartTable() {
 
               {/* Price */}
               <div className="font-medium">
-                {formatPrice(item.price * item.qty, currency)}
+                {formatPrice((item.price || item.priceAtAdd) * item.qty, currency)}
               </div>
             </div>
           </div>

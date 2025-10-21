@@ -42,6 +42,7 @@ export function CheckoutForm() {
         email: formData.email,
         shippingAddress: {
           fullName: formData.fullName,
+          email: formData.email,
           address: formData.address,
           city: formData.city,
           state: formData.state,
@@ -49,10 +50,25 @@ export function CheckoutForm() {
           country: formData.country,
           phone: formData.phone,
         },
-        items,
+        items: items.map(item => ({
+          id: item.id,
+          productId: item.productId,
+          variantId: item.variantId,
+          title: item.title || item.name || '',
+          sku: item.sku,
+          qty: item.qty,
+          unitPrice: item.priceAtAdd || item.price || 0,
+          imageUrl: item.imageUrl || item.image,
+          size: item.size,
+          length: item.length || item.sleeve,
+          color: item.color,
+        })),
         subtotal: total,
+        shipping: 0, // Free shipping
+        tax: 0, // Tax will be calculated separately if needed
         total,
-        status: 'pending',
+        currency: 'USD',
+        status: 'PENDING',
       });
       
       // Track purchase

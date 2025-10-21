@@ -9,44 +9,48 @@ import type { NavItem } from '@/types';
 const defaultNavigation: NavItem[] = [
   {
     id: 'shop',
-    label: 'SHOP',
-    position: 'primary',
+    labelEn: 'SHOP',
+    labelAr: 'متجر',
+    sort: 1,
     children: [
       { 
         id: 'men', 
-        label: 'Men', 
+        labelEn: 'Men', 
+        labelAr: 'رجال',
         href: '/category/men',
-        position: 'primary',
+        sort: 1,
         children: [
           {
             id: 'thobes',
-            label: 'Thobes',
+            labelEn: 'Thobes',
+            labelAr: 'ثياب',
             href: '/category/thobes',
-            position: 'primary',
+            sort: 1,
             children: [
-              { id: 'short-sleeve', label: 'Short Sleeve', href: '/category/thobes/short-sleeve', position: 'primary' },
-              { id: 'long-sleeve', label: 'Long Sleeve', href: '/category/thobes/long-sleeve', position: 'primary' },
+              { id: 'short-sleeve', labelEn: 'Short Sleeve', labelAr: 'كم قصير', href: '/category/thobes/short-sleeve', sort: 1 },
+              { id: 'long-sleeve', labelEn: 'Long Sleeve', labelAr: 'كم طويل', href: '/category/thobes/long-sleeve', sort: 2 },
             ]
           }
         ]
       },
-      { id: 'shemaghs', label: 'Shemaghs', href: '/category/shemaghs', position: 'primary' },
-      { id: 'yemeni-shals', label: 'Yemeni Shals', href: '/category/yemeni-shals', position: 'primary' },
+      { id: 'shemaghs', labelEn: 'Shemaghs', labelAr: 'شماغ', href: '/category/shemaghs', sort: 2 },
+      { id: 'yemeni-shals', labelEn: 'Yemeni Shals', labelAr: 'شال يمني', href: '/category/yemeni-shals', sort: 3 },
       {
         id: 'women',
-        label: 'Women',
+        labelEn: 'Women',
+        labelAr: 'نساء',
         href: '/category/women',
-        position: 'primary',
+        sort: 4,
         children: [
-          { id: 'hijabs', label: 'Hijabs', href: '/category/hijabs', position: 'primary' },
-          { id: 'abayas', label: 'Abayas', href: '/category/abayas', position: 'primary' },
+          { id: 'hijabs', labelEn: 'Hijabs', labelAr: 'حجاب', href: '/category/hijabs', sort: 1 },
+          { id: 'abayas', labelEn: 'Abayas', labelAr: 'عباية', href: '/category/abayas', sort: 2 },
         ]
       },
-      { id: 'kids', label: 'Kids', href: '/category/kids', position: 'primary' },
+      { id: 'kids', labelEn: 'Kids', labelAr: 'أطفال', href: '/category/kids', sort: 5 },
     ]
   },
-  { id: 'about', label: 'ABOUT', href: '/about', position: 'primary' },
-  { id: 'contact', label: 'CONTACT', href: '/contact', position: 'primary' },
+  { id: 'about', labelEn: 'ABOUT', labelAr: 'عن', href: '/about', sort: 2 },
+  { id: 'contact', labelEn: 'CONTACT', labelAr: 'اتصل', href: '/contact', sort: 3 },
 ];
 
 export function MainNav() {
@@ -89,11 +93,11 @@ function NavMenuItem({
           href={item.href}
           className="text-[11px] font-medium uppercase tracking-wider text-bmr-black hover:text-muted transition-colors py-2 whitespace-nowrap"
         >
-          {item.label}
+          {item.labelEn}
         </Link>
       ) : (
         <button className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-bmr-black hover:text-muted transition-colors py-2 whitespace-nowrap">
-          {item.label}
+          {item.labelEn}
           {hasChildren && <ChevronDown className="w-3 h-3" />}
         </button>
       )}
@@ -133,11 +137,11 @@ function MegaMenuColumn({ item }: { item: NavItem }) {
           href={item.href}
           className="font-display text-base font-medium mb-3 block hover:text-muted transition-colors"
         >
-          {item.label}
+          {item.labelEn}
         </Link>
       ) : (
         <div className="font-display text-base font-medium mb-3">
-          {item.label}
+          {item.labelEn}
         </div>
       )}
       
@@ -150,10 +154,10 @@ function MegaMenuColumn({ item }: { item: NavItem }) {
                   href={child.href}
                   className="text-sm text-muted hover:text-bmr-black transition-colors block"
                 >
-                  {child.label}
+                  {child.labelEn}
                 </Link>
               ) : (
-                <div className="text-sm font-medium mb-1">{child.label}</div>
+                <div className="text-sm font-medium mb-1">{child.labelEn}</div>
               )}
               
               {child.children && child.children.length > 0 && (
@@ -164,7 +168,7 @@ function MegaMenuColumn({ item }: { item: NavItem }) {
                         href={nested.href || '#'}
                         className="text-xs text-muted hover:text-bmr-black transition-colors block"
                       >
-                        {nested.label}
+                        {nested.labelEn}
                       </Link>
                     </li>
                   ))}
@@ -184,7 +188,7 @@ function SubMenuItem({ item }: { item: NavItem }) {
       href={item.href || '#'}
       className="block px-4 py-2 text-sm hover:bg-border transition-colors"
     >
-      {item.label}
+      {item.labelEn}
     </Link>
   );
 }
