@@ -18,11 +18,12 @@ import {
 } from './adminStore';
 
 // Products
-export async function getAllProducts(): Promise<Product[]> {
+export async function getAllProducts(audience?: 'MEN'|'WOMEN'|'CHILDREN'): Promise<Product[]> {
   if (!USE_FIREBASE) return getLocalProducts();
 
   try {
-    const response = await fetch('/api/admin/products');
+    const qs = audience ? `?audience=${audience}` : '';
+    const response = await fetch(`/api/admin/products${qs}`);
     const data = await response.json();
     
     if (data.success) {

@@ -55,6 +55,7 @@ export function addProduct(productData: any): Product {
     subtitleEn: productData.subtitle || '',
     subtitleAr: productData.subtitleAr || productData.subtitle || '',
     category: productData.categoryId as any || 'THOBE',
+    audience: (productData.audience?.toUpperCase?.() || 'MEN') as any,
     basePrice: Math.round(parseFloat(productData.price) * 100), // Convert to cents
     currency: 'USD',
     featured: false,
@@ -69,8 +70,8 @@ export function addProduct(productData: any): Product {
       reviewCount: 0,
       ratingAvg: 0,
     },
-    defaultImage: productData.image ? { 
-      url: productData.image, 
+    defaultImage: (productData.thumbnail || productData.images?.[0]) ? { 
+      url: productData.thumbnail || productData.images?.[0], 
       w: 800, 
       h: 1000, 
       altEn: productData.name,

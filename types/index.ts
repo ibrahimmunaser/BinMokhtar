@@ -95,6 +95,7 @@ export interface IconItem {
 
 export type ProductCategory = 'THOBE' | 'SHAAL' | 'KUFI' | 'ACCESSORY';
 export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+export type Audience = 'MEN' | 'WOMEN' | 'CHILDREN';
 
 export interface Product {
   id: string;
@@ -115,6 +116,7 @@ export interface Product {
   currency: Currency;
   featured: boolean;
   tags: string[]; // slugified tags
+  audience?: Audience; // target shopper group
   // Product-level aggregated attributes from variants
   sizes?: string[]; // available sizes across variants
   colors?: string[]; // available colors across variants

@@ -25,8 +25,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ product, success: true });
     }
 
-    // Get all products
-    const productsRef = adminDb().collection('products');
+    // Get all products (optionally by audience: men|women|children)
+    const audience = searchParams.get('audience');
+    let productsRef = adminDb().collection('products');
+    if (audience) {
+      productsRef = productsRef.where('audience', '==', audience.toUpperCase());
+    }
     const snapshot = await productsRef.orderBy('createdAt', 'desc').get();
     
     const products = snapshot.docs.map(doc => ({
@@ -53,6 +57,7 @@ export async function POST(request: NextRequest) {
       name: body.name,
       subtitle: body.subtitle || '',
       categoryId: body.categoryId,
+      audience: (body.audience || 'MEN').toUpperCase(),
       price: Math.round(parseFloat(body.price) * 100), // Convert to cents
       compareAtPrice: body.compareAtPrice ? Math.round(parseFloat(body.compareAtPrice) * 100) : null,
       colors: body.colors ? body.colors.split(',').map((c: string) => c.trim()) : [],

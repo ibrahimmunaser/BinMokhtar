@@ -1,31 +1,19 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { Container } from '@/components/layout/Container';
+import { ProductCard } from '@/components/products/ProductCard';
+import { getAllProducts } from '@/lib/firebaseAdminStore';
 
 export default function ChildrenCollectionsPage() {
-  const childrenCollections = [
-    {
-      id: 'toddlers',
-      name: 'TODDLERS',
-      href: '/category/toddlers',
-    },
-    {
-      id: 'boys-omani',
-      name: "BOY'S OMANI",
-      href: '/category/boys-omani',
-    },
-    {
-      id: 'gandoura',
-      name: 'GANDOURA',
-      href: '/category/children-gandoura',
-    },
-    {
-      id: 'djellaba',
-      name: 'DJELLABA',
-      href: '/category/children-djellaba',
-    },
-  ];
+  const [products, setProducts] = useState<any[]>([]);
+  useEffect(() => {
+    getAllProducts('CHILDREN').then((all) => {
+      const filtered = (all || []).filter((p: any) => (p.audience || 'MEN') === 'CHILDREN');
+      setProducts(filtered);
+    });
+  }, []);
 
   return (
     <>
@@ -41,21 +29,29 @@ export default function ChildrenCollectionsPage() {
 
       <section className="py-16 lg:py-20">
         <Container>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {childrenCollections.map((collection) => (
-              <Link
-                key={collection.id}
-                href={collection.href}
-                className="group relative aspect-[3/4] overflow-hidden bg-gray-100"
-              >
-                <div className="absolute inset-0 bg-gray-800"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <h3 className="text-white font-medium text-sm uppercase tracking-wider text-center px-4">
-                    {collection.name}
-                  </h3>
-                </div>
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-              </Link>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <ProductCard
+                key={product.id}
+                variant={{
+                  id: product.id,
+                  productId: product.id,
+                  productSlug: product.slug,
+                  productTitleEn: product.titleEn || product.name,
+                  productTitleAr: product.titleAr || product.name,
+                  category: product.category || 'THOBE',
+                  sku: product.id,
+                  size: product.sizes?.[0],
+                  price: product.price || product.basePrice,
+                  compareAt: undefined,
+                  stock: product.counts?.totalStock ?? product.stock ?? 0,
+                  active: true,
+                  imageUrl: product.defaultImage?.url || product.thumbnail,
+                  createdAt: product.createdAt,
+                  updatedAt: product.updatedAt,
+                }}
+                showSoldOut
+              />
             ))}
           </div>
         </Container>
@@ -63,6 +59,7 @@ export default function ChildrenCollectionsPage() {
     </>
   );
 }
+
 
 
 

@@ -17,6 +17,7 @@ export default function NewProductPage() {
     name: '',
     subtitle: '',
     categoryId: 'thobes',
+    audience: 'MEN',
     price: '',
     compareAtPrice: '',
     stock: '',
@@ -216,6 +217,19 @@ export default function NewProductPage() {
             <h2 className="font-display text-xl mb-6">Category & Pricing</h2>
 
             <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-2">Audience *</label>
+                <select
+                  value={formData.audience}
+                  onChange={(e) => setFormData({ ...formData, audience: e.target.value as any })}
+                  required
+                  className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
+                >
+                  <option value="MEN">Men</option>
+                  <option value="WOMEN">Women</option>
+                  <option value="CHILDREN">Children</option>
+                </select>
+              </div>
               <div>
                 <label className="block text-sm font-medium mb-2">Category *</label>
                 <select
