@@ -22,7 +22,7 @@ export default function ProductPage() {
   const params = useParams();
   const slug = params.slug as string;
   const { product, isLoading } = useProductBySlug(slug);
-  const { products: relatedProducts } = useProductsByCategory(product?.categoryId || null);
+  const { products: relatedProducts } = useProductsByCategory(product?.id || null);
   const { currency } = useLocale();
   const addToCart = useCartStore((state) => state.add);
 
@@ -33,7 +33,7 @@ export default function ProductPage() {
 
   // Log product view when product loads
   if (product && !isLoading) {
-    logProductView(product.id, product.name, product.categoryId);
+    logProductView(product.id, product.titleEn, product.category);
   }
 
   const handleAddToCart = () => {
@@ -50,18 +50,19 @@ export default function ProductPage() {
     }
 
     addToCart({
+      variantId: product.id, // Would be variant ID in real app
       productId: product.id,
-      slug: product.slug,
-      name: product.name,
-      price: product.price,
+      title: product.titleEn,
+      sku: product.sku,
+      priceAtAdd: product.price || product.basePrice,
       qty,
       size: selectedSize || undefined,
       color: selectedColor || undefined,
-      sleeve: selectedSleeve || undefined,
-      image: product.thumbnail || product.images[0],
+      length: selectedSleeve || undefined,
+      imageUrl: product.defaultImage?.url,
     });
 
-    logAddToCart(product.id, product.name, product.price, qty);
+    logAddToCart(product.id, product.titleEn, product.price || product.basePrice, qty);
     alert('Added to cart!');
   };
 
@@ -95,31 +96,32 @@ export default function ProductPage() {
   const accordionItems = [
     {
       title: 'Product Details',
-      content: product.descriptionHtml,
+      content: product.descriptionEn || product.subtitleEn || '',
       defaultOpen: true,
     },
   ];
 
-  if (product.fabricHtml) {
+  if (product.fabric) {
     accordionItems.push({
       title: 'Fabric & Care',
-      content: product.fabricHtml,
+      content: product.fabric,
+      defaultOpen: false,
     });
   }
 
-  if (product.careHtml) {
+  if (product.care) {
     accordionItems.push({
       title: 'Care Instructions',
-      content: product.careHtml,
+      content: product.care,
+      defaultOpen: false,
     });
   }
 
   accordionItems.push({
     title: 'Shipping & Returns',
     content: '<p>Free shipping on orders over $99. Easy returns within 14 days.</p>',
+    defaultOpen: false,
   });
-
-  const hasDiscount = product.compareAtPrice && product.compareAtPrice > product.price;
 
   return (
     <>
@@ -128,58 +130,48 @@ export default function ProductPage() {
           <Breadcrumbs
             items={[
               { label: 'Shop', href: '/shop' },
-              { label: product.name, href: `/product/${product.slug}` },
+              { label: product.titleEn, href: `/product/${product.slug}` },
             ]}
           />
 
           <div className="mt-12 lg:grid lg:grid-cols-[1.2fr_1fr] lg:gap-16">
             {/* Gallery */}
             <div>
-              <ProductGallery images={product.images} alt={product.name} />
+              <ProductGallery images={product.defaultImage ? [product.defaultImage.url] : []} alt={product.titleEn} />
             </div>
 
             {/* Product Info */}
             <div className="mt-8 lg:mt-0 lg:sticky lg:top-24 lg:self-start">
-              {product.badges && product.badges.length > 0 && (
+              {product.featured && (
                 <div className="flex gap-2 mb-6">
-                  {product.badges.map((badge) => (
-                    <span
-                      key={badge}
-                      className="px-4 py-1.5 bg-bmr-ink text-surface-2 text-xs uppercase tracking-wideish rounded-full"
-                    >
-                      {badge}
-                    </span>
-                  ))}
+                  <span className="px-4 py-1.5 bg-bmr-ink text-surface-2 text-xs uppercase tracking-wideish rounded-full">
+                    Featured
+                  </span>
                 </div>
               )}
 
-              <h1 className="font-display text-3xl lg:text-4xl leading-tight mb-3">{product.name}</h1>
+              <h1 className="font-display text-3xl lg:text-4xl leading-tight mb-3">{product.titleEn}</h1>
 
-              {product.subtitle && (
-                <p className="text-lg text-bmr-muted leading-relaxed mb-8">{product.subtitle}</p>
+              {product.subtitleEn && (
+                <p className="text-lg text-bmr-muted leading-relaxed mb-8">{product.subtitleEn}</p>
               )}
 
               <div className="flex items-baseline gap-4 mb-8 pb-8 border-b border-line">
                 <span className="font-display text-3xl">
-                  {formatPrice(product.price, currency)}
+                  {formatPrice(product.price || product.basePrice, currency)}
                 </span>
-                {hasDiscount && (
-                  <span className="text-lg text-bmr-muted line-through">
-                    {formatPrice(product.compareAtPrice!, currency)}
-                  </span>
-                )}
               </div>
 
-              {product.stock === 0 && (
+              {product.counts.totalStock === 0 && (
                 <div className="mb-8 p-6 bg-surface-3 rounded-lg border border-line">
                   <p className="text-sm font-medium text-bmr-ink">Currently out of stock</p>
                   <p className="text-sm text-bmr-muted mt-1">Sign up for restock notifications</p>
                 </div>
               )}
 
-              {product.stock > 0 && product.stock <= 5 && (
+              {product.counts.totalStock > 0 && product.counts.totalStock <= 5 && (
                 <div className="mb-8 p-6 bg-surface-3 rounded-lg border border-line">
-                  <p className="text-sm font-medium text-bmr-acc-red">Only {product.stock} left in stock</p>
+                  <p className="text-sm font-medium text-bmr-acc-red">Only {product.counts.totalStock} left in stock</p>
                   <p className="text-sm text-bmr-muted mt-1">Order soon to avoid missing out</p>
                 </div>
               )}
@@ -201,20 +193,20 @@ export default function ProductPage() {
                   />
                 )}
 
-                {product.sleeve && (
+                {product.sleeve && (product.sleeve === 'short' || product.sleeve === 'long') && (
                   <SleeveSelect
-                    sleeves={[product.sleeve]}
+                    sleeves={[product.sleeve as 'short' | 'long']}
                     selected={selectedSleeve}
                     onChange={setSelectedSleeve}
                   />
                 )}
 
                 <div className="flex items-center gap-4">
-                  <QtyStepper value={qty} onChange={setQty} max={product.stock} />
+                  <QtyStepper value={qty} onChange={setQty} max={product.counts.totalStock} />
                   <div className="flex-1">
                     <AddToCartButton
                       onClick={handleAddToCart}
-                      disabled={product.stock === 0}
+                      disabled={product.counts.totalStock === 0}
                     />
                   </div>
                 </div>
@@ -247,15 +239,15 @@ export default function ProductPage() {
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'Product',
-            name: product.name,
-            image: product.images,
-            description: product.subtitle || product.name,
+            name: product.titleEn,
+            image: product.defaultImage?.url,
+            description: product.subtitleEn || product.titleEn,
             offers: {
               '@type': 'Offer',
-              price: product.price / 100,
+              price: (product.price || product.basePrice) / 100,
               priceCurrency: currency,
               availability:
-                product.stock > 0
+                product.counts.totalStock > 0
                   ? 'https://schema.org/InStock'
                   : 'https://schema.org/OutOfStock',
             },

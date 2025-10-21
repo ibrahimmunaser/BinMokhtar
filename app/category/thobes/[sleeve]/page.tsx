@@ -30,8 +30,8 @@ export default function ThobeSleevePage() {
   // Filter products to thobes with specific sleeve
   const thobeProducts = useMemo(() => {
     return allProducts?.filter((p) => {
-      // Assuming thobes have categoryId containing 'thobe'
-      const isThobeCategory = p.categoryId.toLowerCase().includes('thobe');
+      // Check if product is a thobe category
+      const isThobeCategory = p.category === 'THOBE';
       return isThobeCategory && p.sleeve === sleeveType;
     }) || [];
   }, [allProducts, sleeveType]);
@@ -60,23 +60,31 @@ export default function ThobeSleevePage() {
       filtered = filtered.filter((p) => p.colors?.some((c) => filters.colors.includes(c)));
     }
     if (filters.priceRange[0] > 0 || filters.priceRange[1] < 100000) {
-      filtered = filtered.filter(
-        (p) => p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1]
-      );
+      filtered = filtered.filter((p) => {
+        const productPrice = p.price || p.basePrice;
+        return productPrice >= filters.priceRange[0] && productPrice <= filters.priceRange[1];
+      });
     }
 
     // Apply sorting
     switch (sortOption) {
-      case 'price-asc':
-        filtered.sort((a, b) => a.price - b.price);
+      case 'priceAsc':
+        filtered.sort((a, b) => (a.price || a.basePrice) - (b.price || b.basePrice));
         break;
-      case 'price-desc':
-        filtered.sort((a, b) => b.price - a.price);
+      case 'priceDesc':
+        filtered.sort((a, b) => (b.price || b.basePrice) - (a.price || a.basePrice));
         break;
-      case 'newest':
-        filtered.sort((a, b) => b.createdAt - a.createdAt);
+      case 'new':
+        filtered.sort((a, b) => {
+          const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : (a.createdAt as any).seconds * 1000;
+          const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : (b.createdAt as any).seconds * 1000;
+          return bTime - aTime;
+        });
         break;
+      case 'featured':
+      case 'popular':
       default:
+        // Keep original order for featured/popular
         break;
     }
 
