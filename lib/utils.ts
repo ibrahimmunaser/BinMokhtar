@@ -92,3 +92,26 @@ export function sleep(ms: number): Promise<void> {
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
+
+/**
+ * Re-export formatPrice from currency.ts for convenience
+ */
+export { formatPrice } from './currency';
+
+/**
+ * Check if user is admin (basic implementation)
+ * Can check by email or password
+ */
+export function isAdmin(emailOrPassword?: string): boolean {
+  if (!emailOrPassword) return false;
+  
+  // Check if it's admin email
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@binmokhtar.com';
+  if (emailOrPassword === adminEmail) return true;
+  
+  // Check if it's admin password
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (adminPassword && emailOrPassword === adminPassword) return true;
+  
+  return false;
+}
