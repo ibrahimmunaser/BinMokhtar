@@ -8,9 +8,6 @@ import { Plus } from 'lucide-react';
 export default function AdminNavigationPage() {
   const { navigation, isLoading } = useNavigation();
 
-  const primaryNav = navigation.filter((item) => item.position === 'primary');
-  const utilityNav = navigation.filter((item) => item.position === 'utility');
-
   return (
     <Container narrow className="py-12">
       <div className="flex items-center justify-between mb-8">
@@ -26,31 +23,16 @@ export default function AdminNavigationPage() {
       ) : (
         <div className="space-y-8">
           <section className="border border-border p-6">
-            <h2 className="text-xl font-display mb-4">Primary Navigation</h2>
+            <h2 className="text-xl font-display mb-4">Navigation Items</h2>
             <div className="space-y-3">
-              {primaryNav.map((item) => (
+              {navigation.map((item) => (
                 <div key={item.id} className="flex items-center justify-between p-3 border border-border hover:bg-border/30">
                   <div>
-                    <div className="font-medium">{item.label}</div>
+                    <div className="font-medium">{item.labelEn} / {item.labelAr}</div>
                     {item.href && <div className="text-sm text-muted">{item.href}</div>}
                     {item.children && (
                       <div className="text-xs text-muted mt-1">{item.children.length} subitems</div>
                     )}
-                  </div>
-                  <button className="text-sm hover:underline">Edit</button>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="border border-border p-6">
-            <h2 className="text-xl font-display mb-4">Utility Navigation</h2>
-            <div className="space-y-3">
-              {utilityNav.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 border border-border hover:bg-border/30">
-                  <div>
-                    <div className="font-medium">{item.label}</div>
-                    {item.href && <div className="text-sm text-muted">{item.href}</div>}
                   </div>
                   <button className="text-sm hover:underline">Edit</button>
                 </div>
