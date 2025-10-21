@@ -26,7 +26,12 @@ export async function getAllProducts(): Promise<Product[]> {
     const data = await response.json();
     
     if (data.success) {
-      return data.products;
+      const remote: Product[] = data.products || [];
+      if (remote.length > 0) return remote;
+      // If remote is empty, prefer local (admin may have saved locally earlier)
+      const local = getLocalProducts();
+      if (local.length > 0) return local;
+      return remote;
     }
     
     // Fallback to localStorage on error
@@ -107,7 +112,11 @@ export async function getAllCategories() {
     const data = await response.json();
     
     if (data.success) {
-      return data.categories;
+      const remote = data.categories || [];
+      if (remote.length > 0) return remote;
+      const local = getLocalCategories();
+      if (local.length > 0) return local;
+      return remote;
     }
     
     // Fallback to localStorage on error
