@@ -347,9 +347,10 @@ export interface FilterState {
   categories: ProductCategory[];
   sizes: string[];
   colors: string[];
-  lengths: string[];
+  lengths?: string[]; // optional length filter
+  sleeves?: string[]; // optional sleeve filter
   priceRange: [number, number];
-  inStock: boolean;
+  inStock?: boolean; // optional stock filter
 }
 
 export type SortOption = 'featured' | 'new' | 'priceAsc' | 'priceDesc' | 'popular';
