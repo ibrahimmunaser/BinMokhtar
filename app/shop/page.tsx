@@ -33,13 +33,13 @@ export default function ShopPage() {
   // Extract available sizes and colors
   const availableSizes = useMemo(() => {
     const sizes = new Set<string>();
-    products?.forEach((p) => p.sizes?.forEach((s) => sizes.add(s)));
+    products?.forEach((p) => p.sizes?.forEach((s: string) => sizes.add(s)));
     return Array.from(sizes).sort();
   }, [products]);
 
   const availableColors = useMemo(() => {
     const colors = new Set<string>();
-    products?.forEach((p) => p.colors?.forEach((c) => colors.add(c)));
+    products?.forEach((p) => p.colors?.forEach((c: string) => colors.add(c)));
     return Array.from(colors);
   }, [products]);
 

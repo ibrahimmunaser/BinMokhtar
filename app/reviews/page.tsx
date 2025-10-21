@@ -56,7 +56,9 @@ export default function ReviewsPage() {
                   <p className="text-sm text-bmr-muted">{review.name}</p>
                 </div>
                 <span className="text-sm text-bmr-muted">
-                  {new Date(review.createdAt).toLocaleDateString()}
+                  {review.createdAt instanceof Date 
+                    ? review.createdAt.toLocaleDateString() 
+                    : new Date((review.createdAt as any).seconds * 1000).toLocaleDateString()}
                 </span>
               </div>
               <p className="text-bmr-ink leading-relaxed">{review.body}</p>
