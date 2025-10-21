@@ -131,7 +131,7 @@ export function addCategory(categoryData: any) {
 
 export function updateCategory(categoryId: string, updates: any): void {
   const categories = getAllCategories();
-  const index = categories.findIndex(c => c.id === categoryId);
+  const index = categories.findIndex((c: any) => c.id === categoryId);
   
   if (index !== -1) {
     categories[index] = { ...categories[index], ...updates };
@@ -141,7 +141,7 @@ export function updateCategory(categoryId: string, updates: any): void {
 
 export function deleteCategory(categoryId: string): void {
   const categories = getAllCategories();
-  const filtered = categories.filter(c => c.id !== categoryId);
+  const filtered = categories.filter((c: any) => c.id !== categoryId);
   localStorage.setItem(CATEGORIES_KEY, JSON.stringify(filtered));
 }
 
@@ -151,12 +151,15 @@ export function updateCategoryProductCounts(): void {
   
   // Count products per category
   const counts: Record<string, number> = {};
-  products.forEach(p => {
-    counts[p.categoryId] = (counts[p.categoryId] || 0) + 1;
+  products.forEach((p) => {
+    const catId = (p as any).category as string | undefined;
+    if (catId) {
+      counts[catId] = (counts[catId] || 0) + 1;
+    }
   });
   
   // Update categories
-  categories.forEach(c => {
+  categories.forEach((c: any) => {
     c.productCount = counts[c.id] || 0;
   });
   
