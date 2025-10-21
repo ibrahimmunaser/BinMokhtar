@@ -17,6 +17,17 @@ export default function AccountPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
 
+  // Helper function to convert Firestore Timestamp or Date to Date object
+  const toDate = (timestamp: any): Date => {
+    if (timestamp instanceof Date) {
+      return timestamp;
+    }
+    if (timestamp?.seconds) {
+      return new Date(timestamp.seconds * 1000);
+    }
+    return new Date();
+  };
+
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
@@ -113,7 +124,7 @@ export default function AccountPage() {
                     <div>
                       <p className="font-medium">Order #{order.id}</p>
                       <p className="text-sm text-muted mt-1">
-                        {new Date(order.createdAt.seconds * 1000).toLocaleDateString()}
+                        {toDate(order.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="text-right">
