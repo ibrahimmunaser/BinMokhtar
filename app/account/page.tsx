@@ -140,7 +140,7 @@ export default function AccountPage() {
                     <div className="flex gap-2 flex-wrap">
                       {order.items.slice(0, 4).map((item) => (
                         <div key={item.id} className="text-xs">
-                          {item.name}
+                          {item.title}
                           {item.qty > 1 && ` (×${item.qty})`}
                         </div>
                       ))}

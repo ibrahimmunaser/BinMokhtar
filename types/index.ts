@@ -200,6 +200,7 @@ export interface Order {
   tax: number; // in cents
   total: number; // in cents
   currency: Currency;
+  items: OrderItem[]; // order items
   stripeSessionId?: string;
   stripePaymentIntent?: string;
   shippingAddress: ShippingAddress;
