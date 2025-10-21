@@ -1,4 +1,4 @@
-import { adminDb } from './firebase-admin';
+import { adminDb } from './firebase/server';
 import type { Product, Category, NavItem } from '@/types';
 
 /**
@@ -8,7 +8,7 @@ import type { Product, Category, NavItem } from '@/types';
 
 // Products
 export async function adminCreateProduct(product: Omit<Product, 'id'>) {
-  const docRef = await adminDb.collection('products').add({
+  const docRef = await adminDb().collection('products').add({
     ...product,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -17,7 +17,7 @@ export async function adminCreateProduct(product: Omit<Product, 'id'>) {
 }
 
 export async function adminUpdateProduct(id: string, updates: Partial<Product>) {
-  await adminDb
+  await adminDb()
     .collection('products')
     .doc(id)
     .update({
@@ -27,40 +27,40 @@ export async function adminUpdateProduct(id: string, updates: Partial<Product>) 
 }
 
 export async function adminDeleteProduct(id: string) {
-  await adminDb.collection('products').doc(id).delete();
+  await adminDb().collection('products').doc(id).delete();
 }
 
 // Categories
 export async function adminCreateCategory(category: Omit<Category, 'id'>) {
-  const docRef = await adminDb.collection('categories').add(category);
+  const docRef = await adminDb().collection('categories').add(category);
   return docRef.id;
 }
 
 export async function adminUpdateCategory(id: string, updates: Partial<Category>) {
-  await adminDb.collection('categories').doc(id).update(updates);
+  await adminDb().collection('categories').doc(id).update(updates);
 }
 
 export async function adminDeleteCategory(id: string) {
-  await adminDb.collection('categories').doc(id).delete();
+  await adminDb().collection('categories').doc(id).delete();
 }
 
 // Navigation
 export async function adminCreateNavItem(navItem: Omit<NavItem, 'id'>) {
-  const docRef = await adminDb.collection('navigation').add(navItem);
+  const docRef = await adminDb().collection('navigation').add(navItem);
   return docRef.id;
 }
 
 export async function adminUpdateNavItem(id: string, updates: Partial<NavItem>) {
-  await adminDb.collection('navigation').doc(id).update(updates);
+  await adminDb().collection('navigation').doc(id).update(updates);
 }
 
 export async function adminDeleteNavItem(id: string) {
-  await adminDb.collection('navigation').doc(id).delete();
+  await adminDb().collection('navigation').doc(id).delete();
 }
 
 // Settings
 export async function adminUpdateSettings(collection: string, doc: string, data: any) {
-  await adminDb.collection('settings').doc(doc).set(data, { merge: true });
+  await adminDb().collection('settings').doc(doc).set(data, { merge: true });
 }
 
 // User verification
