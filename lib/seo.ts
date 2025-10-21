@@ -91,7 +91,7 @@ export function generateProductMetadata(
       },
     },
     openGraph: {
-      type: 'product',
+      type: 'website',
       url: canonical,
       title,
       description,
