@@ -60,7 +60,6 @@ export function addProduct(productData: any): Product {
     featured: false,
     tags: [],
     price: productData.price ? Math.round(parseFloat(productData.price) * 100) : undefined,
-    compareAt: productData.compareAtPrice ? Math.round(parseFloat(productData.compareAtPrice) * 100) : undefined,
     colors: productData.colors ? productData.colors.split(',').map((c: string) => c.trim()) : undefined,
     sizes: productData.sizes ? productData.sizes.split(',').map((s: string) => s.trim()) : undefined,
     counts: {
