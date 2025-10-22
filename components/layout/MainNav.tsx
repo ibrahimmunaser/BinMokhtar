@@ -5,52 +5,46 @@ import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import type { NavItem } from '@/types';
 
-// Navigation structure matching client IA
+// Navigation structure per request: Men, Women, Kids, Shemaghs, Yemeni Shals, About, Contact
 const defaultNavigation: NavItem[] = [
   {
-    id: 'shop',
-    labelEn: 'SHOP',
-    labelAr: 'متجر',
+    id: 'men',
+    labelEn: 'Men',
+    labelAr: 'رجال',
+    href: '/shop/mens',
     sort: 1,
     children: [
-      { 
-        id: 'men', 
-        labelEn: 'Men', 
-        labelAr: 'رجال',
-        href: '/category/men',
-        sort: 1,
-        children: [
-          {
-            id: 'thobes',
-            labelEn: 'Thobes',
-            labelAr: 'ثياب',
-            href: '/category/thobes',
-            sort: 1,
-            children: [
-              { id: 'short-sleeve', labelEn: 'Short Sleeve', labelAr: 'كم قصير', href: '/category/thobes/short-sleeve', sort: 1 },
-              { id: 'long-sleeve', labelEn: 'Long Sleeve', labelAr: 'كم طويل', href: '/category/thobes/long-sleeve', sort: 2 },
-            ]
-          }
-        ]
-      },
-      { id: 'shemaghs', labelEn: 'Shemaghs', labelAr: 'شماغ', href: '/category/shemaghs', sort: 2 },
-      { id: 'yemeni-shals', labelEn: 'Yemeni Shals', labelAr: 'شال يمني', href: '/category/yemeni-shals', sort: 3 },
-      {
-        id: 'women',
-        labelEn: 'Women',
-        labelAr: 'نساء',
-        href: '/category/women',
-        sort: 4,
-        children: [
-          { id: 'hijabs', labelEn: 'Hijabs', labelAr: 'حجاب', href: '/category/hijabs', sort: 1 },
-          { id: 'abayas', labelEn: 'Abayas', labelAr: 'عباية', href: '/category/abayas', sort: 2 },
-        ]
-      },
-      { id: 'kids', labelEn: 'Kids', labelAr: 'أطفال', href: '/category/kids', sort: 5 },
-    ]
+      { id: 'shop-all-men', labelEn: 'Shop All Men', labelAr: 'تسوق الرجال', href: '/shop/mens', sort: 1 },
+      { id: 'thobes-short', labelEn: 'Thobes • Short Sleeve', labelAr: 'ثياب • كم قصير', href: '/category/thobes/short-sleeve', sort: 2 },
+      { id: 'thobes-long', labelEn: 'Thobes • Long Sleeve', labelAr: 'ثياب • كم طويل', href: '/category/thobes/long-sleeve', sort: 3 },
+    ],
   },
-  { id: 'about', labelEn: 'ABOUT', labelAr: 'عن', href: '/about', sort: 2 },
-  { id: 'contact', labelEn: 'CONTACT', labelAr: 'اتصل', href: '/contact', sort: 3 },
+  {
+    id: 'women',
+    labelEn: 'Women',
+    labelAr: 'نساء',
+    href: '/shop/womens',
+    sort: 2,
+    children: [
+      { id: 'shop-all-women', labelEn: 'Shop All Women', labelAr: 'تسوق النساء', href: '/shop/womens', sort: 1 },
+      { id: 'hijabs', labelEn: 'Hijabs', labelAr: 'حجاب', href: '/category/hijabs', sort: 2 },
+      { id: 'abayas', labelEn: 'Abayas', labelAr: 'عباية', href: '/category/abayas', sort: 3 },
+    ],
+  },
+  {
+    id: 'kids',
+    labelEn: 'Kids',
+    labelAr: 'أطفال',
+    href: '/shop/children',
+    sort: 3,
+    children: [
+      { id: 'shop-all-kids', labelEn: 'Shop All Kids', labelAr: 'تسوق الأطفال', href: '/shop/children', sort: 1 },
+    ],
+  },
+  { id: 'shemaghs', labelEn: 'Shemaghs', labelAr: 'شماغ', href: '/category/shemaghs', sort: 4 },
+  { id: 'yemeni-shals', labelEn: 'Yemeni Shals', labelAr: 'شال يمني', href: '/category/yemeni-shals', sort: 5 },
+  { id: 'about', labelEn: 'ABOUT', labelAr: 'عن', href: '/about', sort: 6 },
+  { id: 'contact', labelEn: 'CONTACT', labelAr: 'اتصل', href: '/contact', sort: 7 },
 ];
 
 export function MainNav() {
@@ -84,7 +78,7 @@ function NavMenuItem({
   onMouseLeave: () => void;
 }) {
   const hasChildren = item.children && item.children.length > 0;
-  const isMegaMenu = item.id === 'shop';
+  const isMegaMenu = false;
 
   return (
     <div className="relative" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
