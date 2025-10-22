@@ -85,14 +85,21 @@ function NavMenuItem({
       {item.href ? (
         <Link
           href={item.href}
-          className="text-[11px] font-medium uppercase tracking-wider text-bmr-black hover:text-muted transition-colors py-2 whitespace-nowrap"
+          className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-bmr-black hover:text-muted transition-colors py-2 whitespace-nowrap"
+          aria-haspopup={hasChildren ? 'menu' : undefined}
+          aria-expanded={hasChildren ? (isActive ? 'true' : 'false') : undefined}
         >
-          {item.labelEn}
+          <span>{item.labelEn}</span>
+          {hasChildren && (
+            <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isActive ? 'rotate-180' : ''}`} />
+          )}
         </Link>
       ) : (
         <button className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-bmr-black hover:text-muted transition-colors py-2 whitespace-nowrap">
           {item.labelEn}
-          {hasChildren && <ChevronDown className="w-3 h-3" />}
+          {hasChildren && (
+            <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isActive ? 'rotate-180' : ''}`} />
+          )}
         </button>
       )}
 
