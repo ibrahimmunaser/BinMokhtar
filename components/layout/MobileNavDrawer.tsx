@@ -230,7 +230,7 @@ function MobileNavItem({
     <Link
       href={item.href || '#'}
       onClick={onClose}
-      className="block py-2.5 text-sm hover:text-muted transition-colors"
+      className="block py-3 text-sm text-bmr-black hover:text-muted transition-colors"
       style={{ paddingLeft }}
     >
       {item.labelEn}

@@ -109,7 +109,7 @@ function NavMenuItem({
       )}
 
       {hasChildren && isActive && !isMegaMenu && (
-        <div className="absolute top-full left-0 mt-0 min-w-[200px] bg-bmr-white border border-border shadow-lg z-50">
+        <div className="absolute top-full left-0 mt-2 min-w-[220px] rounded-lg bg-bmr-white shadow-xl ring-1 ring-black/10 z-50">
           <div className="py-2">
             {item.children!.map((child) => (
               <SubMenuItem key={child.id} item={child} />
@@ -180,7 +180,7 @@ function SubMenuItem({ item }: { item: NavItem }) {
   return (
     <Link
       href={item.href || '#'}
-      className="block px-4 py-2 text-sm hover:bg-border transition-colors"
+      className="block px-4 py-2.5 text-sm text-bmr-black hover:bg-bmr-black/5 focus:bg-bmr-black/5 rounded-md transition-colors"
     >
       {item.labelEn}
     </Link>
