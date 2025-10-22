@@ -87,7 +87,7 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
       <div
         className={`fixed top-0 ${
           language === 'ar' ? 'left-0' : 'right-0'
-        } h-full w-full max-w-sm bg-bmr-white z-50 overflow-y-auto lg:hidden`}
+        } h-full w-full max-w-sm bg-surface-2 z-50 overflow-y-auto lg:hidden`}
       >
         <div className="p-6">
           <button

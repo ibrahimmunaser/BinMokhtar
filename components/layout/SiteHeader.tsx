@@ -16,7 +16,7 @@ export function SiteHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-bmr-white/95 backdrop-blur-sm border-b border-border shadow-sm">
+      <header className="sticky top-0 z-40 bg-surface-2 border-b border-border shadow-sm">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20 gap-8">
             {/* Left: Mobile menu / Logo */}

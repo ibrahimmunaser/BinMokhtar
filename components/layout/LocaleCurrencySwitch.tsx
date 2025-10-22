@@ -42,7 +42,7 @@ export function LocaleCurrencySwitch() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-bmr-white border border-border shadow-lg z-50">
+        <div className="absolute right-0 mt-2 w-48 bg-surface-2 border border-border shadow-lg z-50">
           <div className="p-3 border-b border-border">
             <div className="text-xs font-medium mb-2">Language</div>
             <div className="space-y-1">
@@ -92,6 +92,8 @@ export function LocaleCurrencySwitch() {
 function cn(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
 }
+
+
 
 
 

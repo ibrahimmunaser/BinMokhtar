@@ -97,7 +97,7 @@ function NavMenuItem({
       )}
 
       {hasChildren && isActive && isMegaMenu && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 w-[640px] bg-bmr-white border border-border shadow-lg z-50">
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 w-[640px] bg-surface-2 border border-border shadow-lg z-50">
           <div className="p-8">
             <div className="grid grid-cols-3 gap-8">
               {item.children!.map((child) => (
@@ -109,7 +109,7 @@ function NavMenuItem({
       )}
 
       {hasChildren && isActive && !isMegaMenu && (
-        <div className="absolute top-full left-0 mt-2 min-w-[220px] rounded-lg bg-bmr-white shadow-xl ring-1 ring-black/10 z-50">
+        <div className="absolute top-full left-0 mt-2 min-w-[220px] rounded-lg bg-surface-2 shadow-xl ring-1 ring-black/10 z-50">
           <div className="py-2">
             {item.children!.map((child) => (
               <SubMenuItem key={child.id} item={child} />

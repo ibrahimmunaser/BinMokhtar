@@ -46,7 +46,7 @@ export function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
   return (
     <>
       <div className="fixed inset-0 bg-bmr-black/50 z-50" onClick={onClose} />
-      <div className="fixed inset-x-0 top-0 z-50 bg-bmr-white border-b border-border">
+      <div className="fixed inset-x-0 top-0 z-50 bg-surface-2 border-b border-border">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4 py-6">
             <Search className="w-5 h-5 text-muted flex-shrink-0" />

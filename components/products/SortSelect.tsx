@@ -17,7 +17,7 @@ export function SortSelect({ value, onChange }: SortSelectProps) {
         id="sort"
         value={value}
         onChange={(e) => onChange(e.target.value as SortOption)}
-        className="px-4 py-2 border border-border bg-bmr-white text-sm focus:outline-none focus:border-bmr-black"
+        className="px-4 py-2 border border-border bg-surface-2 text-sm focus:outline-none focus:border-bmr-black"
       >
         <option value="featured">Featured</option>
         <option value="price-asc">Price: Low to High</option>
@@ -27,6 +27,8 @@ export function SortSelect({ value, onChange }: SortSelectProps) {
     </div>
   );
 }
+
+
 
 
 
