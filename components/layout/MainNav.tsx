@@ -116,7 +116,7 @@ function NavMenuItem({
       )}
 
       {hasChildren && isActive && !isMegaMenu && (
-        <div className="absolute top-full left-0 mt-2 min-w-[220px] rounded-lg bg-surface-2 shadow-xl ring-1 ring-black/10 z-50">
+        <div className="absolute top-full left-0 mt-0 min-w-[220px] rounded-lg bg-surface-2 shadow-xl ring-1 ring-black/10 z-50">
           <div className="py-2">
             {item.children!.map((child) => (
               <SubMenuItem key={child.id} item={child} />
