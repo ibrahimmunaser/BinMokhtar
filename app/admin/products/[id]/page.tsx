@@ -91,6 +91,7 @@ export default function EditProductPage() {
         colors: Array.isArray(prod.colors) ? prod.colors : [],
         sizes: Array.isArray(prod.sizes) ? prod.sizes : [],
         published: prod.published !== false,
+        sleeve: prod.sleeve || '',
       });
       const loadedVariants = Array.isArray(prod.variants) ? prod.variants : [];
       setVariants(loadedVariants.map((v: any) => ({ size: v.size, color: v.color, stock: v.stock || 0 })));
