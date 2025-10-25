@@ -30,6 +30,7 @@ export default function EditProductPage() {
     colors: [] as string[],
     sizes: [] as string[],
     published: true,
+    sleeve: '' as string,
   });
   const [variants, setVariants] = useState<{ size?: string; color?: string; stock: number }[]>([]);
   const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
