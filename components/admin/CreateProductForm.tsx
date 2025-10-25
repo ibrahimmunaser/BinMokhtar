@@ -233,7 +233,6 @@ export function CreateProductForm() {
           <div className="space-y-6">
             <ProductFormField
               label="Product Title"
-              name="title"
               required
               placeholder="e.g., Premium White Thobe"
               error={errors.title?.message}
@@ -243,7 +242,6 @@ export function CreateProductForm() {
             <div className="grid md:grid-cols-2 gap-6">
               <ProductFormField
                 label="Price"
-                name="price"
                 type="number"
                 required
                 placeholder="99.99"
@@ -255,7 +253,6 @@ export function CreateProductForm() {
 
               <ProductFormField
                 label="Sale Price"
-                name="salePrice"
                 type="number"
                 placeholder="79.99 (Optional)"
                 step="0.01"
@@ -418,7 +415,6 @@ export function CreateProductForm() {
           <div className="grid md:grid-cols-2 gap-6">
             <ProductFormField
               label="Initial Orders Count"
-              name="orders"
               type="number"
               placeholder="0"
               min="0"
@@ -428,7 +424,6 @@ export function CreateProductForm() {
 
             <ProductFormField
               label="Initial Views Count"
-              name="views"
               type="number"
               placeholder="0"
               min="0"
@@ -438,7 +433,6 @@ export function CreateProductForm() {
 
             <ProductFormField
               label="Rating"
-              name="rating"
               type="number"
               placeholder="0-5 (Optional)"
               min="0"
@@ -450,7 +444,6 @@ export function CreateProductForm() {
 
             <ProductFormField
               label="Number of Reviews"
-              name="numReviews"
               type="number"
               placeholder="Optional"
               min="0"
