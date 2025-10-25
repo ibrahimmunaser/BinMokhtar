@@ -16,10 +16,19 @@ export function ColorSelect({ colors, selected, onChange }: ColorSelectProps) {
     navy: '#000080',
   };
 
+  const handleClick = (color: string) => {
+    // Toggle: if already selected, deselect it
+    if (selected === color) {
+      onChange(null as any);
+    } else {
+      onChange(color);
+    }
+  };
+
   return (
     <div>
       <div className="text-sm font-medium mb-3 uppercase tracking-wideish">
-        Select Color: {selected && <span className="capitalize">{selected}</span>}
+        Select Color{selected && <span className="capitalize">: {selected}</span>}
       </div>
       <div className="flex gap-3">
         {colors.map((color) => {
@@ -27,9 +36,10 @@ export function ColorSelect({ colors, selected, onChange }: ColorSelectProps) {
           return (
             <button
               key={color}
-              onClick={() => onChange(color)}
-              className={`w-10 h-10 border-2 transition-all ${
-                selected === color ? 'border-bmr-black scale-110' : 'border-border'
+              type="button"
+              onClick={() => handleClick(color)}
+              className={`w-10 h-10 border-2 transition-all rounded ${
+                selected === color ? 'border-bmr-ink scale-110' : 'border-line'
               }`}
               style={{ backgroundColor: hexColor }}
               aria-label={color}
@@ -41,6 +51,10 @@ export function ColorSelect({ colors, selected, onChange }: ColorSelectProps) {
     </div>
   );
 }
+
+
+
+
 
 
 

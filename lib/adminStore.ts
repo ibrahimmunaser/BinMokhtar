@@ -46,7 +46,24 @@ export function getAllProducts(): Product[] {
 export function addProduct(productData: any): Product {
   const products = getAllProducts();
   
-  const newProduct: Product = {
+  const sizes: string[] = Array.isArray(productData.sizes)
+    ? productData.sizes
+    : (typeof productData.sizes === 'string' && productData.sizes.length > 0
+        ? productData.sizes.split(',').map((s: string) => s.trim())
+        : []);
+  const colors: string[] = Array.isArray(productData.colors)
+    ? productData.colors
+    : (typeof productData.colors === 'string' && productData.colors.length > 0
+        ? productData.colors.split(',').map((c: string) => c.trim())
+        : []);
+
+  const variantsInput: any[] = Array.isArray(productData.variants) ? productData.variants : [];
+  const normalizedVariants = variantsInput
+    .map((v) => ({ size: v.size || undefined, color: v.color || undefined, stock: Math.max(0, parseInt(String(v.stock || 0))) }))
+    .filter((v) => (v.size || v.color) && Number.isFinite(v.stock));
+  const totalStock = normalizedVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
+
+  const newProduct: any = {
     id: `product-${Date.now()}`,
     slug: productData.name.toLowerCase().replace(/\s+/g, '-'),
     sku: `SKU-${Date.now()}`,
@@ -61,12 +78,15 @@ export function addProduct(productData: any): Product {
     featured: false,
     tags: [],
     price: productData.price ? Math.round(parseFloat(productData.price) * 100) : undefined,
-    colors: productData.colors ? productData.colors.split(',').map((c: string) => c.trim()) : undefined,
-    sizes: productData.sizes ? productData.sizes.split(',').map((s: string) => s.trim()) : undefined,
+    colors: colors.length ? colors : undefined,
+    sizes: sizes.length ? sizes : undefined,
+    sleeve: productData.sleeve || undefined,
+    images: productData.images || [],
+    thumbnail: productData.thumbnail || productData.images?.[0],
     counts: {
-      variants: 1,
-      activeVariants: 1,
-      totalStock: parseInt(productData.stock) || 0,
+      variants: Math.max(1, normalizedVariants.length),
+      activeVariants: Math.max(1, normalizedVariants.filter(v => v.stock > 0).length),
+      totalStock: Number.isFinite(totalStock) ? totalStock : 0,
       reviewCount: 0,
       ratingAvg: 0,
     },

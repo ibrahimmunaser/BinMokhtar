@@ -9,6 +9,15 @@ interface SleeveSelectProps {
 export function SleeveSelect({ sleeves, selected, onChange }: SleeveSelectProps) {
   if (!sleeves || sleeves.length === 0) return null;
 
+  const handleClick = (sleeve: string) => {
+    // Toggle: if already selected, deselect it
+    if (selected === sleeve) {
+      onChange(null as any);
+    } else {
+      onChange(sleeve);
+    }
+  };
+
   return (
     <div>
       <div className="text-sm font-medium mb-3 uppercase tracking-wideish">Select Sleeve</div>
@@ -16,11 +25,12 @@ export function SleeveSelect({ sleeves, selected, onChange }: SleeveSelectProps)
         {sleeves.map((sleeve) => (
           <button
             key={sleeve}
-            onClick={() => onChange(sleeve)}
-            className={`px-6 py-3 border text-sm capitalize transition-colors ${
+            type="button"
+            onClick={() => handleClick(sleeve)}
+            className={`px-6 py-3 border text-sm capitalize transition-colors rounded ${
               selected === sleeve
-                ? 'border-bmr-black bg-bmr-black text-bmr-white'
-                : 'border-border hover:border-bmr-black'
+                ? 'border-bmr-ink bg-bmr-ink text-surface-2'
+                : 'border-line hover:border-bmr-ink'
             }`}
           >
             {sleeve} Sleeve
@@ -30,5 +40,9 @@ export function SleeveSelect({ sleeves, selected, onChange }: SleeveSelectProps)
     </div>
   );
 }
+
+
+
+
 
 

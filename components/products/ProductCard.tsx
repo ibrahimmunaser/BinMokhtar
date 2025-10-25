@@ -14,11 +14,11 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ variant, locale = 'en', showSoldOut = false, className }: ProductCardProps) {
-  const title = locale === 'ar' ? variant.productTitleAr : variant.productTitleEn;
+  const title = locale === 'ar' ? (variant.productTitleAr || variant.productTitleEn) : (variant.productTitleEn || variant.productTitleAr);
   const price = variant.price || 0;
   const compareAt = variant.compareAt;
-  const isOnSale = compareAt && compareAt > price;
-  const isSoldOut = variant.stock === 0;
+  const isOnSale = !!compareAt && compareAt > price;
+  const isSoldOut = (variant.stock ?? 0) === 0;
 
   return (
     <Link

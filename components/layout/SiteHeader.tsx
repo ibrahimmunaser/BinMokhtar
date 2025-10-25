@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Menu, Search, User, ShoppingBag } from 'lucide-react';
 import { MainNav } from './MainNav';
@@ -13,6 +13,12 @@ export function SiteHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const cartCount = useCartStore((state) => state.count());
+  const [mounted, setMounted] = useState(false);
+
+  // Avoid hydration mismatch for client-only values (e.g., cart count)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <>
@@ -62,7 +68,7 @@ export function SiteHeader() {
                 aria-label="Cart"
               >
                 <ShoppingBag className="w-5 h-5" />
-                {cartCount > 0 && (
+                {mounted && cartCount > 0 && (
                   <span className="absolute -top-2 -right-2 w-5 h-5 bg-bmr-black text-bmr-white text-xs flex items-center justify-center rounded-full">
                     {cartCount}
                   </span>

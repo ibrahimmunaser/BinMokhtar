@@ -20,12 +20,60 @@ export default function NewProductPage() {
     audience: 'MEN',
     price: '',
     compareAtPrice: '',
-    stock: '',
     description: '',
-    colors: '',
-    sizes: '',
+    colors: [] as string[],
+    sizes: [] as string[],
+    sleeve: '' as 'short' | 'long' | '',
     published: true,
   });
+  const [variants, setVariants] = useState<{ size?: string; color?: string; stock: number }[]>([]);
+  const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const colorOptions = ['White', 'Black', 'Navy', 'Gray', 'Beige', 'Brown'];
+
+  const totalStock = variants.reduce((sum, v) => sum + (Number.isFinite(v.stock) ? v.stock : 0), 0);
+
+  const syncVariantsFromSelections = (sizes: string[], colors: string[]) => {
+    const key = (s?: string, c?: string) => `${s || ''}__${c || ''}`;
+    const currentMap = new Map<string, { size?: string; color?: string; stock: number }>();
+    variants.forEach(v => currentMap.set(key(v.size, v.color), v));
+
+    const next: { size?: string; color?: string; stock: number }[] = [];
+    const sizesList = sizes.length > 0 ? sizes : [undefined as unknown as string];
+    const colorsList = colors.length > 0 ? colors : [undefined as unknown as string];
+
+    sizesList.forEach(s => {
+      colorsList.forEach(c => {
+        const k = key(s, c);
+        const existing = currentMap.get(k);
+        next.push({ size: s || undefined, color: c || undefined, stock: existing?.stock ?? 0 });
+      });
+    });
+
+    setVariants(next);
+  };
+
+  const toggleSelection = (field: 'sizes' | 'colors', value: string) => {
+    const list = new Set(formData[field]);
+    if (list.has(value)) list.delete(value); else list.add(value);
+    const next = Array.from(list);
+    setFormData({ ...formData, [field]: next } as any);
+    if (field === 'sizes') syncVariantsFromSelections(next, formData.colors);
+    if (field === 'colors') syncVariantsFromSelections(formData.sizes, next);
+  };
+
+  const addCustomOption = (field: 'sizes' | 'colors', inputId: string) => {
+    const input = (document.getElementById(inputId) as HTMLInputElement | null);
+    const raw = input?.value?.trim();
+    if (!raw) return;
+    const value = raw.replace(/\s+/g, ' ').trim();
+    if (!formData[field].includes(value)) {
+      const next = [...formData[field], value];
+      setFormData({ ...formData, [field]: next } as any);
+      if (field === 'sizes') syncVariantsFromSelections(next, formData.colors);
+      if (field === 'colors') syncVariantsFromSelections(formData.sizes, next);
+    }
+    if (input) input.value = '';
+  };
 
   useEffect(() => {
     if (!isAdminAuthenticated()) {
@@ -93,6 +141,7 @@ export default function NewProductPage() {
         ...formData,
         images: images.length > 0 ? images : ['/placeholder.svg'],
         thumbnail: images.length > 0 ? images[0] : '/placeholder.svg',
+        variants: variants.map(v => ({ size: v.size, color: v.color, stock: Number.isFinite(v.stock) ? v.stock : 0 })),
       };
 
       const newProduct = await addProduct(productData);
@@ -243,19 +292,26 @@ export default function NewProductPage() {
                   <option value="shaals">Shaals</option>
                   <option value="kufis">Kufis</option>
                 </select>
+                {formData.categoryId === 'thobes' && (
+                  <div className="mt-3">
+                    <label className="block text-sm font-medium mb-2">Thobes Sleeve</label>
+                    <select
+                      value={formData.sleeve}
+                      onChange={(e) => setFormData({ ...formData, sleeve: e.target.value as any })}
+                      className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
+                    >
+                      <option value="">Select sleeve</option>
+                      <option value="long">Long Sleeve</option>
+                      <option value="short">Short Sleeve</option>
+                    </select>
+                    <p className="text-xs text-bmr-muted mt-1">This maps to /category/thobes/[long|short]-sleeve</p>
+                  </div>
+                )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Stock Quantity *</label>
-                <input
-                  type="number"
-                  value={formData.stock}
-                  onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                  required
-                  min="0"
-                  placeholder="0"
-                  className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
-                />
+                <label className="block text-sm font-medium mb-2">Total Stock (sum of variants)</label>
+                <div className="px-4 py-3 border border-line rounded-lg bg-surface-1">{totalStock}</div>
               </div>
 
               <div>
@@ -378,27 +434,79 @@ export default function NewProductPage() {
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-2">Available Sizes</label>
-                <input
-                  type="text"
-                  value={formData.sizes}
-                  onChange={(e) => setFormData({ ...formData, sizes: e.target.value })}
-                  placeholder="e.g., S, M, L, XL, XXL"
-                  className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
-                />
-                <p className="text-xs text-bmr-muted mt-1">Separate with commas</p>
+                <div className="border border-line rounded-lg p-4">
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {sizeOptions.map((s) => (
+                      <label key={s} className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={formData.sizes.includes(s)} onChange={() => toggleSelection('sizes', s)} />
+                        <span>{s}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input id="custom-size-input" type="text" placeholder="Add custom size" className="w-full px-3 py-2 border border-line rounded" />
+                    <button type="button" onClick={() => addCustomOption('sizes', 'custom-size-input')} className="px-3 py-2 border rounded">Add</button>
+                  </div>
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2">Available Colors</label>
-                <input
-                  type="text"
-                  value={formData.colors}
-                  onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
-                  placeholder="e.g., White, Black, Gray"
-                  className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
-                />
-                <p className="text-xs text-bmr-muted mt-1">Separate with commas</p>
+                <div className="border border-line rounded-lg p-4">
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {colorOptions.map((c) => (
+                      <label key={c} className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={formData.colors.includes(c)} onChange={() => toggleSelection('colors', c)} />
+                        <span>{c}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input id="custom-color-input" type="text" placeholder="Add custom color" className="w-full px-3 py-2 border border-line rounded" />
+                    <button type="button" onClick={() => addCustomOption('colors', 'custom-color-input')} className="px-3 py-2 border rounded">Add</button>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium mb-3">Variant Stock</label>
+              {variants.length === 0 ? (
+                <p className="text-sm text-bmr-muted">Select sizes/colors above to generate variant combinations.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="text-left p-2 border-b border-line">Size</th>
+                        <th className="text-left p-2 border-b border-line">Color</th>
+                        <th className="text-left p-2 border-b border-line">Stock</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {variants.map((v, idx) => (
+                        <tr key={`${v.size || ''}-${v.color || ''}-${idx}`}>
+                          <td className="p-2 border-b border-line">{v.size || '—'}</td>
+                          <td className="p-2 border-b border-line">{v.color || '—'}</td>
+                          <td className="p-2 border-b border-line">
+                            <input
+                              type="number"
+                              min={0}
+                              value={Number.isFinite(v.stock) ? v.stock : 0}
+                              onChange={(e) => {
+                                const next = [...variants];
+                                next[idx] = { ...next[idx], stock: Math.max(0, parseInt(e.target.value || '0')) };
+                                setVariants(next);
+                              }}
+                              className="w-24 px-3 py-2 border border-line rounded"
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
 

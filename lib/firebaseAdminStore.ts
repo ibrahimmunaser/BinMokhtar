@@ -22,12 +22,17 @@ export async function getAllProducts(audience?: 'MEN'|'WOMEN'|'CHILDREN'): Promi
   if (!USE_FIREBASE) return getLocalProducts();
 
   try {
-    const qs = audience ? `?audience=${audience}` : '';
-    const response = await fetch(`/api/admin/products${qs}`);
+    // Fetch all products from API; filter by audience on the client
+    const response = await fetch(`/api/admin/products`);
     const data = await response.json();
     
     if (data.success) {
-      const remote: Product[] = data.products || [];
+      let remote: Product[] = data.products || [];
+      // If audience was requested, filter client-side to avoid missing items
+      if (audience) {
+        const upper = audience.toUpperCase();
+        remote = remote.filter((p: any) => (p.audience || upper) === upper);
+      }
       if (remote.length > 0) return remote;
       // If remote is empty, prefer local (admin may have saved locally earlier)
       const local = getLocalProducts();

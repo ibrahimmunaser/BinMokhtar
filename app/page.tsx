@@ -1,4 +1,6 @@
+"use client";
 import { HeroCarousel } from '@/components/home/HeroCarousel';
+import { useEffect, useState } from 'react';
 import { CategoryMosaic } from '@/components/home/CategoryMosaic';
 import { BestSellers } from '@/components/home/BestSellers';
 import { PromoBand } from '@/components/home/PromoBand';
@@ -9,20 +11,39 @@ import { IconRow } from '@/components/home/IconRow';
 import type { HeroSlide, MosaicTile, ShemaghTab, Review, StoryBlock, IconItem } from '@/types';
 
 export default function HomePage() {
-  // Mock data - Replace with Firebase data once seeded
-  const heroSlides: HeroSlide[] = [
-    {
-      type: 'image',
-      src: '/placeholder.svg',
-      titleEn: 'Luxury Thobes & Modest Fashion',
-      titleAr: 'ثوب فاخر وأزياء محتشمة',
-      subEn: 'Timeless elegance for every occasion',
-      subAr: 'أناقة خالدة لكل مناسبة',
-      ctaTextEn: 'Shop Now',
-      ctaTextAr: 'تسوق الآن',
-      href: '/shop',
-    },
-  ];
+  // Build hero slides dynamically from /public/images (hero*.{png,jpg,jpeg,webp}) and /public/videos (hero*.{mp4,webm,ogg})
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      try {
+        const res = await fetch('/api/hero-media', { cache: 'no-store' });
+        const json = await res.json();
+        const slides: any[] = json?.slides || [];
+        const mapped: HeroSlide[] = slides.map((s: any, idx: number) => ({
+          type: s.type,
+          src: s.src,
+          poster: s.poster,
+          titleEn: idx === 0 ? 'Luxury Thobes & Modest Fashion' : 'Crafted With Care',
+          titleAr: idx === 0 ? 'ثوب فاخر وأزياء محتشمة' : 'مصنوع بعناية',
+          subEn: idx === 0 ? 'Timeless elegance for every occasion' : 'Premium fabrics. Exceptional tailoring.',
+          subAr: idx === 0 ? 'أناقة خالدة لكل مناسبة' : 'أقمشة فاخرة وخياطة مميزة.',
+          ctaTextEn: 'Shop Now',
+          ctaTextAr: 'تسوق الآن',
+          href: '/shop',
+        }));
+        if (mounted) setHeroSlides(mapped.length ? mapped : [{
+          type: 'image', src: '/placeholder.svg', titleEn: 'Luxury Thobes & Modest Fashion', titleAr: 'ثوب فاخر وأزياء محتشمة', subEn: 'Timeless elegance for every occasion', subAr: 'أناقة خالدة لكل مناسبة', ctaTextEn: 'Shop Now', ctaTextAr: 'تسوق الآن', href: '/shop'
+        }]);
+      } catch {
+        if (mounted) setHeroSlides([{
+          type: 'image', src: '/placeholder.svg', titleEn: 'Luxury Thobes & Modest Fashion', titleAr: 'ثوب فاخر وأزياء محتشمة', subEn: 'Timeless elegance for every occasion', subAr: 'أناقة خالدة لكل مناسبة', ctaTextEn: 'Shop Now', ctaTextAr: 'تسوق الآن', href: '/shop'
+        }]);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
 
   const mosaicTiles: MosaicTile[] = [
     {

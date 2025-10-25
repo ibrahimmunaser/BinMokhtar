@@ -26,12 +26,35 @@ export default function EditProductPage() {
     categoryId: 'thobes',
     price: '',
     compareAtPrice: '',
-    stock: '',
     description: '',
-    colors: '',
-    sizes: '',
+    colors: [] as string[],
+    sizes: [] as string[],
     published: true,
   });
+  const [variants, setVariants] = useState<{ size?: string; color?: string; stock: number }[]>([]);
+  const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const colorOptions = ['White', 'Black', 'Navy', 'Gray', 'Beige', 'Brown'];
+  const totalStock = variants.reduce((sum, v) => sum + (Number.isFinite(v.stock) ? v.stock : 0), 0);
+
+  const syncVariantsFromSelections = (sizes: string[], colors: string[]) => {
+    const key = (s?: string, c?: string) => `${s || ''}__${c || ''}`;
+    const currentMap = new Map<string, { size?: string; color?: string; stock: number }>();
+    variants.forEach(v => currentMap.set(key(v.size, v.color), v));
+
+    const next: { size?: string; color?: string; stock: number }[] = [];
+    const sizesList = sizes.length > 0 ? sizes : [undefined as unknown as string];
+    const colorsList = colors.length > 0 ? colors : [undefined as unknown as string];
+
+    sizesList.forEach(s => {
+      colorsList.forEach(c => {
+        const k = key(s, c);
+        const existing = currentMap.get(k);
+        next.push({ size: s || undefined, color: c || undefined, stock: existing?.stock ?? 0 });
+      });
+    });
+
+    setVariants(next);
+  };
 
   useEffect(() => {
     if (!isAdminAuthenticated()) {
@@ -63,12 +86,13 @@ export default function EditProductPage() {
         categoryId: prod.categoryId || 'thobes',
         price: prod.price ? (prod.price / 100).toFixed(2) : '',
         compareAtPrice: prod.compareAtPrice ? (prod.compareAtPrice / 100).toFixed(2) : '',
-        stock: prod.stock?.toString() || '',
         description: prod.descriptionHtml?.replace(/<[^>]*>/g, '') || '',
-        colors: prod.colors?.join(', ') || '',
-        sizes: prod.sizes?.join(', ') || '',
+        colors: Array.isArray(prod.colors) ? prod.colors : [],
+        sizes: Array.isArray(prod.sizes) ? prod.sizes : [],
         published: prod.published !== false,
       });
+      const loadedVariants = Array.isArray(prod.variants) ? prod.variants : [];
+      setVariants(loadedVariants.map((v: any) => ({ size: v.size, color: v.color, stock: v.stock || 0 })));
     }
     
     setLoading(false);
@@ -131,6 +155,7 @@ export default function EditProductPage() {
         ...formData,
         images: images.length > 0 ? images : ['/placeholder.svg'],
         thumbnail: images.length > 0 ? images[0] : '/placeholder.svg',
+        variants: variants.map(v => ({ size: v.size, color: v.color, stock: Number.isFinite(v.stock) ? v.stock : 0 })),
       };
 
       const response = await fetch('/api/admin/products', {
@@ -279,6 +304,20 @@ export default function EditProductPage() {
                     </option>
                   ))}
                 </select>
+                {formData.categoryId === 'thobes' && (
+                  <div className="mt-3">
+                    <label className="block text-sm font-medium mb-2">Thobes Sleeve</label>
+                    <select
+                      value={(formData as any).sleeve || ''}
+                      onChange={(e) => setFormData({ ...formData, sleeve: e.target.value as any })}
+                      className="w-full px-4 py-3 rounded-lg border border-line bg-surface-1 focus:outline-none focus:ring-2 focus:ring-bmr-ink"
+                    >
+                      <option value="">Select sleeve</option>
+                      <option value="long">Long Sleeve</option>
+                      <option value="short">Short Sleeve</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -328,16 +367,8 @@ export default function EditProductPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Stock Quantity *</label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  value={formData.stock}
-                  onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg border border-line bg-surface-1 focus:outline-none focus:ring-2 focus:ring-bmr-ink"
-                  placeholder="50"
-                />
+                <label className="block text-sm font-medium mb-2">Total Stock (sum of variants)</label>
+                <div className="px-4 py-3 rounded-lg border border-line bg-surface-1">{totalStock}</div>
               </div>
             </div>
           </div>
@@ -421,27 +452,83 @@ export default function EditProductPage() {
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-2">Available Sizes</label>
-                <input
-                  type="text"
-                  value={formData.sizes}
-                  onChange={(e) => setFormData({ ...formData, sizes: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg border border-line bg-surface-1 focus:outline-none focus:ring-2 focus:ring-bmr-ink"
-                  placeholder="S, M, L, XL"
-                />
-                <p className="text-xs text-bmr-muted mt-1">Separate with commas</p>
+                <div className="border border-line rounded-lg p-4">
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {sizeOptions.map((s) => (
+                      <label key={s} className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={formData.sizes.includes(s)} onChange={() => {
+                          const set = new Set(formData.sizes);
+                          if (set.has(s)) set.delete(s); else set.add(s);
+                          const next = Array.from(set);
+                          setFormData({ ...formData, sizes: next } as any);
+                          syncVariantsFromSelections(next, formData.colors);
+                        }} />
+                        <span>{s}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium mb-2">Available Colors</label>
-                <input
-                  type="text"
-                  value={formData.colors}
-                  onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg border border-line bg-surface-1 focus:outline-none focus:ring-2 focus:ring-bmr-ink"
-                  placeholder="White, Black, Navy"
-                />
-                <p className="text-xs text-bmr-muted mt-1">Separate with commas</p>
+                <div className="border border-line rounded-lg p-4">
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {colorOptions.map((c) => (
+                      <label key={c} className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={formData.colors.includes(c)} onChange={() => {
+                          const set = new Set(formData.colors);
+                          if (set.has(c)) set.delete(c); else set.add(c);
+                          const next = Array.from(set);
+                          setFormData({ ...formData, colors: next } as any);
+                          syncVariantsFromSelections(formData.sizes, next);
+                        }} />
+                        <span>{c}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium mb-3">Variant Stock</label>
+              {variants.length === 0 ? (
+                <p className="text-sm text-bmr-muted">Select sizes/colors above to load variant combinations.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="text-left p-2 border-b border-line">Size</th>
+                        <th className="text-left p-2 border-b border-line">Color</th>
+                        <th className="text-left p-2 border-b border-line">Stock</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {variants.map((v, idx) => (
+                        <tr key={`${v.size || ''}-${v.color || ''}-${idx}`}>
+                          <td className="p-2 border-b border-line">{v.size || '—'}</td>
+                          <td className="p-2 border-b border-line">{v.color || '—'}</td>
+                          <td className="p-2 border-b border-line">
+                            <input
+                              type="number"
+                              min={0}
+                              value={Number.isFinite(v.stock) ? v.stock : 0}
+                              onChange={(e) => {
+                                const next = [...variants];
+                                next[idx] = { ...next[idx], stock: Math.max(0, parseInt(e.target.value || '0')) };
+                                setVariants(next);
+                              }}
+                              className="w-24 px-3 py-2 border border-line rounded"
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
 
@@ -492,5 +579,9 @@ export default function EditProductPage() {
     </div>
   );
 }
+
+
+
+
 
 

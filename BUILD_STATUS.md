@@ -209,3 +209,8 @@ Once you add the seed data above to Firestore, refresh http://localhost:3000 and
 The homepage is fully functional and ready to display your data!
 
 
+
+
+
+
+

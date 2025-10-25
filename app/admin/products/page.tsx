@@ -122,13 +122,22 @@ export default function AdminProductsPage() {
               Manage your product catalog ({filteredProducts.length} {selectedCategory === 'all' ? 'total' : 'in category'})
             </p>
           </div>
-          <Link
-            href="/admin/products/new"
-            className="flex items-center gap-2 px-6 py-3 bg-bmr-ink text-surface-2 rounded-lg hover:bg-bmr-fg transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add New Product
-          </Link>
+          <div className="flex gap-3">
+            <Link
+              href="/admin/products/create"
+              className="flex items-center gap-2 px-6 py-3 bg-bmr-acc-green text-surface-2 rounded-lg hover:bg-bmr-acc-green/90 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Create Product (Firestore)
+            </Link>
+            <Link
+              href="/admin/products/new"
+              className="flex items-center gap-2 px-6 py-3 bg-bmr-ink text-surface-2 rounded-lg hover:bg-bmr-fg transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add Product (Local)
+            </Link>
+          </div>
         </div>
 
         {/* Category Filter */}

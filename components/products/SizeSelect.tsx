@@ -7,6 +7,15 @@ interface SizeSelectProps {
 }
 
 export function SizeSelect({ sizes, selected, onChange }: SizeSelectProps) {
+  const handleClick = (size: string) => {
+    // Toggle: if already selected, deselect it
+    if (selected === size) {
+      onChange(null as any);
+    } else {
+      onChange(size);
+    }
+  };
+
   return (
     <div>
       <div className="text-sm font-medium mb-3 uppercase tracking-wideish">Select Size</div>
@@ -14,11 +23,12 @@ export function SizeSelect({ sizes, selected, onChange }: SizeSelectProps) {
         {sizes.map((size) => (
           <button
             key={size}
-            onClick={() => onChange(size)}
-            className={`px-6 py-3 border text-sm transition-colors ${
+            type="button"
+            onClick={() => handleClick(size)}
+            className={`px-6 py-3 border text-sm transition-colors rounded ${
               selected === size
-                ? 'border-bmr-black bg-bmr-black text-bmr-white'
-                : 'border-border hover:border-bmr-black'
+                ? 'border-bmr-ink bg-bmr-ink text-surface-2'
+                : 'border-line hover:border-bmr-ink'
             }`}
           >
             {size}
@@ -28,6 +38,10 @@ export function SizeSelect({ sizes, selected, onChange }: SizeSelectProps) {
     </div>
   );
 }
+
+
+
+
 
 
 

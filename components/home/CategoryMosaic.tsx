@@ -65,3 +65,8 @@ export function CategoryMosaic({ tiles, locale = 'en' }: CategoryMosaicProps) {
 }
 
 
+
+
+
+
+

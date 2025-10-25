@@ -296,3 +296,8 @@ npx tsx scripts/init-firebase.ts
 **Run the init script and start adding products to the cloud!** ☁️🚀
 
 
+
+
+
+
+

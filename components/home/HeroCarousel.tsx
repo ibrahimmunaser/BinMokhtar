@@ -14,6 +14,7 @@ interface HeroCarouselProps {
 
 export function HeroCarousel({ slides, locale = 'en' }: HeroCarouselProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
   const isRtl = locale === 'ar';
@@ -27,6 +28,11 @@ export function HeroCarousel({ slides, locale = 'en' }: HeroCarouselProps) {
 
     return () => clearInterval(interval);
   }, [isPaused, slides.length]);
+
+  // Reset fade-in state on slide change
+  useEffect(() => {
+    setImgLoaded(false);
+  }, [currentSlide]);
 
   const goToSlide = (index: number) => {
     setCurrentSlide(index);
@@ -55,7 +61,7 @@ export function HeroCarousel({ slides, locale = 'en' }: HeroCarouselProps) {
       aria-label="Hero carousel"
     >
       {/* Slide Content */}
-      <div className="absolute inset-0 transition-opacity duration-700">
+      <div className={`absolute inset-0 transition-opacity duration-700 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`} key={slide.src}>
         {slide.type === 'video' ? (
           <video
             className="w-full h-full object-cover"
@@ -71,9 +77,10 @@ export function HeroCarousel({ slides, locale = 'en' }: HeroCarouselProps) {
             src={slide.src}
             alt={title}
             fill
-            className="object-cover"
+            className="object-cover object-[center_20%] sm:object-[center_22%] lg:object-[center_25%]"
             priority={currentSlide === 0}
             sizes="100vw"
+            onLoadingComplete={() => setImgLoaded(true)}
           />
         )}
       </div>
@@ -152,5 +159,9 @@ export function HeroCarousel({ slides, locale = 'en' }: HeroCarouselProps) {
     </section>
   );
 }
+
+
+
+
 
 

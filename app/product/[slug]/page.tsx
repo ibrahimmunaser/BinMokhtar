@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Container } from '@/components/layout/Container';
 import { Breadcrumbs } from '@/components/products/Breadcrumbs';
@@ -17,6 +17,9 @@ import { useCartStore } from '@/store/cart';
 import { formatPrice } from '@/lib/utils';
 import { useLocale } from '@/contexts/LocaleContext';
 import { logProductView, logAddToCart } from '@/lib/analytics';
+import { FrequentlyBoughtTogether } from '@/components/recommendations/FrequentlyBoughtTogether';
+import { CustomersAlsoBought } from '@/components/recommendations/CustomersAlsoBought';
+import { RelatedProducts } from '@/components/recommendations/RelatedProducts';
 
 export default function ProductPage() {
   const params = useParams();
@@ -30,6 +33,25 @@ export default function ProductPage() {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSleeve, setSelectedSleeve] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
+
+  // Compute gallery images (prefer product.images from Admin) - MUST be before early returns
+  const galleryImages: string[] = useMemo(() => {
+    const imgs = (product as any)?.images as string[] | undefined;
+    if (imgs && Array.isArray(imgs) && imgs.length > 0) return imgs;
+    return product?.defaultImage?.url ? [product.defaultImage.url] : [];
+  }, [product]);
+
+  // Filter related products (same category, exclude current) - MUST be before early returns
+  const recommendations = useMemo(() => {
+    return relatedProducts
+      ? relatedProducts.filter((p) => p.id !== product?.id).slice(0, 8)
+      : [];
+  }, [relatedProducts, product]);
+
+  // Derive safe totals to avoid undefined access when counts is missing
+  const totalStock = product?.counts?.totalStock ?? (product as any)?.stock ?? 0;
+  const reviewCount = product?.counts?.reviewCount ?? 0;
+  const ratingAvg = product?.counts?.ratingAvg ?? 0;
 
   // Log product view when product loads
   if (product && !isLoading) {
@@ -87,11 +109,6 @@ export default function ProductPage() {
     );
   }
 
-  // Filter related products (same category, exclude current)
-  const recommendations = relatedProducts
-    ? relatedProducts.filter((p) => p.id !== product.id).slice(0, 8)
-    : [];
-
   // Accordion content
   const accordionItems = [
     {
@@ -134,10 +151,10 @@ export default function ProductPage() {
             ]}
           />
 
-          <div className="mt-12 lg:grid lg:grid-cols-[1.2fr_1fr] lg:gap-16">
+          <div className="mt-8 lg:mt-12 lg:grid lg:grid-cols-[1.2fr_1fr] lg:gap-16">
             {/* Gallery */}
             <div>
-              <ProductGallery images={product.defaultImage ? [product.defaultImage.url] : []} alt={product.titleEn} />
+              <ProductGallery images={galleryImages} alt={product.titleEn} />
             </div>
 
             {/* Product Info */}
@@ -150,7 +167,24 @@ export default function ProductPage() {
                 </div>
               )}
 
-              <h1 className="font-display text-3xl lg:text-4xl leading-tight mb-3">{product.titleEn}</h1>
+              <h1 className="font-display text-3xl lg:text-4xl leading-tight mb-2">{product.titleEn}</h1>
+
+              {/* Reviews summary */}
+              {reviewCount > 0 && (
+                <div className="flex items-center gap-2 text-sm text-bmr-muted mb-6">
+                  <div className="flex">
+                    {Array.from({ length: 5 }).map((_, i) => {
+                      const filled = ratingAvg >= i + 1;
+                      return (
+                        <svg key={i} className={`w-4 h-4 ${filled ? 'text-bmr-ink' : 'text-line'}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.802 2.035a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.538 1.118L10.95 13.9a1 1 0 00-1.176 0l-2.437 1.772c-.783.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L3.702 8.72c-.783-.57-.38-1.81.588-1.81h3.463a1 1 0 00.95-.69l1.07-3.292z"/>
+                        </svg>
+                      );
+                    })}
+                  </div>
+                  <span>({reviewCount})</span>
+                </div>
+              )}
 
               {product.subtitleEn && (
                 <p className="text-lg text-bmr-muted leading-relaxed mb-8">{product.subtitleEn}</p>
@@ -162,16 +196,16 @@ export default function ProductPage() {
                 </span>
               </div>
 
-              {product.counts.totalStock === 0 && (
+              {totalStock === 0 && (
                 <div className="mb-8 p-6 bg-surface-3 rounded-lg border border-line">
                   <p className="text-sm font-medium text-bmr-ink">Currently out of stock</p>
                   <p className="text-sm text-bmr-muted mt-1">Sign up for restock notifications</p>
                 </div>
               )}
 
-              {product.counts.totalStock > 0 && product.counts.totalStock <= 5 && (
+              {totalStock > 0 && totalStock <= 5 && (
                 <div className="mb-8 p-6 bg-surface-3 rounded-lg border border-line">
-                  <p className="text-sm font-medium text-bmr-acc-red">Only {product.counts.totalStock} left in stock</p>
+                  <p className="text-sm font-medium text-bmr-acc-red">Only {totalStock} left in stock</p>
                   <p className="text-sm text-bmr-muted mt-1">Order soon to avoid missing out</p>
                 </div>
               )}
@@ -202,13 +236,21 @@ export default function ProductPage() {
                 )}
 
                 <div className="flex items-center gap-4">
-                  <QtyStepper value={qty} onChange={setQty} max={product.counts.totalStock} />
+                  <QtyStepper value={qty} onChange={setQty} max={totalStock} />
                   <div className="flex-1">
                     <AddToCartButton
                       onClick={handleAddToCart}
-                      disabled={product.counts.totalStock === 0}
+                      disabled={totalStock === 0}
                     />
                   </div>
+                </div>
+
+                {/* Utility links */}
+                <div className="flex items-center gap-4 text-sm text-bmr-muted">
+                  <a href="/size-guide" className="underline hover:text-bmr-ink">What's my size?</a>
+                  {totalStock === 0 && (
+                    <button type="button" className="px-3 py-1.5 border border-line rounded hover:bg-surface-3">Notify me when available</button>
+                  )}
                 </div>
               </div>
 
@@ -220,16 +262,13 @@ export default function ProductPage() {
         </div>
 
         {/* Recommendations */}
-        {recommendations.length > 0 && (
-          <div className="border-t border-line bg-surface-1 py-16 lg:py-24">
-            <div className="container-wide">
-              <h2 className="font-display text-3xl lg:text-4xl mb-12 text-center">
-                You May Also Like
-              </h2>
-              <ProductGrid products={recommendations} />
-            </div>
+        <div className="border-t border-line bg-surface-1 py-16 lg:py-24">
+          <div className="container-wide">
+            <FrequentlyBoughtTogether product={product} />
+            <CustomersAlsoBought product={product} />
+            <RelatedProducts product={product} />
           </div>
-        )}
+        </div>
       </div>
 
       {/* JSON-LD for SEO */}
@@ -247,7 +286,7 @@ export default function ProductPage() {
               price: (product.price || product.basePrice) / 100,
               priceCurrency: currency,
               availability:
-                product.counts.totalStock > 0
+                totalStock > 0
                   ? 'https://schema.org/InStock'
                   : 'https://schema.org/OutOfStock',
             },

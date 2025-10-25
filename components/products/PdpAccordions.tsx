@@ -57,3 +57,8 @@ export function PdpAccordions({ items }: PdpAccordionsProps) {
 
 
 
+
+
+
+
+

@@ -10,6 +10,7 @@ import {
   getProductsByCategory,
   getProductsByIds,
 } from '@/lib/data';
+import { getAllProducts as getLocalProducts } from '@/lib/adminStore';
 import type { Product, Category, HomeSettings, HeaderSettings, NavItem } from '@/types';
 
 // Fetchers
@@ -33,7 +34,39 @@ export function useProducts() {
 export function useProductBySlug(slug: string | null) {
   const { data, error, isLoading } = useSWR<Product | null>(
     slug ? ['product', slug] : null,
-    () => fetchers.productBySlug(slug!)
+    async () => {
+      if (!slug) return null;
+      
+      // Try Firestore first
+      try {
+        const firestoreProduct = await fetchers.productBySlug(slug);
+        if (firestoreProduct) return firestoreProduct;
+      } catch (e) {
+        console.warn('Firestore fetch failed, trying local data');
+      }
+
+      // Fallback: try server API (admin route) by slug
+      try {
+        const res = await fetch(`/api/admin/products?slug=${encodeURIComponent(slug)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.product) return json.product as Product;
+        }
+      } catch (e) {
+        console.warn('API slug fetch failed, trying local admin store');
+      }
+      
+      // Fallback to local admin data
+      try {
+        const localProducts = getLocalProducts() as any[];
+        const match = localProducts.find((p) => p.slug === slug);
+        if (match) return match as Product;
+      } catch (e) {
+        console.error('Failed to load from local data:', e);
+      }
+      
+      return null;
+    }
   );
   return { product: data, isLoading, error };
 }
@@ -87,6 +120,10 @@ export function useNavigation() {
   const { data, error, isLoading } = useSWR<NavItem[]>('navigation', fetchers.navigation);
   return { navigation: data || [], isLoading, error };
 }
+
+
+
+
 
 
 

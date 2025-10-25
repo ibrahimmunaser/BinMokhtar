@@ -14,6 +14,7 @@ import {
   QueryConstraint,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { getAllProducts as getLocalAdminProducts } from './adminStore';
 import type {
   Product,
   Category,
@@ -61,8 +62,19 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   const prodCol = collection(db, 'products');
   const q = query(prodCol, where('slug', '==', slug), where('published', '==', true), limit(1));
   const snapshot = await getDocs(q);
-  if (snapshot.empty) return null;
-  return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Product;
+  if (!snapshot.empty) {
+    return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Product;
+  }
+
+  // Fallback: try local admin data (mock/localStorage) so PDP works before Firebase is populated
+  try {
+    const local = getLocalAdminProducts() as any[];
+    const match = local.find((p) => (p.slug === slug));
+    if (match) return match as Product;
+  } catch (e) {
+    // ignore fallback errors
+  }
+  return null;
 }
 
 export async function getProductsByIds(ids: string[]): Promise<Product[]> {

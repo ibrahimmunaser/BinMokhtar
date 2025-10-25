@@ -297,3 +297,8 @@ After uploading:
 *Images are stored in Firebase Storage and URLs are saved to Firestore product documents.*
 
 
+
+
+
+
+

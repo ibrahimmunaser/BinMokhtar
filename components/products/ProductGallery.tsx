@@ -22,7 +22,7 @@ export function ProductGallery({ images, alt }: ProductGalleryProps) {
   return (
     <div className="space-y-4">
       {/* Main image */}
-      <div className="aspect-[3/4] bg-border relative overflow-hidden">
+      <div className="aspect-[3/4] bg-surface-3 relative overflow-hidden rounded-lg">
         <Image
           src={images[selectedIndex]}
           alt={`${alt} - Image ${selectedIndex + 1}`}
@@ -35,13 +35,13 @@ export function ProductGallery({ images, alt }: ProductGalleryProps) {
 
       {/* Thumbnails */}
       {images.length > 1 && (
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
           {images.map((image, index) => (
             <button
               key={index}
               onClick={() => setSelectedIndex(index)}
-              className={`aspect-[3/4] bg-border relative overflow-hidden border-2 transition-colors ${
-                selectedIndex === index ? 'border-bmr-black' : 'border-transparent'
+              className={`aspect-[3/4] bg-surface-3 relative overflow-hidden rounded border-2 transition-colors ${
+                selectedIndex === index ? 'border-bmr-ink' : 'border-transparent'
               }`}
             >
               <Image
@@ -58,6 +58,10 @@ export function ProductGallery({ images, alt }: ProductGalleryProps) {
     </div>
   );
 }
+
+
+
+
 
 
 
