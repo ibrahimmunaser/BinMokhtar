@@ -466,7 +466,6 @@ export function CreateProductForm() {
             type="button"
             onClick={() => {
               reset();
-              setSelectedCategory('');
               setSubmitStatus('idle');
             }}
             className="px-8 py-4 border border-line rounded-lg hover:bg-surface-3 transition-colors"
