@@ -50,8 +50,16 @@ export default function AdminProductsPage() {
   };
 
   const getCategoryName = (categoryId: string) => {
+    // categoryId is already the category name (Men, Women, Boys, Girls, etc.)
+    // Just return it directly, or try to find it in categories list
+    if (!categoryId) return 'Unknown';
+    
+    // Check if it's a Firestore ID by looking it up
     const category = categories.find(c => c.id === categoryId);
-    return category?.name || 'Unknown';
+    if (category) return category.name;
+    
+    // Otherwise, it's likely already the category name (Men, Women, etc.)
+    return categoryId;
   };
 
   const formatPrice = (cents: number) => {
