@@ -10,6 +10,7 @@ import { TagsInput } from './TagsInput';
 import { MultiImageUpload } from './MultiImageUpload';
 import { MultiSelect } from './MultiSelect';
 import { VariantStockMatrix } from './VariantStockMatrix';
+import { ColorImageMapper } from './ColorImageMapper';
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
 // Category options and subcategories (per your spec)
@@ -31,6 +32,12 @@ interface Variant {
   color: string;
   stock: number;
   sku?: string;
+}
+
+// Color Image Mapping interface
+interface ColorImageMapping {
+  color: string;
+  imageUrls: string[];
 }
 
 // Validation Schema
@@ -56,6 +63,10 @@ const productSchema = z.object({
     stock: z.number(),
     sku: z.string().optional(),
   })).min(1, 'At least 1 variant is required'),
+  colorImageMappings: z.array(z.object({
+    color: z.string(),
+    imageUrls: z.array(z.string()),
+  })).optional(),
   sleeve: z.enum(['short', 'long']).optional(),
   tags: z.array(z.string()).min(2, 'At least 2 tags are required'),
   orders: z.number().int().nonnegative('Orders must be non-negative').default(0),
@@ -106,6 +117,7 @@ export function CreateProductForm() {
       sizes: [],
       colors: [],
       variants: [],
+      colorImageMappings: [],
       tags: [],
       orders: 0,
       views: 0,
@@ -385,6 +397,22 @@ export function CreateProductForm() {
             {errors.variants && (
               <p className="text-sm text-bmr-acc-red">{errors.variants.message}</p>
             )}
+          </div>
+
+          {/* Color to Image Mapping */}
+          <div className="mt-8">
+            <Controller
+              name="colorImageMappings"
+              control={control}
+              render={({ field }) => (
+                <ColorImageMapper
+                  colors={watch('colors')}
+                  images={watch('images')}
+                  value={field.value || []}
+                  onChange={field.onChange}
+                />
+              )}
+            />
           </div>
         </div>
 
