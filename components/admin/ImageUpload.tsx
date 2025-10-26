@@ -26,9 +26,9 @@ export function ImageUpload({ label, name, required = false, error, value, onCha
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError('Image must be less than 5MB');
+    // Validate file size (max 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      setUploadError('Image must be less than 50MB');
       return;
     }
 
@@ -93,7 +93,7 @@ export function ImageUpload({ label, name, required = false, error, value, onCha
                   <p className="mb-2 text-sm text-bmr-muted">
                     <span className="font-semibold">Click to upload</span> or drag and drop
                   </p>
-                  <p className="text-xs text-bmr-muted">PNG, JPG, GIF up to 5MB</p>
+                  <p className="text-xs text-bmr-muted">PNG, JPG, GIF up to 50MB</p>
                 </>
               )}
             </div>

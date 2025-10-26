@@ -27,8 +27,8 @@ export function MultiImageUpload({ label, name, required = false, error, value, 
         setUploadError('All files must be images');
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        setUploadError(`${file.name} is too large. Maximum size is 5MB`);
+      if (file.size > 50 * 1024 * 1024) {
+        setUploadError(`${file.name} is too large. Maximum size is 50MB`);
         return;
       }
     }
@@ -119,7 +119,7 @@ export function MultiImageUpload({ label, name, required = false, error, value, 
                 <p className="text-sm text-bmr-muted">
                   <span className="font-semibold">Click to upload</span> or drag and drop
                 </p>
-                <p className="text-xs text-bmr-muted mt-1">PNG, JPG, GIF up to 5MB (multiple files allowed)</p>
+                <p className="text-xs text-bmr-muted mt-1">PNG, JPG, GIF up to 50MB (multiple files allowed)</p>
               </>
             )}
           </div>
