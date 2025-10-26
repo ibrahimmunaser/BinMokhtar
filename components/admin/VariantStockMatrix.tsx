@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 
 interface Variant {
   size: string;
@@ -61,6 +62,12 @@ export function VariantStockMatrix({ sizes, colors, value, onChange }: VariantSt
       return v;
     });
     
+    setVariants(updatedVariants);
+    onChange(updatedVariants);
+  };
+
+  const deleteVariant = (size: string, color: string) => {
+    const updatedVariants = variants.filter(v => !(v.size === size && v.color === color));
     setVariants(updatedVariants);
     onChange(updatedVariants);
   };
@@ -137,7 +144,7 @@ export function VariantStockMatrix({ sizes, colors, value, onChange }: VariantSt
                 {colors.map((color) => (
                   <th
                     key={color}
-                    className="px-4 py-3 text-center text-sm font-medium min-w-[120px]"
+                    className="px-4 py-3 text-center text-sm font-medium min-w-[140px]"
                   >
                     {color}
                   </th>
@@ -162,33 +169,43 @@ export function VariantStockMatrix({ sizes, colors, value, onChange }: VariantSt
 
                     return (
                       <td key={`${size}-${color}`} className="px-4 py-3">
-                        <div className="flex flex-col items-center gap-1">
-                          <input
-                            type="number"
-                            min="0"
-                            value={stock}
-                            onChange={(e) => {
-                              const value = parseInt(e.target.value) || 0;
-                              updateStock(size, color, value);
-                            }}
-                            className={`w-full px-3 py-2 border rounded text-center focus:outline-none focus:ring-2 transition-colors ${
-                              isOutOfStock
-                                ? 'border-bmr-acc-red focus:ring-bmr-acc-red bg-bmr-acc-red/5'
-                                : isLowStock
-                                ? 'border-yellow-500 focus:ring-yellow-500 bg-yellow-50'
-                                : 'border-line focus:ring-bmr-ink'
-                            }`}
-                          />
-                          {isOutOfStock && (
-                            <span className="text-xs text-bmr-acc-red font-medium">
-                              Out of Stock
-                            </span>
-                          )}
-                          {isLowStock && (
-                            <span className="text-xs text-yellow-600 font-medium">
-                              Low Stock
-                            </span>
-                          )}
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-col items-center gap-1 flex-1">
+                            <input
+                              type="number"
+                              min="0"
+                              value={stock}
+                              onChange={(e) => {
+                                const value = parseInt(e.target.value) || 0;
+                                updateStock(size, color, value);
+                              }}
+                              className={`w-full px-3 py-2 border rounded text-center focus:outline-none focus:ring-2 transition-colors ${
+                                isOutOfStock
+                                  ? 'border-bmr-acc-red focus:ring-bmr-acc-red bg-bmr-acc-red/5'
+                                  : isLowStock
+                                  ? 'border-yellow-500 focus:ring-yellow-500 bg-yellow-50'
+                                  : 'border-line focus:ring-bmr-ink'
+                              }`}
+                            />
+                            {isOutOfStock && (
+                              <span className="text-xs text-bmr-acc-red font-medium">
+                                Out of Stock
+                              </span>
+                            )}
+                            {isLowStock && (
+                              <span className="text-xs text-yellow-600 font-medium">
+                                Low Stock
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => deleteVariant(size, color)}
+                            className="p-1.5 text-bmr-muted hover:text-bmr-acc-red hover:bg-bmr-acc-red/10 rounded transition-colors"
+                            title={`Delete ${size} - ${color}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </td>
                     );
