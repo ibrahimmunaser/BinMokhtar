@@ -99,6 +99,11 @@ export async function POST(request: NextRequest) {
 
     const totalStock = normalizedVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
 
+    // Handle colorImageMappings
+    const colorImageMappings = Array.isArray(body.colorImageMappings) 
+      ? body.colorImageMappings.filter((m: any) => m.color && Array.isArray(m.imageUrls))
+      : [];
+
     const productData = {
       slug: body.name.toLowerCase().replace(/\s+/g, '-'),
       name: body.name,
@@ -113,6 +118,7 @@ export async function POST(request: NextRequest) {
       stock: Number.isFinite(totalStock) ? totalStock : 0,
       images: body.images || ['/placeholder.svg'],
       thumbnail: body.thumbnail || body.images?.[0] || '/placeholder.svg',
+      colorImageMappings,
       descriptionHtml: body.description ? `<p>${body.description}</p>` : '',
       published: body.published,
       createdAt: new Date(),

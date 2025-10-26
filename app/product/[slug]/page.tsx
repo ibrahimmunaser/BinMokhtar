@@ -35,11 +35,28 @@ export default function ProductPage() {
   const [qty, setQty] = useState(1);
 
   // Compute gallery images (prefer product.images from Admin) - MUST be before early returns
-  const galleryImages: string[] = useMemo(() => {
+  const allGalleryImages: string[] = useMemo(() => {
     const imgs = (product as any)?.images as string[] | undefined;
     if (imgs && Array.isArray(imgs) && imgs.length > 0) return imgs;
     return product?.defaultImage?.url ? [product.defaultImage.url] : [];
   }, [product]);
+
+  // Get images for selected color from colorImageMappings
+  const galleryImages: string[] = useMemo(() => {
+    if (!selectedColor || !product) return allGalleryImages;
+    
+    const colorMappings = (product as any)?.colorImageMappings as Array<{ color: string; imageUrls: string[] }> | undefined;
+    
+    if (colorMappings && Array.isArray(colorMappings)) {
+      const mapping = colorMappings.find(m => m.color === selectedColor);
+      if (mapping && mapping.imageUrls && mapping.imageUrls.length > 0) {
+        return mapping.imageUrls;
+      }
+    }
+    
+    // If no mapping found, return all images
+    return allGalleryImages;
+  }, [selectedColor, product, allGalleryImages]);
 
   // Filter related products (same category, exclude current) - MUST be before early returns
   const recommendations = useMemo(() => {

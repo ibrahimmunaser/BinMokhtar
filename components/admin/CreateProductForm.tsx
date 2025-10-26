@@ -155,6 +155,7 @@ export function CreateProductForm() {
         sizes: data.sizes,
         colors: data.colors,
         variants: data.variants,
+        colorImageMappings: data.colorImageMappings || [],
         tags: data.tags,
         published: true,
         description: `${data.category}`,
