@@ -150,17 +150,17 @@ export function VariantStockMatrix({ sizes, colors, value, onChange }: VariantSt
               }`}
             >
               {/* Variant Info */}
-              <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="flex-1 grid grid-cols-3 gap-4 items-center">
                 <div>
-                  <label className="text-xs text-bmr-muted uppercase tracking-wide">Size</label>
+                  <label className="text-xs text-bmr-muted uppercase tracking-wide block mb-1">Size</label>
                   <p className="font-medium text-lg">{variant.size}</p>
                 </div>
                 <div>
-                  <label className="text-xs text-bmr-muted uppercase tracking-wide">Color</label>
+                  <label className="text-xs text-bmr-muted uppercase tracking-wide block mb-1">Color</label>
                   <p className="font-medium text-lg">{variant.color}</p>
                 </div>
                 <div>
-                  <label className="text-xs text-bmr-muted uppercase tracking-wide">Stock</label>
+                  <label className="text-xs text-bmr-muted uppercase tracking-wide block mb-1">Stock</label>
                   <input
                     type="number"
                     min="0"
@@ -169,7 +169,7 @@ export function VariantStockMatrix({ sizes, colors, value, onChange }: VariantSt
                       const value = parseInt(e.target.value) || 0;
                       updateStock(variant.size, variant.color, value);
                     }}
-                    className={`w-full px-3 py-2 border rounded font-medium text-lg focus:outline-none focus:ring-2 transition-colors ${
+                    className={`w-24 px-3 py-2 border rounded font-medium text-lg focus:outline-none focus:ring-2 transition-colors ${
                       isOutOfStock
                         ? 'border-bmr-acc-red focus:ring-bmr-acc-red'
                         : isLowStock
@@ -181,19 +181,19 @@ export function VariantStockMatrix({ sizes, colors, value, onChange }: VariantSt
               </div>
 
               {/* Status Badge */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-[120px]">
                 {isOutOfStock && (
-                  <span className="px-3 py-1 text-xs font-medium text-bmr-acc-red bg-bmr-acc-red/10 rounded-full">
+                  <span className="px-3 py-1 text-xs font-medium text-bmr-acc-red bg-bmr-acc-red/10 rounded-full whitespace-nowrap">
                     Out of Stock
                   </span>
                 )}
                 {isLowStock && (
-                  <span className="px-3 py-1 text-xs font-medium text-yellow-700 bg-yellow-100 rounded-full">
+                  <span className="px-3 py-1 text-xs font-medium text-yellow-700 bg-yellow-100 rounded-full whitespace-nowrap">
                     Low Stock
                   </span>
                 )}
                 {!isOutOfStock && !isLowStock && (
-                  <span className="px-3 py-1 text-xs font-medium text-bmr-acc-green bg-bmr-acc-green/10 rounded-full">
+                  <span className="px-3 py-1 text-xs font-medium text-bmr-acc-green bg-bmr-acc-green/10 rounded-full whitespace-nowrap">
                     In Stock
                   </span>
                 )}
@@ -203,7 +203,7 @@ export function VariantStockMatrix({ sizes, colors, value, onChange }: VariantSt
               <button
                 type="button"
                 onClick={() => deleteVariant(variant.size, variant.color)}
-                className="p-3 text-bmr-muted hover:text-bmr-acc-red hover:bg-bmr-acc-red/10 rounded-lg transition-colors flex-shrink-0"
+                className="p-2.5 text-gray-500 hover:text-red-600 hover:bg-red-50 border border-gray-300 hover:border-red-400 rounded-lg transition-all flex-shrink-0"
                 title={`Delete ${variant.size} - ${variant.color}`}
               >
                 <Trash2 className="w-5 h-5" />
