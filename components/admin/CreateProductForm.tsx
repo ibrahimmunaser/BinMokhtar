@@ -55,7 +55,7 @@ const productSchema = z.object({
   images: z.array(z.string()).min(1, 'At least 1 product image is required'),
   category: z.string().min(1, 'Category is required'),
   subcategory: z.string().optional(),
-  sizes: z.array(z.string()).min(1, 'At least 1 size is required'),
+  sizes: z.array(z.string()),
   colors: z.array(z.string()).min(1, 'At least 1 color is required'),
   variants: z.array(z.object({
     size: z.string(),
@@ -69,22 +69,15 @@ const productSchema = z.object({
   })).optional(),
   sleeve: z.enum(['short', 'long']).optional(),
   tags: z.array(z.string()).min(2, 'At least 2 tags are required'),
-  orders: z.number().int().nonnegative('Orders must be non-negative').default(0),
-  views: z.number().int().nonnegative('Views must be non-negative').default(0),
-  rating: z.preprocess(
-    (v) => {
-      if (v === '' || v === undefined || (typeof v === 'number' && Number.isNaN(v))) return undefined;
-      return Number(v);
-    },
-    z.number().min(0).max(5).optional()
-  ),
-  numReviews: z.preprocess(
-    (v) => {
-      if (v === '' || v === undefined || (typeof v === 'number' && Number.isNaN(v))) return undefined;
-      return Number(v);
-    },
-    z.number().int().nonnegative().optional()
-  ),
+}).refine((data) => {
+  // Sizes are required for all categories except Shemaghs
+  if (data.subcategory !== 'Shemaghs' && data.sizes.length === 0) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'At least 1 size is required',
+  path: ['sizes'],
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -119,15 +112,16 @@ export function CreateProductForm() {
       variants: [],
       colorImageMappings: [],
       tags: [],
-      orders: 0,
-      views: 0,
-      rating: undefined,
-      numReviews: undefined,
     },
   });
 
   const category = watch('category');
   const subcategory = watch('subcategory');
+  const title = watch('title');
+  const price = watch('price');
+  
+  // Check if basic information is filled (required fields only)
+  const isBasicInfoComplete = title && title.length >= 4 && price && price > 0 && category;
 
   const onSubmit = async (data: ProductFormData) => {
     console.log('Form submitted with data:', data);
@@ -145,8 +139,8 @@ export function CreateProductForm() {
       const productData = {
         name: data.title,
         subtitle: '',
-        price: data.price.toString(),
-        compareAtPrice: data.salePrice ? data.salePrice.toString() : undefined,
+        price: data.salePrice ? data.salePrice.toString() : data.price.toString(), // Use sale price if provided, otherwise regular price
+        compareAtPrice: data.salePrice ? data.price.toString() : undefined, // If there's a sale price, the regular price becomes compareAt
         images: data.images,
         thumbnail: data.images[0],
         categoryId: data.category,
@@ -180,6 +174,19 @@ export function CreateProductForm() {
       }
 
       console.log('Product created successfully with ID:', result.product?.id);
+      
+      // Invalidate cache so the frontend shows new product
+      try {
+        const slug = data.title.toLowerCase().replace(/\s+/g, '-');
+        await fetch('/api/revalidate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'all-products' }),
+        });
+        console.log('Cache invalidated for all products');
+      } catch (cacheError) {
+        console.warn('Failed to invalidate cache:', cacheError);
+      }
       
       // Success state
       setSubmitStatus('success');
@@ -254,7 +261,7 @@ export function CreateProductForm() {
 
             <div className="grid md:grid-cols-2 gap-6">
               <ProductFormField
-                label="Price"
+                label="Regular Price"
                 type="number"
                 required
                 placeholder="99.99"
@@ -265,9 +272,9 @@ export function CreateProductForm() {
               />
 
               <ProductFormField
-                label="Sale Price"
+                label="Sale Price (Optional)"
                 type="number"
-                placeholder="79.99 (Optional)"
+                placeholder="79.99 - Leave empty if not on sale"
                 step="0.01"
                 min="0"
                 error={errors.salePrice?.message}
@@ -320,174 +327,155 @@ export function CreateProductForm() {
           </div>
         </div>
 
-        {/* Images */}
-        <div className="bg-surface-2 rounded-lg border border-line p-6 lg:p-8">
-          <h2 className="font-display text-xl mb-6">Product Images</h2>
-          
-          <Controller
-            name="images"
-            control={control}
-            render={({ field }) => (
-              <MultiImageUpload
-                label="Product Images"
-                name="images"
-                required
-                error={errors.images?.message}
-                value={field.value}
-                onChange={field.onChange}
-              />
-            )}
-          />
-        </div>
-
-        {/* Variants */}
-        <div className="bg-surface-2 rounded-lg border border-line p-6 lg:p-8">
-          <h2 className="font-display text-xl mb-6">Product Variants</h2>
-          
-          <div className="space-y-6">
-            {/* Size and Color Selection */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <Controller
-                name="sizes"
-                control={control}
-                render={({ field }) => (
-                  <MultiSelect
-                    label="Available Sizes"
-                    name="sizes"
-                    required
-                    options={SIZE_OPTIONS}
-                    value={field.value}
-                    onChange={field.onChange}
-                    error={errors.sizes?.message}
-                    placeholder="Select sizes"
-                  />
-                )}
-              />
-
-              <Controller
-                name="colors"
-                control={control}
-                render={({ field }) => (
-                  <MultiSelect
-                    label="Available Colors"
-                    name="colors"
-                    required
-                    options={COLOR_OPTIONS}
-                    value={field.value}
-                    onChange={field.onChange}
-                    error={errors.colors?.message}
-                    placeholder="Select colors"
-                  />
-                )}
-              />
+        {/* Instructions: Show this when basic info is NOT complete */}
+        {!isBasicInfoComplete && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">
+                ℹ️
+              </div>
+              <div>
+                <h3 className="font-medium text-blue-900 mb-2">Complete Basic Information First</h3>
+                <p className="text-sm text-blue-800 mb-3">
+                  Please fill out all required fields in the "Basic Information" section above before accessing additional form sections:
+                </p>
+                <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                  <li>Product Title (minimum 4 characters)</li>
+                  <li>Price</li>
+                  <li>Category</li>
+                </ul>
+                <p className="text-xs text-blue-700 mt-3">
+                  Note: Sale Price is optional and can be left empty
+                </p>
+              </div>
             </div>
+          </div>
+        )}
 
-            {/* Stock Matrix */}
+        {/* Images */}
+        {isBasicInfoComplete && (
+          <div className="bg-surface-2 rounded-lg border border-line p-6 lg:p-8">
+            <h2 className="font-display text-xl mb-6">Product Images</h2>
+            
             <Controller
-              name="variants"
+              name="images"
               control={control}
               render={({ field }) => (
-                <VariantStockMatrix
-                  sizes={watch('sizes')}
-                  colors={watch('colors')}
+                <MultiImageUpload
+                  label="Product Images"
+                  name="images"
+                  required
+                  error={errors.images?.message}
                   value={field.value}
                   onChange={field.onChange}
                 />
               )}
             />
-            {errors.variants && (
-              <p className="text-sm text-bmr-acc-red">{errors.variants.message}</p>
-            )}
           </div>
+        )}
 
-          {/* Color to Image Mapping */}
-          <div className="mt-8">
+        {/* Variants */}
+        {isBasicInfoComplete && (
+          <div className="bg-surface-2 rounded-lg border border-line p-6 lg:p-8">
+            <h2 className="font-display text-xl mb-6">Product Variants</h2>
+            
+            <div className="space-y-6">
+              {/* Size and Color Selection */}
+              <div className={subcategory === 'Shemaghs' ? 'grid grid-cols-1 gap-6' : 'grid md:grid-cols-2 gap-6'}>
+                {subcategory !== 'Shemaghs' && (
+                  <Controller
+                    name="sizes"
+                    control={control}
+                    render={({ field }) => (
+                      <MultiSelect
+                        label="Available Sizes"
+                        name="sizes"
+                        required
+                        options={SIZE_OPTIONS}
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={errors.sizes?.message}
+                        placeholder="Select sizes"
+                      />
+                    )}
+                  />
+                )}
+
+                <Controller
+                  name="colors"
+                  control={control}
+                  render={({ field }) => (
+                    <MultiSelect
+                      label="Available Colors"
+                      name="colors"
+                      required
+                      options={COLOR_OPTIONS}
+                      value={field.value}
+                      onChange={field.onChange}
+                      error={errors.colors?.message}
+                      placeholder="Select colors"
+                    />
+                  )}
+                />
+              </div>
+
+              {/* Stock Matrix */}
+              <Controller
+                name="variants"
+                control={control}
+                render={({ field }) => (
+                  <VariantStockMatrix
+                    sizes={watch('sizes')}
+                    colors={watch('colors')}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+              {errors.variants && (
+                <p className="text-sm text-bmr-acc-red">{errors.variants.message}</p>
+              )}
+            </div>
+
+            {/* Color to Image Mapping */}
+            <div className="mt-8">
+              <Controller
+                name="colorImageMappings"
+                control={control}
+                render={({ field }) => (
+                  <ColorImageMapper
+                    colors={watch('colors')}
+                    images={watch('images')}
+                    value={field.value || []}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Product Tags */}
+        {isBasicInfoComplete && (
+          <div className="bg-surface-2 rounded-lg border border-line p-6 lg:p-8">
+            <h2 className="font-display text-xl mb-6">Tags & Classification</h2>
+            
             <Controller
-              name="colorImageMappings"
+              name="tags"
               control={control}
               render={({ field }) => (
-                <ColorImageMapper
-                  colors={watch('colors')}
-                  images={watch('images')}
-                  value={field.value || []}
+                <TagsInput
+                  label="Product Tags"
+                  name="tags"
+                  required
+                  error={errors.tags?.message}
+                  value={field.value}
                   onChange={field.onChange}
                 />
               )}
             />
           </div>
-        </div>
-
-        {/* Tags */}
-        <div className="bg-surface-2 rounded-lg border border-line p-6 lg:p-8">
-          <h2 className="font-display text-xl mb-6">Tags & Classification</h2>
-          
-          <Controller
-            name="tags"
-            control={control}
-            render={({ field }) => (
-              <TagsInput
-                label="Product Tags"
-                name="tags"
-                required
-                error={errors.tags?.message}
-                value={field.value}
-                onChange={field.onChange}
-              />
-            )}
-          />
-        </div>
-
-        {/* Metrics */}
-        <div className="bg-surface-2 rounded-lg border border-line p-6 lg:p-8">
-          <h2 className="font-display text-xl mb-6">Metrics</h2>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            <ProductFormField
-              label="Initial Orders Count"
-              type="number"
-              placeholder="0"
-              min="0"
-              error={errors.orders?.message}
-              {...register('orders', { valueAsNumber: true })}
-            />
-
-            <ProductFormField
-              label="Initial Views Count"
-              type="number"
-              placeholder="0"
-              min="0"
-              error={errors.views?.message}
-              {...register('views', { valueAsNumber: true })}
-            />
-
-            <ProductFormField
-              label="Rating"
-              type="number"
-              placeholder="0-5 (Optional)"
-              min="0"
-              max="5"
-              step="0.1"
-              error={errors.rating?.message}
-              {...register('rating', { valueAsNumber: true })}
-            />
-
-            <ProductFormField
-              label="Number of Reviews"
-              type="number"
-              placeholder="Optional"
-              min="0"
-              error={errors.numReviews?.message}
-              {...register('numReviews', { valueAsNumber: true })}
-            />
-          </div>
-
-          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-900">
-              ℹ️ <strong>Note:</strong> Stock levels are managed per variant (size+color combination) 
-              in the "Product Variants" section above. Total stock is calculated automatically.
-            </p>
-          </div>
-        </div>
+        )}
 
         {/* Submit Button */}
         <div className="flex items-center justify-end gap-4">

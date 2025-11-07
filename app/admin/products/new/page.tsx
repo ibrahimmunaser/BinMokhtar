@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAdminAuthenticated, clearAdminSession } from '@/lib/adminAuth';
 import { addProduct, updateCategoryProductCounts } from '@/lib/firebaseAdminStore';
+import { TagsInput } from '@/components/admin/TagsInput';
 import Link from 'next/link';
 import { ArrowLeft, LogOut, Save } from 'lucide-react';
 
@@ -24,6 +25,7 @@ export default function NewProductPage() {
     colors: [] as string[],
     sizes: [] as string[],
     sleeve: '' as 'short' | 'long' | '',
+    tags: [] as string[],
     published: true,
   });
   const [variants, setVariants] = useState<{ size?: string; color?: string; stock: number }[]>([]);
@@ -31,6 +33,9 @@ export default function NewProductPage() {
   const colorOptions = ['White', 'Black', 'Navy', 'Gray', 'Beige', 'Brown'];
 
   const totalStock = variants.reduce((sum, v) => sum + (Number.isFinite(v.stock) ? v.stock : 0), 0);
+  
+  // Check if sizes should be hidden (for Shemaghs and Shaals)
+  const hideSizes = formData.categoryId === 'shemaghs' || formData.categoryId === 'shaals';
 
   const syncVariantsFromSelections = (sizes: string[], colors: string[]) => {
     const key = (s?: string, c?: string) => `${s || ''}__${c || ''}`;
@@ -38,14 +43,16 @@ export default function NewProductPage() {
     variants.forEach(v => currentMap.set(key(v.size, v.color), v));
 
     const next: { size?: string; color?: string; stock: number }[] = [];
-    const sizesList = sizes.length > 0 ? sizes : [undefined as unknown as string];
+    
+    // If sizes are hidden, only use colors
+    const sizesList = hideSizes ? [undefined as unknown as string] : (sizes.length > 0 ? sizes : [undefined as unknown as string]);
     const colorsList = colors.length > 0 ? colors : [undefined as unknown as string];
 
     sizesList.forEach(s => {
       colorsList.forEach(c => {
         const k = key(s, c);
         const existing = currentMap.get(k);
-        next.push({ size: s || undefined, color: c || undefined, stock: existing?.stock ?? 0 });
+        next.push({ size: hideSizes ? undefined : s || undefined, color: c || undefined, stock: existing?.stock ?? 0 });
       });
     });
 
@@ -82,6 +89,11 @@ export default function NewProductPage() {
       setIsAuthenticated(true);
     }
   }, [router]);
+  
+  // Re-sync variants when category changes (affects whether sizes are included)
+  useEffect(() => {
+    syncVariantsFromSelections(formData.sizes, formData.colors);
+  }, [formData.categoryId]);
 
   const handleLogout = () => {
     clearAdminSession();
@@ -133,15 +145,29 @@ export default function NewProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate tags
+    if (formData.tags.length < 2) {
+      alert('Please add at least 2 product tags');
+      return;
+    }
+    
     setSaving(true);
     
     try {
+      // Swap prices if sale price is provided
+      const price = formData.compareAtPrice ? formData.compareAtPrice : formData.price;
+      const compareAtPrice = formData.compareAtPrice ? formData.price : '';
+      
       // Add product to Firebase with images
       const productData = {
         ...formData,
+        price, // Use sale price if provided, otherwise regular price
+        compareAtPrice, // If there's a sale price, the regular price becomes compareAt
         images: images.length > 0 ? images : ['/placeholder.svg'],
         thumbnail: images.length > 0 ? images[0] : '/placeholder.svg',
         variants: variants.map(v => ({ size: v.size, color: v.color, stock: Number.isFinite(v.stock) ? v.stock : 0 })),
+        tags: formData.tags,
       };
 
       const newProduct = await addProduct(productData);
@@ -345,7 +371,7 @@ export default function NewProductPage() {
                     className="w-full pl-8 pr-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
                   />
                 </div>
-                <p className="text-xs text-bmr-muted mt-1">Leave empty if not on sale</p>
+                <p className="text-xs text-bmr-muted mt-1">Leave empty if not on sale. Must be less than regular price.</p>
               </div>
             </div>
           </div>
@@ -431,24 +457,26 @@ export default function NewProductPage() {
           <div className="bg-surface-2 rounded-lg border border-line p-6 lg:p-8">
             <h2 className="font-display text-xl mb-6">Variants</h2>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Available Sizes</label>
-                <div className="border border-line rounded-lg p-4">
-                  <div className="grid grid-cols-3 gap-2 mb-3">
-                    {sizeOptions.map((s) => (
-                      <label key={s} className="flex items-center gap-2 text-sm">
-                        <input type="checkbox" checked={formData.sizes.includes(s)} onChange={() => toggleSelection('sizes', s)} />
-                        <span>{s}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <input id="custom-size-input" type="text" placeholder="Add custom size" className="w-full px-3 py-2 border border-line rounded" />
-                    <button type="button" onClick={() => addCustomOption('sizes', 'custom-size-input')} className="px-3 py-2 border rounded">Add</button>
+            <div className={hideSizes ? 'grid grid-cols-1 gap-6' : 'grid md:grid-cols-2 gap-6'}>
+              {!hideSizes && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">Available Sizes</label>
+                  <div className="border border-line rounded-lg p-4">
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      {sizeOptions.map((s) => (
+                        <label key={s} className="flex items-center gap-2 text-sm">
+                          <input type="checkbox" checked={formData.sizes.includes(s)} onChange={() => toggleSelection('sizes', s)} />
+                          <span>{s}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <input id="custom-size-input" type="text" placeholder="Add custom size" className="w-full px-3 py-2 border border-line rounded" />
+                      <button type="button" onClick={() => addCustomOption('sizes', 'custom-size-input')} className="px-3 py-2 border rounded">Add</button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium mb-2">Available Colors</label>
@@ -472,13 +500,13 @@ export default function NewProductPage() {
             <div className="mt-6">
               <label className="block text-sm font-medium mb-3">Variant Stock</label>
               {variants.length === 0 ? (
-                <p className="text-sm text-bmr-muted">Select sizes/colors above to generate variant combinations.</p>
+                <p className="text-sm text-bmr-muted">Select {hideSizes ? 'colors' : 'sizes/colors'} above to generate variant combinations.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
                       <tr>
-                        <th className="text-left p-2 border-b border-line">Size</th>
+                        {!hideSizes && <th className="text-left p-2 border-b border-line">Size</th>}
                         <th className="text-left p-2 border-b border-line">Color</th>
                         <th className="text-left p-2 border-b border-line">Stock</th>
                       </tr>
@@ -486,7 +514,7 @@ export default function NewProductPage() {
                     <tbody>
                       {variants.map((v, idx) => (
                         <tr key={`${v.size || ''}-${v.color || ''}-${idx}`}>
-                          <td className="p-2 border-b border-line">{v.size || '—'}</td>
+                          {!hideSizes && <td className="p-2 border-b border-line">{v.size || '—'}</td>}
                           <td className="p-2 border-b border-line">{v.color || '—'}</td>
                           <td className="p-2 border-b border-line">
                             <input
@@ -508,6 +536,20 @@ export default function NewProductPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Product Tags */}
+          <div className="bg-surface-2 rounded-lg border border-line p-6 lg:p-8">
+            <h2 className="font-display text-xl mb-6">Tags & Classification</h2>
+
+            <TagsInput
+              label="Product Tags"
+              name="tags"
+              required
+              value={formData.tags}
+              onChange={(tags) => setFormData({ ...formData, tags })}
+              error={formData.tags.length < 2 ? 'At least 2 tags are required' : undefined}
+            />
           </div>
 
           {/* Publishing */}

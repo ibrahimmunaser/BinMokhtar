@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { RecProductCard } from './ProductCard';
@@ -9,7 +9,7 @@ interface ProductLite { id: string; title: string; tags?: string[]; orders?: num
 
 interface Props { product: ProductLite | any }
 
-export function CustomersAlsoBought({ product }: Props) {
+export const CustomersAlsoBought = memo(function CustomersAlsoBought({ product }: Props) {
   const [items, setItems] = useState<ProductLite[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -64,6 +64,10 @@ export function CustomersAlsoBought({ product }: Props) {
       </div>
     </section>
   );
-}
+}, (prevProps, nextProps) => {
+  // Only re-render if product id/slug changes
+  return prevProps.product?.id === nextProps.product?.id && 
+         prevProps.product?.slug === nextProps.product?.slug;
+});
 
 

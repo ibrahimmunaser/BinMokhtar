@@ -57,7 +57,7 @@ const productSchema = z.object({
   images: z.array(z.string()).min(1, 'At least 1 product image is required'),
   category: z.string().min(1, 'Category is required'),
   subcategory: z.string().optional(),
-  sizes: z.array(z.string()).min(1, 'At least 1 size is required'),
+  sizes: z.array(z.string()),
   colors: z.array(z.string()).min(1, 'At least 1 color is required'),
   variants: z.array(z.object({
     size: z.string(),
@@ -87,6 +87,15 @@ const productSchema = z.object({
     },
     z.number().int().nonnegative().optional()
   ),
+}).refine((data) => {
+  // Sizes are required for all categories except Shemaghs
+  if (data.subcategory !== 'Shemaghs' && data.sizes.length === 0) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'At least 1 size is required',
+  path: ['sizes'],
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -202,8 +211,8 @@ export default function EditProductForm() {
         id: productId,
         name: data.title,
         subtitle: '',
-        price: data.price.toString(),
-        compareAtPrice: data.salePrice ? data.salePrice.toString() : undefined,
+        price: data.salePrice ? data.salePrice.toString() : data.price.toString(), // Use sale price if provided, otherwise regular price
+        compareAtPrice: data.salePrice ? data.price.toString() : undefined, // If there's a sale price, the regular price becomes compareAt
         images: data.images,
         thumbnail: data.images[0],
         categoryId: data.category,
@@ -233,6 +242,19 @@ export default function EditProductForm() {
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to update product');
+      }
+
+      // Invalidate cache so the frontend shows updated data
+      try {
+        const slug = data.title.toLowerCase().replace(/\s+/g, '-');
+        await fetch('/api/revalidate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'product', slug }),
+        });
+        console.log('Cache invalidated for product:', slug);
+      } catch (cacheError) {
+        console.warn('Failed to invalidate cache:', cacheError);
       }
 
       setSubmitStatus('success');
@@ -460,23 +482,25 @@ export default function EditProductForm() {
               
               <div className="space-y-6">
                 {/* Size and Color Selection */}
-                <div className="grid md:grid-cols-2 gap-6">
-                  <Controller
-                    name="sizes"
-                    control={control}
-                    render={({ field }) => (
-                      <MultiSelect
-                        label="Available Sizes"
-                        name="sizes"
-                        required
-                        options={SIZE_OPTIONS}
-                        value={field.value}
-                        onChange={field.onChange}
-                        error={errors.sizes?.message}
-                        placeholder="Select sizes"
-                      />
-                    )}
-                  />
+                <div className={subcategory === 'Shemaghs' ? 'grid grid-cols-1 gap-6' : 'grid md:grid-cols-2 gap-6'}>
+                  {subcategory !== 'Shemaghs' && (
+                    <Controller
+                      name="sizes"
+                      control={control}
+                      render={({ field }) => (
+                        <MultiSelect
+                          label="Available Sizes"
+                          name="sizes"
+                          required
+                          options={SIZE_OPTIONS}
+                          value={field.value}
+                          onChange={field.onChange}
+                          error={errors.sizes?.message}
+                          placeholder="Select sizes"
+                        />
+                      )}
+                    />
+                  )}
 
                   <Controller
                     name="colors"

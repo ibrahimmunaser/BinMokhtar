@@ -201,6 +201,7 @@ export async function PUT(request: NextRequest) {
       stock: Number.isFinite(totalStock) ? totalStock : 0,
       images: body.images || ['/placeholder.svg'],
       thumbnail: body.thumbnail || body.images?.[0] || '/placeholder.svg',
+      colorImageMappings: body.colorImageMappings || [],
       descriptionHtml: body.description ? `<p>${body.description}</p>` : '',
       published: body.published,
       updatedAt: new Date(),

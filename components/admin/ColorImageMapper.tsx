@@ -17,9 +17,16 @@ interface ColorImageMapperProps {
 }
 
 export function ColorImageMapper({ colors, images, value, onChange }: ColorImageMapperProps) {
-  const [mappings, setMappings] = useState<ColorImageMapping[]>(value);
+  const [mappings, setMappings] = useState<ColorImageMapping[]>(() => {
+    // Initialize with value on first render
+    if (value && value.length > 0) {
+      return value;
+    }
+    // Otherwise create empty mappings for each color
+    return colors.map(color => ({ color, imageUrls: [] }));
+  });
 
-  // Initialize mappings when colors change
+  // Update mappings when colors change
   useEffect(() => {
     const newMappings: ColorImageMapping[] = [];
     
@@ -27,7 +34,11 @@ export function ColorImageMapper({ colors, images, value, onChange }: ColorImage
       const existing = mappings.find(m => m.color === color);
       
       if (existing) {
-        newMappings.push(existing);
+        // Remove duplicates from existing imageUrls
+        newMappings.push({
+          ...existing,
+          imageUrls: [...new Set(existing.imageUrls)],
+        });
       } else {
         newMappings.push({
           color,
@@ -36,9 +47,12 @@ export function ColorImageMapper({ colors, images, value, onChange }: ColorImage
       }
     }
 
-    setMappings(newMappings);
-    onChange(newMappings);
-  }, [colors]);
+    // Only update if the mappings actually changed
+    if (JSON.stringify(newMappings) !== JSON.stringify(mappings)) {
+      setMappings(newMappings);
+      onChange(newMappings);
+    }
+  }, [colors, images.length]); // Only re-run when colors or number of images change
 
   const toggleImageForColor = (color: string, imageUrl: string) => {
     const updatedMappings = mappings.map(mapping => {
@@ -52,23 +66,45 @@ export function ColorImageMapper({ colors, images, value, onChange }: ColorImage
             imageUrls: mapping.imageUrls.filter(url => url !== imageUrl),
           };
         } else {
-          // Add image
+          // Add image (ensure no duplicates)
+          const newUrls = [...new Set([...mapping.imageUrls, imageUrl])];
           return {
             ...mapping,
-            imageUrls: [...mapping.imageUrls, imageUrl],
+            imageUrls: newUrls,
           };
         }
       }
       return mapping;
     });
 
+    console.log('🎨 Color Image Mappings Updated:');
+    updatedMappings.forEach(m => {
+      console.log(`  ${m.color}: ${m.imageUrls.length} image(s)`);
+      m.imageUrls.forEach((url, idx) => {
+        const filename = url.split('/').pop()?.split('?')[0] || url;
+        console.log(`    ${idx + 1}. ${filename}`);
+      });
+    });
+    
     setMappings(updatedMappings);
     onChange(updatedMappings);
   };
 
   const isImageSelected = (color: string, imageUrl: string): boolean => {
     const mapping = mappings.find(m => m.color === color);
-    return mapping?.imageUrls.includes(imageUrl) ?? false;
+    const isSelected = mapping?.imageUrls.includes(imageUrl) ?? false;
+    
+    // Debug: log selection check
+    if (mapping && mapping.imageUrls.length > 0) {
+      const currentFilename = imageUrl.split('/').pop()?.split('?')[0];
+      const savedFilenames = mapping.imageUrls.map(u => u.split('/').pop()?.split('?')[0]);
+      console.log(`Checking ${color} - ${currentFilename}: ${isSelected}`, {
+        saved: savedFilenames,
+        checking: currentFilename
+      });
+    }
+    
+    return isSelected;
   };
 
   if (colors.length === 0) {
@@ -93,14 +129,33 @@ export function ColorImageMapper({ colors, images, value, onChange }: ColorImage
     );
   }
 
+  const clearAllSelections = () => {
+    const clearedMappings = mappings.map(m => ({
+      ...m,
+      imageUrls: [],
+    }));
+    setMappings(clearedMappings);
+    onChange(clearedMappings);
+    console.log('✨ All selections cleared');
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div>
-        <h3 className="font-medium">Color to Image Mapping</h3>
-        <p className="text-sm text-bmr-muted">
-          Select which images represent each color variant
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-medium">Color to Image Mapping</h3>
+          <p className="text-sm text-bmr-muted">
+            Select which images represent each color variant
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={clearAllSelections}
+          className="px-4 py-2 text-sm border border-line rounded hover:bg-surface-3 transition-colors"
+        >
+          Clear All Selections
+        </button>
       </div>
 
       {/* Color Mapping List */}
@@ -140,6 +195,7 @@ export function ColorImageMapper({ colors, images, value, onChange }: ColorImage
                       src={imageUrl}
                       alt={`Product image ${index + 1}`}
                       fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
                       className="object-cover"
                     />
                     

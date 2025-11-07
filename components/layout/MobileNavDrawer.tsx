@@ -16,8 +16,8 @@ const defaultNavigation: NavItem[] = [
     sort: 1,
     children: [
       { id: 'shop-all-men', labelEn: 'Shop All Men', labelAr: 'تسوق الرجال', href: '/shop/mens', sort: 1 },
-      { id: 'thobes-short', labelEn: 'Thobes • Short Sleeve', labelAr: 'ثياب • كم قصير', href: '/category/thobes/short-sleeve', sort: 2 },
-      { id: 'thobes-long', labelEn: 'Thobes • Long Sleeve', labelAr: 'ثياب • كم طويل', href: '/category/thobes/long-sleeve', sort: 3 },
+      { id: 'short-sleeve', labelEn: 'Short Sleeves', labelAr: 'كم قصير', href: '/category/short-sleeves', sort: 2 },
+      { id: 'long-sleeve', labelEn: 'Long Sleeves', labelAr: 'كم طويل', href: '/category/long-sleeves', sort: 3 },
     ],
   },
   {

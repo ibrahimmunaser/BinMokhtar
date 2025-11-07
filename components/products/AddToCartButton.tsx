@@ -21,10 +21,10 @@ export function AddToCartButton({ onClick, disabled = false }: AddToCartButtonPr
     <button
       onClick={handleClick}
       disabled={disabled || isAdding}
-      className="w-full flex items-center justify-center gap-3 px-8 py-4 bg-bmr-black text-bmr-white text-sm uppercase tracking-wideish hover:bg-bmr-black/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full flex items-center justify-center gap-3 px-8 py-4 bg-bmr-ink text-surface-2 font-medium hover:bg-bmr-fg transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded"
     >
       <ShoppingBag className="w-5 h-5" />
-      {isAdding ? 'Adding...' : 'Add to Cart'}
+      {isAdding ? 'Added to cart' : 'Add to cart'}
     </button>
   );
 }

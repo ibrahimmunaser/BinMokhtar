@@ -47,23 +47,31 @@ export default function HomePage() {
 
   const mosaicTiles: MosaicTile[] = [
     {
-      titleEn: "Men's Thobes",
-      titleAr: 'ثوب رجالي',
-      href: '/category/thobes',
-      image: '/placeholder.svg',
+      titleEn: "Men's Collection",
+      titleAr: 'مجموعة الرجال',
+      href: '/shop/mens',
+      image: "/images/home-page-mens-thobe.png",
       span: { cols: 2, rows: 1 },
+      objectPosition: 'center 20%', // Position to show face better
     },
     {
       titleEn: 'Shemaghs',
       titleAr: 'شماغ',
       href: '/category/shemaghs',
-      image: '/placeholder.svg',
+      image: '/images/home page Shemaghs image.png',
     },
     {
       titleEn: "Women's Abayas",
       titleAr: 'عباية نسائية',
       href: '/category/abayas',
-      image: '/placeholder.svg',
+      image: '/images/home page abaya.png',
+    },
+    {
+      titleEn: 'Yemeni Shawls',
+      titleAr: 'شالات يمنية',
+      href: '/category/yemeni-shals',
+      image: '/images/yemeni shawls homepage.webp',
+      span: { cols: 2, rows: 1 },
     },
   ];
 
@@ -173,8 +181,8 @@ export default function HomePage() {
       <PromoBand
         title="Men's & Kids Collection"
         subtitle="Match your loved one"
-        imageLeft="/placeholder.svg"
-        imageRight="/placeholder.svg"
+        imageLeft="/images/kids 2.png"
+        imageRight="/images/home page placeholder.png"
         locale="en"
       />
 

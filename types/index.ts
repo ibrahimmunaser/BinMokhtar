@@ -327,6 +327,7 @@ export interface MosaicTile {
   href: string;
   image: string;
   span?: { cols?: number; rows?: number }; // grid span
+  objectPosition?: string; // CSS object-position value (e.g., 'center', 'top', '50% 20%')
 }
 
 export interface ShemaghTab {

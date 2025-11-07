@@ -15,8 +15,8 @@ const defaultNavigation: NavItem[] = [
     sort: 1,
     children: [
       { id: 'shop-all-men', labelEn: 'Shop All Men', labelAr: 'تسوق الرجال', href: '/shop/mens', sort: 1 },
-      { id: 'thobes-short', labelEn: 'Thobes • Short Sleeve', labelAr: 'ثياب • كم قصير', href: '/category/thobes/short-sleeve', sort: 2 },
-      { id: 'thobes-long', labelEn: 'Thobes • Long Sleeve', labelAr: 'ثياب • كم طويل', href: '/category/thobes/long-sleeve', sort: 3 },
+      { id: 'short-sleeve', labelEn: 'Short Sleeves', labelAr: 'كم قصير', href: '/category/short-sleeves', sort: 2 },
+      { id: 'long-sleeve', labelEn: 'Long Sleeves', labelAr: 'كم طويل', href: '/category/long-sleeves', sort: 3 },
     ],
   },
   {
@@ -104,7 +104,7 @@ function NavMenuItem({
       )}
 
       {hasChildren && isActive && isMegaMenu && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 w-[640px] bg-surface-2 border border-border shadow-lg z-50">
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-0 w-[640px] bg-surface-2 border border-border shadow-lg z-[110]">
           <div className="p-8">
             <div className="grid grid-cols-3 gap-8">
               {item.children!.map((child) => (
@@ -116,7 +116,7 @@ function NavMenuItem({
       )}
 
       {hasChildren && isActive && !isMegaMenu && (
-        <div className="absolute top-full left-0 mt-0 min-w-[220px] rounded-lg bg-surface-2 shadow-xl ring-1 ring-black/10 z-50">
+        <div className="absolute top-full left-0 mt-0 min-w-[220px] rounded-lg bg-surface-2 shadow-xl ring-1 ring-black/10 z-[110]">
           <div className="py-2">
             {item.children!.map((child) => (
               <SubMenuItem key={child.id} item={child} />

@@ -41,19 +41,22 @@ export function CategoryMosaic({ tiles, locale = 'en' }: CategoryMosaicProps) {
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
                   sizes={colSpan === 2 ? "66vw" : "33vw"}
+                  style={{ objectPosition: tile.objectPosition || 'center' }}
                 />
 
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
                 {/* Content */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-                  <h3 className="font-display text-2xl md:text-3xl font-medium text-white mb-4">
-                    {title}
-                  </h3>
-                  <span className="inline-flex items-center justify-center px-6 py-2 bg-white text-bmr-ink rounded-full text-sm font-medium uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    View Products
-                  </span>
+                <div className="absolute inset-0 flex items-center justify-center text-center p-6">
+                  <div className="w-full">
+                    <h3 className="font-display text-3xl md:text-4xl lg:text-5xl font-medium text-white mb-4">
+                      {title}
+                    </h3>
+                    <span className="inline-flex items-center justify-center px-6 py-2 bg-white text-bmr-ink rounded-full text-sm font-medium uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      View Products
+                    </span>
+                  </div>
                 </div>
               </Link>
             );
@@ -63,6 +66,7 @@ export function CategoryMosaic({ tiles, locale = 'en' }: CategoryMosaicProps) {
     </section>
   );
 }
+
 
 
 
