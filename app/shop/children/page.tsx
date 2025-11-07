@@ -139,7 +139,14 @@ export default function ChildrenCollectionPage() {
         );
         break;
       default: // featured
-        filtered.sort((a, b) => (b.orders || 0) - (a.orders || 0));
+        filtered.sort((a, b) => {
+          // Sort by featured first, then by rating and review count
+          if (a.featured && !b.featured) return -1;
+          if (!a.featured && b.featured) return 1;
+          const aScore = (a.counts?.reviewCount || 0) * (a.counts?.ratingAvg || 0);
+          const bScore = (b.counts?.reviewCount || 0) * (b.counts?.ratingAvg || 0);
+          return bScore - aScore;
+        });
     }
 
     return filtered;
