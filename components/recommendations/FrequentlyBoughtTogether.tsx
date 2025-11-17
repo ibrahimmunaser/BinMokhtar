@@ -54,14 +54,7 @@ export function FrequentlyBoughtTogether({ product }: Props) {
           const filtered = all
             .map((p: any) => ({ ...p, category: p.category || p.categoryId }))
             .filter((p) => (String(p.category || '').toLowerCase() === prodCat) && p.id !== product.id && p.slug !== product.slug)
-            .sort((a, b) => {
-              // Sort by featured first, then by popularity (rating * reviews)
-              if (a.featured && !b.featured) return -1;
-              if (!a.featured && b.featured) return 1;
-              const aScore = (a.counts?.reviewCount || 0) * (a.counts?.ratingAvg || 0);
-              const bScore = (b.counts?.reviewCount || 0) * (b.counts?.ratingAvg || 0);
-              return bScore - aScore;
-            })
+            .sort((a, b) => (b.orders || 0) - (a.orders || 0))
             .slice(0, 3);
           if (isMounted) setItems(filtered);
         } catch {}

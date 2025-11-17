@@ -42,14 +42,7 @@ export const CustomersAlsoBought = memo(function CustomersAlsoBought({ product }
         const matches = all
           .filter((p: any) => p.id !== product.id && p.slug !== product.slug)
           .filter((p: any) => (p.tags || []).map((t: string) => t.toLowerCase()).some((t: string) => currentTags.has(t)))
-          .sort((a, b) => {
-            // Sort by featured first, then by popularity (rating * reviews)
-            if (a.featured && !b.featured) return -1;
-            if (!a.featured && b.featured) return 1;
-            const aScore = (a.counts?.reviewCount || 0) * (a.counts?.ratingAvg || 0);
-            const bScore = (b.counts?.reviewCount || 0) * (b.counts?.ratingAvg || 0);
-            return bScore - aScore;
-          })
+          .sort((a, b) => (b.orders || 0) - (a.orders || 0))
           .slice(0, 6);
         if (mounted) setItems(matches);
       } catch {}
@@ -66,7 +59,7 @@ export const CustomersAlsoBought = memo(function CustomersAlsoBought({ product }
       <h3 className="font-display text-xl mb-4">Customers Also Bought</h3>
       <div className="flex gap-4 overflow-x-auto pb-2">
         {items.map((p) => (
-          <RecProductCard key={p.id} product={p} badge={p.featured ? 'Popular' : null} />
+          <RecProductCard key={p.id} product={p} badge={p.orders && p.orders > 100 ? 'Popular' : null} />
         ))}
       </div>
     </section>

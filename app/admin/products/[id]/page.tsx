@@ -71,6 +71,7 @@ const productSchema = z.object({
   })).optional(),
   sleeve: z.enum(['short', 'long']).optional(),
   tags: z.array(z.string()).min(2, 'At least 2 tags are required'),
+  orders: z.number().int().nonnegative('Orders must be non-negative').default(0),
   views: z.number().int().nonnegative('Views must be non-negative').default(0),
   rating: z.preprocess(
     (v) => {
@@ -134,6 +135,7 @@ export default function EditProductForm() {
       variants: [],
       colorImageMappings: [],
       tags: [],
+      orders: 0,
       views: 0,
       rating: undefined,
       numReviews: undefined,
@@ -174,6 +176,7 @@ export default function EditProductForm() {
           variants: product.variants || [],
           colorImageMappings: product.colorImageMappings || [],
           tags: product.tags || [],
+          orders: product.orders || 0,
           views: product.views || 0,
           rating: product.rating || undefined,
           numReviews: product.numReviews || undefined,
@@ -577,6 +580,15 @@ export default function EditProductForm() {
               <h2 className="font-display text-xl mb-6">Metrics</h2>
               
               <div className="grid md:grid-cols-2 gap-6">
+                <ProductFormField
+                  label="Initial Orders Count"
+                  type="number"
+                  placeholder="0"
+                  min="0"
+                  error={errors.orders?.message}
+                  {...register('orders', { valueAsNumber: true })}
+                />
+
                 <ProductFormField
                   label="Initial Views Count"
                   type="number"
