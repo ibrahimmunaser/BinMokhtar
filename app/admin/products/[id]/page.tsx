@@ -166,7 +166,7 @@ export default function EditProductForm() {
         reset({
           title: product.titleEn || '',
           price: product.price ? product.price / 100 : 0,
-          salePrice: product.compareAtPrice ? product.compareAtPrice / 100 : undefined,
+          salePrice: undefined,
           images: product.images || [],
           category: product.categoryId || '',
           subcategory: product.subcategory || undefined,

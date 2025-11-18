@@ -236,11 +236,6 @@ export default function AdminProductsPage() {
                     <td className="px-6 py-4">
                       <div className="text-sm">
                         {formatPrice(product.price)}
-                        {product.compareAtPrice && (
-                          <span className="ml-2 text-bmr-muted line-through">
-                            {formatPrice(product.compareAtPrice)}
-                          </span>
-                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">

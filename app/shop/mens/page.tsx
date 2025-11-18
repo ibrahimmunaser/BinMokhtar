@@ -463,7 +463,7 @@ export default function MensCollectionPage() {
                   sku: product.id,
                   size: product.sizes?.[0],
                   price: product.price || product.basePrice,
-                      compareAt: product.compareAtPrice,
+                      compareAt: undefined,
                   stock: product.counts?.totalStock ?? product.stock ?? 0,
                   active: true,
                       imageUrl: product.defaultImage?.url || product.thumbnail || product.images?.[0],

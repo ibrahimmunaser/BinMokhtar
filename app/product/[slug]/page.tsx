@@ -173,11 +173,6 @@ export default function ProductPage() {
                 <span className="font-display text-3xl">
                   {formatPrice(product.price || product.basePrice, currency)}
                 </span>
-                {product.compareAtPrice && product.compareAtPrice > (product.price || product.basePrice) && (
-                  <span className="text-lg text-muted line-through">
-                    {formatPrice(product.compareAtPrice, currency)}
-                  </span>
-                )}
               </div>
 
               {/* Reviews (if available) */}

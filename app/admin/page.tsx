@@ -119,7 +119,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between mb-4">
               <FileText className="w-8 h-8 text-bmr-muted" />
             </div>
-            <p className="text-3xl font-display mb-2">{products.filter(p => p.compareAtPrice).length}</p>
+            <p className="text-3xl font-display mb-2">0</p>
             <p className="text-sm text-bmr-muted">On Sale</p>
           </div>
         </div>
@@ -196,11 +196,6 @@ export default function AdminDashboard() {
                     <td className="px-6 py-4">
                       <div>
                         <p className="font-medium">${(product.price / 100).toFixed(2)}</p>
-                        {product.compareAtPrice && (
-                          <p className="text-sm text-bmr-muted line-through">
-                            ${(product.compareAtPrice / 100).toFixed(2)}
-                          </p>
-                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
