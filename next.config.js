@@ -16,6 +16,10 @@ const nextConfig = {
       },
     ],
   },
+  // Skip these dynamic routes during static generation
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // Don't resolve 'fs', 'net', 'tls', 'http2' on the client side
