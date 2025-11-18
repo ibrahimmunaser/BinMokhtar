@@ -10,6 +10,8 @@ import { Breadcrumbs } from '@/components/products/Breadcrumbs';
 import { getAllProducts } from '@/lib/firebaseAdminStore';
 import { ChevronDown, X, SlidersHorizontal } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 const ITEMS_PER_PAGE = 24;
 
 const SORT_OPTIONS = [
