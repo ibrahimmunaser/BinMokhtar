@@ -139,7 +139,11 @@ export default function WomensCollectionPage() {
         );
         break;
       default: // featured
-        filtered.sort((a, b) => (b.orders || 0) - (a.orders || 0));
+        filtered.sort((a, b) => {
+          // Sort by featured flag first, then by rating
+          if (a.featured !== b.featured) return a.featured ? -1 : 1;
+          return (b.counts?.ratingAvg || 0) - (a.counts?.ratingAvg || 0);
+        });
     }
 
     return filtered;

@@ -176,8 +176,6 @@ export default function EditProductForm() {
           variants: product.variants || [],
           colorImageMappings: product.colorImageMappings || [],
           tags: product.tags || [],
-          orders: product.orders || 0,
-          views: product.views || 0,
           rating: product.rating || undefined,
           numReviews: product.numReviews || undefined,
         });
@@ -580,23 +578,9 @@ export default function EditProductForm() {
               <h2 className="font-display text-xl mb-6">Metrics</h2>
               
               <div className="grid md:grid-cols-2 gap-6">
-                <ProductFormField
-                  label="Initial Orders Count"
-                  type="number"
-                  placeholder="0"
-                  min="0"
-                  error={errors.orders?.message}
-                  {...register('orders', { valueAsNumber: true })}
-                />
-
-                <ProductFormField
-                  label="Initial Views Count"
-                  type="number"
-                  placeholder="0"
-                  min="0"
-                  error={errors.views?.message}
-                  {...register('views', { valueAsNumber: true })}
-                />
+                <div className="text-sm text-gray-600">
+                  <p>Product metrics (views, orders, ratings) are automatically calculated from system data.</p>
+                </div>
 
                 <ProductFormField
                   label="Rating"
