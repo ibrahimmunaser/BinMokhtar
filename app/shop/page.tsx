@@ -176,7 +176,7 @@ export default function ShopPage() {
                         compareAt: undefined,
                         stock: product.counts?.totalStock ?? 0,
                         active: true,
-                        imageUrl: product.defaultImage?.url || product.thumbnail,
+                        imageUrl: product.defaultImage?.url || '',
                         createdAt: product.createdAt,
                         updatedAt: product.updatedAt,
                       }}

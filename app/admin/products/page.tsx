@@ -220,7 +220,7 @@ export default function AdminProductsPage() {
                     <td className="px-6 py-4">
                       <div className="w-16 h-16 rounded-lg overflow-hidden bg-surface-3">
                         <img
-                          src={product.thumbnail || product.images?.[0] || '/placeholder.svg'}
+                          src={product.defaultImage?.url || '/placeholder.svg'}
                           alt={product.titleEn || product.titleAr || 'Product'}
                           className="w-full h-full object-cover"
                         />

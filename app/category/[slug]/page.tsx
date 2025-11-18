@@ -416,7 +416,7 @@ export default function CategoryPage() {
                       compareAt: undefined,
                       stock: product.counts?.totalStock ?? 0,
                       active: true,
-                      imageUrl: product.defaultImage?.url || product.thumbnail || product.images?.[0],
+                      imageUrl: product.defaultImage?.url || '',
                       createdAt: product.createdAt,
                       updatedAt: product.updatedAt,
                     }}
