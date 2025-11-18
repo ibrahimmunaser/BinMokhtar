@@ -11,8 +11,6 @@ import { getAllProducts } from '@/lib/firebaseAdminStore';
 import { ChevronDown, X, SlidersHorizontal } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
-export const dynamicParams = true;
-export const revalidate = 0;
 
 const ITEMS_PER_PAGE = 24;
 
