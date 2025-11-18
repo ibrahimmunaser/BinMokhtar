@@ -221,15 +221,15 @@ export default function AdminProductsPage() {
                       <div className="w-16 h-16 rounded-lg overflow-hidden bg-surface-3">
                         <img
                           src={product.thumbnail || product.images?.[0] || '/placeholder.svg'}
-                          alt={product.name}
+                          alt={product.titleEn || product.titleAr || 'Product'}
                           className="w-full h-full object-cover"
                         />
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-medium">{product.name}</div>
-                      {product.subtitle && (
-                        <div className="text-sm text-bmr-muted mt-1">{product.subtitle}</div>
+                      <div className="font-medium">{product.titleEn || product.titleAr}</div>
+                      {(product.subtitleEn || product.subtitleAr) && (
+                        <div className="text-sm text-bmr-muted mt-1">{product.subtitleEn || product.subtitleAr}</div>
                       )}
                     </td>
                     <td className="px-6 py-4 text-sm">{getCategoryName(product.categoryId)}</td>

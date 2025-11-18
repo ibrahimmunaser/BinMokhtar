@@ -183,8 +183,8 @@ export default function AdminDashboard() {
                           <Package className="w-6 h-6 text-bmr-muted" />
                         </div>
                         <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-sm text-bmr-muted">{product.subtitle}</p>
+                          <p className="font-medium">{product.titleEn || product.titleAr}</p>
+                          <p className="text-sm text-bmr-muted">{product.subtitleEn || product.subtitleAr}</p>
                         </div>
                       </div>
                     </td>

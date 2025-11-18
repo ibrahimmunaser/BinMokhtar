@@ -164,7 +164,7 @@ export default function EditProductForm() {
         
         // Reset form with product data
         reset({
-          title: product.name || '',
+          title: product.titleEn || '',
           price: product.price ? product.price / 100 : 0,
           salePrice: product.compareAtPrice ? product.compareAtPrice / 100 : undefined,
           images: product.images || [],
