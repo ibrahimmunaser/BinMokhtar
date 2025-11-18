@@ -14,11 +14,6 @@ export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 export const revalidate = 0;
 
-// Prevent static generation
-export async function generateStaticParams() {
-  return [];
-}
-
 const ITEMS_PER_PAGE = 24;
 
 const SORT_OPTIONS = [
