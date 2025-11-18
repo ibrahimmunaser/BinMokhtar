@@ -414,7 +414,7 @@ export default function CategoryPage() {
                       size: product.sizes?.[0],
                       price: product.price || product.basePrice,
                       compareAt: undefined,
-                      stock: product.counts?.totalStock ?? product.stock ?? 0,
+                      stock: product.counts?.totalStock ?? 0,
                       active: true,
                       imageUrl: product.defaultImage?.url || product.thumbnail || product.images?.[0],
                       createdAt: product.createdAt,

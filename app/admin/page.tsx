@@ -200,13 +200,13 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-sm ${
-                        product.stock > 10
+                        (product.counts?.totalStock ?? 0) > 10
                           ? 'bg-bmr-acc-green/10 text-bmr-acc-green'
-                          : product.stock > 0
+                          : (product.counts?.totalStock ?? 0) > 0
                           ? 'bg-yellow-500/10 text-yellow-600'
                           : 'bg-bmr-acc-red/10 text-bmr-acc-red'
                       }`}>
-                        {product.stock} units
+                        {product.counts?.totalStock ?? 0} units
                       </span>
                     </td>
                     <td className="px-6 py-4">

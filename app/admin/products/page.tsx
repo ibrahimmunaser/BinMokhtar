@@ -240,13 +240,13 @@ export default function AdminProductsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`text-sm ${
-                        product.stock === 0 
+                        (product.counts?.totalStock ?? 0) === 0 
                           ? 'text-bmr-acc-red' 
-                          : product.stock < 10 
+                          : (product.counts?.totalStock ?? 0) < 10 
                             ? 'text-orange-500' 
                             : 'text-bmr-acc-green'
                       }`}>
-                        {product.stock} units
+                        {product.counts?.totalStock ?? 0} units
                       </span>
                     </td>
                     <td className="px-6 py-4">
