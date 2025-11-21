@@ -12,10 +12,11 @@ interface ProductFormFieldProps {
   min?: string | number;
   max?: string | number;
   step?: string | number;
+  helpText?: string; // Optional helper text displayed below the input
 }
 
 export const ProductFormField = forwardRef<HTMLInputElement, ProductFormFieldProps>(
-  ({ label, name, type = 'text', required = false, error, placeholder, min, max, step, ...props }, ref) => {
+  ({ label, name, type = 'text', required = false, error, placeholder, min, max, step, helpText, ...props }, ref) => {
     return (
       <div className="space-y-2">
         <label htmlFor={name} className="block text-sm font-medium">
@@ -39,6 +40,7 @@ export const ProductFormField = forwardRef<HTMLInputElement, ProductFormFieldPro
           {...props}
         />
         {error && <p className="text-sm text-bmr-acc-red">{error}</p>}
+        {!error && helpText && <p className="text-sm text-bmr-muted">{helpText}</p>}
       </div>
     );
   }
