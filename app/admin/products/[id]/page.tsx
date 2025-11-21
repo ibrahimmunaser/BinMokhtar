@@ -444,18 +444,14 @@ export default function EditProductForm() {
                 />
 
                 {/* New: Slug/Handle Field */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">
-                    URL Slug (Handle)
-                    <span className="text-bmr-acc-red ml-1">*</span>
-                  </label>
-                  <ProductFormField
-                    placeholder="premium-white-thobe"
-                    error={errors.slug?.message}
-                    helpText="URL-friendly identifier (lowercase letters, numbers, and hyphens only). Must be unique."
-                    {...register('slug')}
-                  />
-                </div>
+                <ProductFormField
+                  label="URL Slug (Handle)"
+                  required
+                  placeholder="premium-white-thobe"
+                  error={errors.slug?.message}
+                  helpText="URL-friendly identifier (lowercase letters, numbers, and hyphens only). Must be unique."
+                  {...register('slug')}
+                />
 
                 {/* New: Brand and Status */}
                 <div className="grid md:grid-cols-2 gap-6">
