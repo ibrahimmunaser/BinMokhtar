@@ -26,12 +26,15 @@ const CATEGORY_TREE: Record<string, { subcategories: string[] }> = {
 const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
 const COLOR_OPTIONS = ['White', 'Black', 'Beige', 'Brown', 'Navy', 'Grey', 'Cream', 'Olive'];
 
-// Variant interface
+// Variant interface - Extended with new required fields
 interface Variant {
   size: string;
   color: string;
   stock: number;
-  sku?: string;
+  sku: string; // Now required
+  barcode?: string; // Optional barcode
+  price?: number; // Per-variant price override
+  salePrice?: number; // Per-variant sale price
 }
 
 // Color Image Mapping interface
