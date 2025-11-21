@@ -49,28 +49,49 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
   return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Category;
 }
 
-// Products
+// Products - Updated to use status='ACTIVE' filter for storefront
 export async function getProducts(constraints: QueryConstraint[] = []): Promise<Product[]> {
   const prodCol = collection(db, 'products');
-  const baseConstraints = [where('published', '==', true)];
+  // Filter by status='ACTIVE' for storefront (only show active products)
+  const baseConstraints = [where('status', '==', 'ACTIVE')];
   const q = query(prodCol, ...baseConstraints, ...constraints);
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return { 
+      id: doc.id, 
+      ...data,
+      // Ensure new image fields are populated, fallback to legacy fields
+      primaryImageUrl: data.primaryImageUrl || data.images?.[0] || data.thumbnail || data.defaultImage?.url,
+      galleryImageUrls: data.galleryImageUrls || data.images || [],
+      primaryImageAlt: data.primaryImageAlt || data.titleEn || data.name,
+    } as Product;
+  });
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const prodCol = collection(db, 'products');
-  const q = query(prodCol, where('slug', '==', slug), where('published', '==', true), limit(1));
+  // Only return ACTIVE products for storefront
+  const q = query(prodCol, where('slug', '==', slug), where('status', '==', 'ACTIVE'), limit(1));
   const snapshot = await getDocs(q);
   if (!snapshot.empty) {
-    return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Product;
+    const data = snapshot.docs[0].data();
+    return { 
+      id: snapshot.docs[0].id, 
+      ...data,
+      // Ensure new image fields are populated
+      primaryImageUrl: data.primaryImageUrl || data.images?.[0] || data.thumbnail || data.defaultImage?.url,
+      galleryImageUrls: data.galleryImageUrls || data.images || [],
+      primaryImageAlt: data.primaryImageAlt || data.titleEn || data.name,
+    } as Product;
   }
 
   // Fallback: try local admin data (mock/localStorage) so PDP works before Firebase is populated
   try {
     const local = getLocalAdminProducts() as any[];
     const match = local.find((p) => (p.slug === slug));
-    if (match) return match as Product;
+    // Only return if status is ACTIVE or if status field doesn't exist (legacy data)
+    if (match && (!match.status || match.status === 'ACTIVE')) return match as Product;
   } catch (e) {
     // ignore fallback errors
   }
@@ -83,8 +104,16 @@ export async function getProductsByIds(ids: string[]): Promise<Product[]> {
   for (const id of ids) {
     const docRef = doc(db, 'products', id);
     const docSnap = await getDoc(docRef);
-    if (docSnap.exists() && docSnap.data().published) {
-      products.push({ id: docSnap.id, ...docSnap.data() } as Product);
+    const data = docSnap.data();
+    // Only include ACTIVE products
+    if (docSnap.exists() && data?.status === 'ACTIVE') {
+      products.push({ 
+        id: docSnap.id, 
+        ...data,
+        primaryImageUrl: data.primaryImageUrl || data.images?.[0] || data.thumbnail || data.defaultImage?.url,
+        galleryImageUrls: data.galleryImageUrls || data.images || [],
+        primaryImageAlt: data.primaryImageAlt || data.titleEn || data.name,
+      } as Product);
     }
   }
   return products;

@@ -6,18 +6,19 @@ import { Breadcrumbs } from '@/components/products/Breadcrumbs';
 import { FilterRail } from '@/components/products/FilterRail';
 import { SortSelect } from '@/components/products/SortSelect';
 import { ProductCard } from '@/components/products/ProductCard';
-import { getAllProducts, getAllCategories } from '@/lib/firebaseAdminStore';
+import { getStorefrontProducts } from '@/lib/storefront';
+import { getAllCategories } from '@/lib/firebaseAdminStore';
 import type { FilterState, SortOption } from '@/types';
 
 export default function ShopPage() {
-  // Load products from localStorage (same as admin)
+  // Load products from storefront (only ACTIVE products)
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const isLoading = false;
 
   useEffect(() => {
-    // Load data from Firebase
-    getAllProducts().then(products => setProducts(products));
+    // Load ACTIVE products only from storefront API
+    getStorefrontProducts().then(products => setProducts(products));
     getAllCategories().then(cats => setCategories(cats));
   }, []);
 

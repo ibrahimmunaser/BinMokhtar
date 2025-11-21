@@ -42,13 +42,15 @@ export default function WomensCollectionPage() {
   const minPrice = searchParams?.get('minPrice') || '';
   const maxPrice = searchParams?.get('maxPrice') || '';
 
-  // Load products
+  // Load products - only ACTIVE products for storefront
   useEffect(() => {
     setIsLoading(true);
-    getAllProducts('WOMEN').then((all) => {
-      const filtered = (all || []).filter((p: any) => (p.audience || 'MEN') === 'WOMEN');
-      setProducts(filtered);
-      setIsLoading(false);
+    // Import the storefront function
+    import('@/lib/storefront').then(({ getStorefrontProducts }) => {
+      getStorefrontProducts('WOMEN').then((filtered) => {
+        setProducts(filtered);
+        setIsLoading(false);
+      });
     });
   }, []);
 

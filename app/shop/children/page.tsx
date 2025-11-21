@@ -42,13 +42,15 @@ export default function ChildrenCollectionPage() {
   const minPrice = searchParams?.get('minPrice') || '';
   const maxPrice = searchParams?.get('maxPrice') || '';
 
-  // Load products
+  // Load products - only ACTIVE products for storefront
   useEffect(() => {
     setIsLoading(true);
-    getAllProducts('CHILDREN').then((all) => {
-      const filtered = (all || []).filter((p: any) => (p.audience || 'MEN') === 'CHILDREN');
-      setProducts(filtered);
-      setIsLoading(false);
+    // Import the storefront function
+    import('@/lib/storefront').then(({ getStorefrontProducts }) => {
+      getStorefrontProducts('CHILDREN').then((filtered) => {
+        setProducts(filtered);
+        setIsLoading(false);
+      });
     });
   }, []);
 

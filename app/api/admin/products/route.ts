@@ -55,8 +55,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all products (client may filter)
-    const productsRef = adminDb().collection('products');
-    const snapshot = await productsRef.orderBy('createdAt', 'desc').get();
+    // Support filtering by status for storefront vs admin
+    const statusFilter = searchParams.get('status'); // e.g., 'ACTIVE' for storefront
+    
+    let query = adminDb().collection('products').orderBy('createdAt', 'desc');
+    
+    // Filter by status if requested (for storefront: only show ACTIVE products)
+    if (statusFilter) {
+      query = query.where('status', '==', statusFilter) as any;
+    }
+    
+    const snapshot = await query.get();
     
     const products = snapshot.docs.map(doc => ({
       id: doc.id,
