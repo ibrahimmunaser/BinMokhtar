@@ -99,7 +99,7 @@ export type Audience = 'MEN' | 'WOMEN' | 'CHILDREN';
 
 export interface Product {
   id: string;
-  slug: string;
+  slug: string; // Unique, auto-generated from product name, editable
   sku: string;
   titleEn: string;
   titleAr: string;
@@ -107,11 +107,12 @@ export interface Product {
   subtitleAr?: string;
   descriptionEn?: string;
   descriptionAr?: string;
+  brand: string; // Default: "Bin Mukhtar Retail"
   category: ProductCategory;
   fabric?: string;
   care?: string;
-  status: ProductStatus;
-  basePrice: number; // in cents
+  status: ProductStatus; // Enforced: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'
+  basePrice: number; // in cents - default price for variants
   price?: number; // in cents (alias for basePrice or computed price)
   currency: Currency;
   featured: boolean;
@@ -121,9 +122,13 @@ export interface Product {
   sizes?: string[]; // available sizes across variants
   colors?: string[]; // available colors across variants
   sleeve?: string; // sleeve type if applicable
+  // Image fields
+  primaryImageUrl?: string; // Main product image URL
+  galleryImageUrls?: string[]; // Additional product images
+  primaryImageAlt?: string; // Alt text for primary image (SEO)
   createdAt: Timestamp | Date;
   updatedAt: Timestamp | Date;
-  defaultImage?: ProductImage;
+  defaultImage?: ProductImage; // Legacy field, kept for compatibility
   counts: {
     variants: number;
     activeVariants: number;
@@ -163,14 +168,16 @@ export interface Variant {
   productTitleEn: string;
   productTitleAr: string;
   category: ProductCategory;
-  sku: string;
+  sku: string; // REQUIRED, unique per variant
+  barcode?: string; // Optional barcode/UPC
   size?: string;
   length?: string;
   color?: string;
-  price?: number; // in cents, overrides basePrice if set
-  compareAt?: number; // in cents
-  stock: number;
-  active: boolean;
+  price: number; // in cents - defaults to product basePrice, required per variant
+  salePrice?: number; // in cents - optional sale/discounted price (renamed from compareAt)
+  compareAt?: number; // DEPRECATED: use salePrice instead, kept for backward compatibility
+  stock: number; // Stock quantity, must be >= 0
+  active: boolean; // Derived from stock > 0 or explicit flag
   imageUrl?: string;
   createdAt: Timestamp | Date;
   updatedAt: Timestamp | Date;

@@ -104,41 +104,127 @@ export async function POST(request: NextRequest) {
       ? body.colorImageMappings.filter((m: any) => m.color && Array.isArray(m.imageUrls))
       : [];
 
+    // Validate required fields
+    if (!body.name || !body.slug) {
+      return NextResponse.json({ 
+        error: 'Product name and slug are required', 
+        success: false 
+      }, { status: 400 });
+    }
+
+    // Validate status
+    const validStatuses = ['DRAFT', 'ACTIVE', 'ARCHIVED'];
+    const status = body.status || (body.published ? 'ACTIVE' : 'DRAFT');
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json({ 
+        error: `Invalid status. Must be one of: ${validStatuses.join(', ')}`, 
+        success: false 
+      }, { status: 400 });
+    }
+
+    // Check slug uniqueness
+    const slugCheck = await adminDb().collection('products')
+      .where('slug', '==', body.slug)
+      .limit(1)
+      .get();
+    if (!slugCheck.empty) {
+      return NextResponse.json({ 
+        error: 'A product with this slug already exists. Please use a different slug.', 
+        success: false 
+      }, { status: 400 });
+    }
+
     const productData = {
-      slug: body.name.toLowerCase().replace(/\s+/g, '-'),
+      slug: body.slug, // Use provided slug
       name: body.name,
       subtitle: body.subtitle || '',
+      brand: body.brand || 'Bin Mukhtar Retail',
       categoryId: body.categoryId,
       audience: (body.categoryId || body.audience || 'MEN').toUpperCase(),
-      price: Math.round(parseFloat(body.price) * 100), // Convert to cents
+      status, // DRAFT, ACTIVE, or ARCHIVED
+      price: Math.round(parseFloat(body.price) * 100), // Convert to cents (basePrice)
       compareAtPrice: body.compareAtPrice ? Math.round(parseFloat(body.compareAtPrice) * 100) : null,
       colors,
       sizes,
       sleeve: body.sleeve === 'short' || body.sleeve === 'long' ? body.sleeve : null,
       stock: Number.isFinite(totalStock) ? totalStock : 0,
-      images: body.images || ['/placeholder.svg'],
-      thumbnail: body.thumbnail || body.images?.[0] || '/placeholder.svg',
+      // Image fields
+      images: body.images || ['/placeholder.svg'], // Legacy
+      thumbnail: body.thumbnail || body.images?.[0] || '/placeholder.svg', // Legacy
+      primaryImageUrl: body.primaryImageUrl || body.images?.[0] || '/placeholder.svg',
+      galleryImageUrls: body.galleryImageUrls || body.images || [],
+      primaryImageAlt: body.primaryImageAlt || body.name,
       colorImageMappings,
       descriptionHtml: body.description ? `<p>${body.description}</p>` : '',
-      published: body.published,
+      published: status === 'ACTIVE', // Derived from status
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
     const docRef = await adminDb().collection('products').add(productData);
     
-    // Create variants subcollection
-    if (normalizedVariants.length > 0) {
+    // Create variants subcollection with validation
+    if (normalizedVariants.length > 0 || (Array.isArray(body.variants) && body.variants.length > 0)) {
+      const variantsToCreate = Array.isArray(body.variants) && body.variants.length > 0 
+        ? body.variants 
+        : normalizedVariants;
+
+      // Validate each variant has required fields
+      const skuSet = new Set();
+      for (const v of variantsToCreate) {
+        // SKU is required
+        if (!v.sku || v.sku.trim() === '') {
+          return NextResponse.json({ 
+            error: 'Each variant must have a SKU', 
+            success: false 
+          }, { status: 400 });
+        }
+        
+        // Check for duplicate SKUs within this product
+        if (skuSet.has(v.sku)) {
+          return NextResponse.json({ 
+            error: `Duplicate SKU found: ${v.sku}. Each variant must have a unique SKU.`, 
+            success: false 
+          }, { status: 400 });
+        }
+        skuSet.add(v.sku);
+
+        // Validate price
+        const variantPrice = v.price !== undefined ? parseFloat(v.price) : parseFloat(body.price);
+        if (isNaN(variantPrice) || variantPrice < 0) {
+          return NextResponse.json({ 
+            error: 'Variant price must be a non-negative number', 
+            success: false 
+          }, { status: 400 });
+        }
+
+        // Validate stock
+        const variantStock = parseInt(String(v.stock || 0));
+        if (isNaN(variantStock) || variantStock < 0) {
+          return NextResponse.json({ 
+            error: 'Variant stock must be a non-negative integer', 
+            success: false 
+          }, { status: 400 });
+        }
+      }
+
       const batch = adminDb().batch();
       const variantsCol = adminDb().collection('products').doc(docRef.id).collection('variants');
-      normalizedVariants.forEach((v, idx) => {
+      
+      variantsToCreate.forEach((v) => {
         const variantRef = variantsCol.doc();
+        const variantPrice = v.price !== undefined ? Math.round(parseFloat(v.price) * 100) : Math.round(parseFloat(body.price) * 100);
+        const variantSalePrice = v.salePrice ? Math.round(parseFloat(v.salePrice) * 100) : null;
+        
         batch.set(variantRef, {
-          size: v.size,
-          color: v.color,
-          stock: v.stock,
-          sku: `SKU-${Date.now()}-${idx}`,
-          active: v.stock > 0,
+          size: v.size || undefined,
+          color: v.color || undefined,
+          stock: Math.max(0, parseInt(String(v.stock || 0))),
+          sku: v.sku.trim(), // Required, validated above
+          barcode: v.barcode ? v.barcode.trim() : null,
+          price: variantPrice, // in cents
+          salePrice: variantSalePrice, // in cents, optional
+          active: parseInt(String(v.stock || 0)) > 0,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
@@ -188,22 +274,61 @@ export async function PUT(request: NextRequest) {
 
     const totalStock = normalizedVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
 
+    // Validate slug uniqueness (if changed)
+    const existingDoc = await adminDb().collection('products').doc(productId).get();
+    if (!existingDoc.exists) {
+      return NextResponse.json({ 
+        error: 'Product not found', 
+        success: false 
+      }, { status: 404 });
+    }
+    
+    const existingData = existingDoc.data();
+    if (body.slug && body.slug !== existingData?.slug) {
+      const slugCheck = await adminDb().collection('products')
+        .where('slug', '==', body.slug)
+        .limit(1)
+        .get();
+      if (!slugCheck.empty && slugCheck.docs[0].id !== productId) {
+        return NextResponse.json({ 
+          error: 'A product with this slug already exists. Please use a different slug.', 
+          success: false 
+        }, { status: 400 });
+      }
+    }
+
+    // Validate status
+    const validStatuses = ['DRAFT', 'ACTIVE', 'ARCHIVED'];
+    const status = body.status || (body.published ? 'ACTIVE' : existingData?.status || 'DRAFT');
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json({ 
+        error: `Invalid status. Must be one of: ${validStatuses.join(', ')}`, 
+        success: false 
+      }, { status: 400 });
+    }
+
     const productData = {
-      slug: body.name.toLowerCase().replace(/\s+/g, '-'),
+      slug: body.slug || body.name.toLowerCase().replace(/\s+/g, '-'),
       name: body.name,
       subtitle: body.subtitle || '',
+      brand: body.brand || existingData?.brand || 'Bin Mukhtar Retail',
       categoryId: body.categoryId,
+      status, // DRAFT, ACTIVE, or ARCHIVED
       price: Math.round(parseFloat(body.price) * 100), // Convert to cents
       compareAtPrice: body.compareAtPrice ? Math.round(parseFloat(body.compareAtPrice) * 100) : null,
       colors,
       sizes,
       sleeve: body.sleeve === 'short' || body.sleeve === 'long' ? body.sleeve : null,
       stock: Number.isFinite(totalStock) ? totalStock : 0,
+      // Image fields
       images: body.images || ['/placeholder.svg'],
       thumbnail: body.thumbnail || body.images?.[0] || '/placeholder.svg',
+      primaryImageUrl: body.primaryImageUrl || body.images?.[0] || existingData?.primaryImageUrl || '/placeholder.svg',
+      galleryImageUrls: body.galleryImageUrls || body.images || existingData?.galleryImageUrls || [],
+      primaryImageAlt: body.primaryImageAlt || body.name || existingData?.primaryImageAlt,
       colorImageMappings: body.colorImageMappings || [],
       descriptionHtml: body.description ? `<p>${body.description}</p>` : '',
-      published: body.published,
+      published: status === 'ACTIVE',
       updatedAt: new Date(),
     };
 
@@ -218,16 +343,65 @@ export async function PUT(request: NextRequest) {
       await delBatch.commit();
     }
 
-    if (normalizedVariants.length > 0) {
+    if (normalizedVariants.length > 0 || (Array.isArray(body.variants) && body.variants.length > 0)) {
+      const variantsToCreate = Array.isArray(body.variants) && body.variants.length > 0 
+        ? body.variants 
+        : normalizedVariants;
+
+      // Validate each variant has required fields
+      const skuSet = new Set();
+      for (const v of variantsToCreate) {
+        // SKU is required
+        if (!v.sku || v.sku.trim() === '') {
+          return NextResponse.json({ 
+            error: 'Each variant must have a SKU', 
+            success: false 
+          }, { status: 400 });
+        }
+        
+        // Check for duplicate SKUs within this product
+        if (skuSet.has(v.sku)) {
+          return NextResponse.json({ 
+            error: `Duplicate SKU found: ${v.sku}. Each variant must have a unique SKU.`, 
+            success: false 
+          }, { status: 400 });
+        }
+        skuSet.add(v.sku);
+
+        // Validate price
+        const variantPrice = v.price !== undefined ? parseFloat(v.price) : parseFloat(body.price);
+        if (isNaN(variantPrice) || variantPrice < 0) {
+          return NextResponse.json({ 
+            error: 'Variant price must be a non-negative number', 
+            success: false 
+          }, { status: 400 });
+        }
+
+        // Validate stock
+        const variantStock = parseInt(String(v.stock || 0));
+        if (isNaN(variantStock) || variantStock < 0) {
+          return NextResponse.json({ 
+            error: 'Variant stock must be a non-negative integer', 
+            success: false 
+          }, { status: 400 });
+        }
+      }
+
       const batch = adminDb().batch();
-      normalizedVariants.forEach((v, idx) => {
+      variantsToCreate.forEach((v) => {
         const ref = variantsColRef.doc();
+        const variantPrice = v.price !== undefined ? Math.round(parseFloat(v.price) * 100) : Math.round(parseFloat(body.price) * 100);
+        const variantSalePrice = v.salePrice ? Math.round(parseFloat(v.salePrice) * 100) : null;
+        
         batch.set(ref, {
-          size: v.size,
-          color: v.color,
-          stock: v.stock,
-          sku: `SKU-${Date.now()}-${idx}`,
-          active: v.stock > 0,
+          size: v.size || undefined,
+          color: v.color || undefined,
+          stock: Math.max(0, parseInt(String(v.stock || 0))),
+          sku: v.sku.trim(),
+          barcode: v.barcode ? v.barcode.trim() : null,
+          price: variantPrice, // in cents
+          salePrice: variantSalePrice, // in cents, optional
+          active: parseInt(String(v.stock || 0)) > 0,
           createdAt: new Date(),
           updatedAt: new Date(),
         });

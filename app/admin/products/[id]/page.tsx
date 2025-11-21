@@ -28,12 +28,15 @@ const CATEGORY_TREE: Record<string, { subcategories: string[] }> = {
 const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
 const COLOR_OPTIONS = ['White', 'Black', 'Beige', 'Brown', 'Navy', 'Grey', 'Cream', 'Olive'];
 
-// Variant interface
+// Variant interface - Extended with new fields
 interface Variant {
   size: string;
   color: string;
   stock: number;
-  sku?: string;
+  sku: string; // Now required
+  barcode?: string; // Optional barcode
+  price?: number; // Per-variant price (cents), defaults to product price
+  salePrice?: number; // Per-variant sale price (cents)
 }
 
 // Color Image Mapping interface
@@ -42,9 +45,14 @@ interface ColorImageMapping {
   imageUrls: string[];
 }
 
-// Validation Schema (same as create form)
+// Validation Schema - Updated with new fields
 const productSchema = z.object({
   title: z.string().min(4, 'Title must be at least 4 characters'),
+  slug: z.string().min(3, 'Slug must be at least 3 characters').regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens'),
+  brand: z.string().min(1, 'Brand is required').default('Bin Mukhtar Retail'),
+  status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED'], {
+    required_error: 'Status is required',
+  }).default('DRAFT'),
   price: z.number().positive('Price must be greater than 0'),
   salePrice: z.preprocess(
     (v) => {
@@ -54,7 +62,11 @@ const productSchema = z.object({
     },
     z.number().positive('Sale price must be greater than 0').optional()
   ),
+  // Image fields - support both legacy and new structure
   images: z.array(z.string()).min(1, 'At least 1 product image is required'),
+  primaryImageUrl: z.string().url().optional(),
+  galleryImageUrls: z.array(z.string().url()).optional(),
+  primaryImageAlt: z.string().optional(),
   category: z.string().min(1, 'Category is required'),
   subcategory: z.string().optional(),
   sizes: z.array(z.string()),
@@ -62,8 +74,11 @@ const productSchema = z.object({
   variants: z.array(z.object({
     size: z.string(),
     color: z.string(),
-    stock: z.number(),
-    sku: z.string().optional(),
+    stock: z.number().int().nonnegative('Stock must be non-negative'),
+    sku: z.string().min(1, 'SKU is required'), // Now required
+    barcode: z.string().optional(),
+    price: z.number().positive().optional(), // Per-variant price override
+    salePrice: z.number().positive().optional(), // Per-variant sale price
   })).min(1, 'At least 1 variant is required'),
   colorImageMappings: z.array(z.object({
     color: z.string(),
@@ -71,8 +86,6 @@ const productSchema = z.object({
   })).optional(),
   sleeve: z.enum(['short', 'long']).optional(),
   tags: z.array(z.string()).min(2, 'At least 2 tags are required'),
-  orders: z.number().int().nonnegative('Orders must be non-negative').default(0),
-  views: z.number().int().nonnegative('Views must be non-negative').default(0),
   rating: z.preprocess(
     (v) => {
       if (v === '' || v === undefined || (typeof v === 'number' && Number.isNaN(v))) return undefined;
@@ -96,6 +109,14 @@ const productSchema = z.object({
 }, {
   message: 'At least 1 size is required',
   path: ['sizes'],
+}).refine((data) => {
+  // Check for duplicate SKUs within variants
+  const skus = data.variants.map(v => v.sku).filter(Boolean);
+  const uniqueSkus = new Set(skus);
+  return skus.length === uniqueSkus.size;
+}, {
+  message: 'Each variant must have a unique SKU',
+  path: ['variants'],
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -162,18 +183,34 @@ export default function EditProductForm() {
       if (data.success && data.product) {
         const product = data.product;
         
-        // Reset form with product data
+        // Reset form with product data - include new fields
         reset({
-          title: product.titleEn || '',
+          title: product.titleEn || product.name || '',
+          slug: product.slug || product.name?.toLowerCase().replace(/\s+/g, '-') || '',
+          brand: product.brand || 'Bin Mukhtar Retail',
+          status: product.status || (product.published ? 'ACTIVE' : 'DRAFT'),
           price: product.price ? product.price / 100 : 0,
           salePrice: undefined,
+          // Image fields - support both legacy and new structure
           images: product.images || [],
+          primaryImageUrl: product.primaryImageUrl || product.images?.[0] || undefined,
+          galleryImageUrls: product.galleryImageUrls || product.images || [],
+          primaryImageAlt: product.primaryImageAlt || product.titleEn || '',
           category: product.categoryId || '',
           subcategory: product.subcategory || undefined,
           sleeve: product.sleeve || undefined,
           sizes: product.sizes || [],
           colors: product.colors || [],
-          variants: product.variants || [],
+          // Map variants with new fields
+          variants: (product.variants || []).map((v: any) => ({
+            size: v.size || '',
+            color: v.color || '',
+            stock: v.stock || 0,
+            sku: v.sku || `SKU-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            barcode: v.barcode || '',
+            price: v.price ? v.price / 100 : undefined,
+            salePrice: v.salePrice ? v.salePrice / 100 : undefined,
+          })),
           colorImageMappings: product.colorImageMappings || [],
           tags: product.tags || [],
           rating: product.rating || undefined,
@@ -208,20 +245,36 @@ export default function EditProductForm() {
       const productData = {
         id: productId,
         name: data.title,
+        slug: data.slug,
+        brand: data.brand,
+        status: data.status,
         subtitle: '',
-        price: data.salePrice ? data.salePrice.toString() : data.price.toString(), // Use sale price if provided, otherwise regular price
-        compareAtPrice: data.salePrice ? data.price.toString() : undefined, // If there's a sale price, the regular price becomes compareAt
+        price: data.price.toString(), // Base price in dollars
+        compareAtPrice: data.salePrice ? data.salePrice.toString() : undefined,
+        // Image fields - support both structures
         images: data.images,
         thumbnail: data.images[0],
+        primaryImageUrl: data.primaryImageUrl || data.images?.[0],
+        galleryImageUrls: data.galleryImageUrls || data.images,
+        primaryImageAlt: data.primaryImageAlt || data.title,
         categoryId: data.category,
         subcategory: data.subcategory,
         audience: (data.category || 'Men').toUpperCase(),
         sizes: data.sizes,
         colors: data.colors,
-        variants: data.variants,
+        // Send variants with new fields
+        variants: data.variants.map(v => ({
+          size: v.size,
+          color: v.color,
+          stock: v.stock,
+          sku: v.sku,
+          barcode: v.barcode || undefined,
+          price: v.price !== undefined ? v.price : data.price, // Use variant price or fallback to base price
+          salePrice: v.salePrice || undefined,
+        })),
         colorImageMappings: data.colorImageMappings || [],
         tags: data.tags,
-        published: true,
+        published: data.status === 'ACTIVE', // Derive from status
         description: `${data.category}`,
       };
 
@@ -386,24 +439,73 @@ export default function EditProductForm() {
                   {...register('title')}
                 />
 
+                {/* New: Slug/Handle Field */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">
+                    URL Slug (Handle)
+                    <span className="text-bmr-acc-red ml-1">*</span>
+                  </label>
+                  <ProductFormField
+                    placeholder="premium-white-thobe"
+                    error={errors.slug?.message}
+                    helpText="URL-friendly identifier (lowercase letters, numbers, and hyphens only). Must be unique."
+                    {...register('slug')}
+                  />
+                </div>
+
+                {/* New: Brand and Status */}
                 <div className="grid md:grid-cols-2 gap-6">
                   <ProductFormField
-                    label="Price"
+                    label="Brand"
+                    required
+                    placeholder="Bin Mukhtar Retail"
+                    error={errors.brand?.message}
+                    {...register('brand')}
+                  />
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium">
+                      Status
+                      <span className="text-bmr-acc-red ml-1">*</span>
+                    </label>
+                    <select
+                      {...register('status')}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                        errors.status
+                          ? 'border-bmr-acc-red focus:ring-bmr-acc-red'
+                          : 'border-line focus:ring-bmr-ink'
+                      }`}
+                    >
+                      <option value="DRAFT">Draft (Hidden from store)</option>
+                      <option value="ACTIVE">Active (Visible in store)</option>
+                      <option value="ARCHIVED">Archived (Hidden, no longer sold)</option>
+                    </select>
+                    {errors.status && (
+                      <p className="text-sm text-bmr-acc-red">{errors.status.message}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <ProductFormField
+                    label="Base Price (USD)"
                     type="number"
                     required
                     placeholder="99.99"
                     step="0.01"
                     min="0"
+                    helpText="Default price for all variants (can be overridden per variant)"
                     error={errors.price?.message}
                     {...register('price', { valueAsNumber: true })}
                   />
 
                   <ProductFormField
-                    label="Sale Price"
+                    label="Base Sale Price (USD)"
                     type="number"
                     placeholder="79.99 (Optional)"
                     step="0.01"
                     min="0"
+                    helpText="Optional discounted price (can be overridden per variant)"
                     error={errors.salePrice?.message}
                     {...register('salePrice', { valueAsNumber: true })}
                   />
@@ -458,20 +560,44 @@ export default function EditProductForm() {
             <div className="bg-surface-2 rounded-lg border border-line p-6 lg:p-8">
               <h2 className="font-display text-xl mb-6">Product Images</h2>
               
-              <Controller
-                name="images"
-                control={control}
-                render={({ field }) => (
-                  <MultiImageUpload
-                    label="Product Images"
-                    name="images"
-                    required
-                    error={errors.images?.message}
-                    value={field.value}
-                    onChange={field.onChange}
+              <div className="space-y-6">
+                <Controller
+                  name="images"
+                  control={control}
+                  render={({ field }) => (
+                    <MultiImageUpload
+                      label="Product Images"
+                      name="images"
+                      required
+                      error={errors.images?.message}
+                      value={field.value}
+                      onChange={(newImages: string[]) => {
+                        field.onChange(newImages);
+                        // Auto-update primary image URL if not set
+                        if (!watch('primaryImageUrl') && newImages.length > 0) {
+                          register('primaryImageUrl').onChange({ target: { value: newImages[0] } });
+                        }
+                        // Auto-update gallery
+                        register('galleryImageUrls').onChange({ target: { value: newImages } });
+                      }}
+                    />
+                  )}
+                />
+
+                <div className="bg-surface-3/50 p-4 rounded-lg border border-line/50">
+                  <p className="text-sm text-bmr-muted mb-3">
+                    <strong>Note:</strong> The first image will be used as the primary/featured image on product pages.
+                  </p>
+                  
+                  <ProductFormField
+                    label="Primary Image Alt Text (SEO)"
+                    placeholder="e.g., Premium white thobe with embroidered collar"
+                    helpText="Describes the primary image for accessibility and SEO. Auto-fills with product title if left empty."
+                    error={errors.primaryImageAlt?.message}
+                    {...register('primaryImageAlt')}
                   />
-                )}
-              />
+                </div>
+              </div>
             </div>
 
             {/* Variants */}
@@ -518,7 +644,7 @@ export default function EditProductForm() {
                   />
                 </div>
 
-                {/* Stock Matrix */}
+                {/* Stock Matrix - with base price defaults */}
                 <Controller
                   name="variants"
                   control={control}
@@ -528,6 +654,8 @@ export default function EditProductForm() {
                       colors={watch('colors')}
                       value={field.value}
                       onChange={field.onChange}
+                      basePrice={watch('price')}
+                      baseSalePrice={watch('salePrice')}
                     />
                   )}
                 />
