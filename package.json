@@ -54,6 +54,7 @@
     "react-firebase-hooks": "^5.1.1",
     "react-hook-form": "^7.49.3",
     "resend": "^3.0.0",
+    "sharp": "^0.33.0",
     "stripe": "^14.11.0",
     "swr": "^2.2.4",
     "tailwind-merge": "^2.2.0",
