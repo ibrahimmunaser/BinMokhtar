@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
       const batch = adminDb().batch();
       const variantsCol = adminDb().collection('products').doc(docRef.id).collection('variants');
       
-      variantsToCreate.forEach((v) => {
+      variantsToCreate.forEach((v: any) => {
         const variantRef = variantsCol.doc();
         const variantPrice = v.price !== undefined ? Math.round(parseFloat(v.price) * 100) : Math.round(parseFloat(body.price) * 100);
         const variantSalePrice = v.salePrice ? Math.round(parseFloat(v.salePrice) * 100) : null;
@@ -397,7 +397,7 @@ export async function PUT(request: NextRequest) {
       }
 
       const batch = adminDb().batch();
-      variantsToCreate.forEach((v) => {
+      variantsToCreate.forEach((v: any) => {
         const ref = variantsColRef.doc();
         const variantPrice = v.price !== undefined ? Math.round(parseFloat(v.price) * 100) : Math.round(parseFloat(body.price) * 100);
         const variantSalePrice = v.salePrice ? Math.round(parseFloat(v.salePrice) * 100) : null;
