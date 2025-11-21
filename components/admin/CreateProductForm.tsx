@@ -63,8 +63,11 @@ const productSchema = z.object({
   variants: z.array(z.object({
     size: z.string(),
     color: z.string(),
-    stock: z.number(),
-    sku: z.string().optional(),
+    stock: z.number().int().nonnegative('Stock must be non-negative'),
+    sku: z.string().min(1, 'SKU is required'), // Now required
+    barcode: z.string().optional(),
+    price: z.number().positive().optional(), // Per-variant price override
+    salePrice: z.number().positive().optional(), // Per-variant sale price
   })).min(1, 'At least 1 variant is required'),
   colorImageMappings: z.array(z.object({
     color: z.string(),
@@ -81,6 +84,14 @@ const productSchema = z.object({
 }, {
   message: 'At least 1 size is required',
   path: ['sizes'],
+}).refine((data) => {
+  // Check for duplicate SKUs within variants
+  const skus = data.variants.map(v => v.sku).filter(Boolean);
+  const uniqueSkus = new Set(skus);
+  return skus.length === uniqueSkus.size;
+}, {
+  message: 'Each variant must have a unique SKU',
+  path: ['variants'],
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
