@@ -249,8 +249,18 @@ export default function NewProductPage() {
         categoryId = 'thobes';
       }
       
+      // Generate slug from product name
+      const slug = formData.name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+      
       // Add product to Firebase with images
       const productData = {
+        name: formData.name,
+        slug: slug,
         titleEn: formData.name,
         titleAr: formData.name,
         subtitleEn: formData.subtitle,
