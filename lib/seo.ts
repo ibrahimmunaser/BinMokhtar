@@ -3,7 +3,7 @@ import { Product, Review } from '@/types';
 
 const SITE_URL = process.env.SITE_URL || 'https://binmukhtarretail.com';
 const SITE_NAME = 'Bin Mukhtar Retail';
-const SITE_DESCRIPTION = 'Luxury thobes, shemaghs, and kufis — Timeless modest fashion for men, women, and children.';
+const SITE_DESCRIPTION = 'Luxury thobes, shemaghs, and kufis — Timeless modest fashion for men and children.';
 
 /**
  * Default SEO metadata

@@ -95,7 +95,7 @@ export interface IconItem {
 
 export type ProductCategory = 'THOBE' | 'SHAAL' | 'KUFI' | 'ACCESSORY';
 export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
-export type Audience = 'MEN' | 'WOMEN' | 'CHILDREN';
+export type Audience = 'MEN' | 'CHILDREN';
 
 export interface Product {
   id: string;

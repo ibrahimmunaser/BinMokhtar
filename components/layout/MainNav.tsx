@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import type { NavItem } from '@/types';
 
-// Navigation structure per request: Men, Women, Kids, Shemaghs, Yemeni Shals, About, Contact
+// Navigation structure: Men, Kids, Shemaghs, About, Contact
 const defaultNavigation: NavItem[] = [
   {
     id: 'men',
@@ -20,31 +20,18 @@ const defaultNavigation: NavItem[] = [
     ],
   },
   {
-    id: 'women',
-    labelEn: 'Women',
-    labelAr: 'نساء',
-    href: '/shop/womens',
-    sort: 2,
-    children: [
-      { id: 'shop-all-women', labelEn: 'Shop All Women', labelAr: 'تسوق النساء', href: '/shop/womens', sort: 1 },
-      { id: 'hijabs', labelEn: 'Hijabs', labelAr: 'حجاب', href: '/category/hijabs', sort: 2 },
-      { id: 'abayas', labelEn: 'Abayas', labelAr: 'عباية', href: '/category/abayas', sort: 3 },
-    ],
-  },
-  {
     id: 'kids',
     labelEn: 'Kids',
     labelAr: 'أطفال',
     href: '/shop/children',
-    sort: 3,
+    sort: 2,
     children: [
       { id: 'shop-all-kids', labelEn: 'Shop All Kids', labelAr: 'تسوق الأطفال', href: '/shop/children', sort: 1 },
     ],
   },
-  { id: 'shemaghs', labelEn: 'Shemaghs', labelAr: 'شماغ', href: '/category/shemaghs', sort: 4 },
-  { id: 'yemeni-shals', labelEn: 'Yemeni Shals', labelAr: 'شال يمني', href: '/category/yemeni-shals', sort: 5 },
-  { id: 'about', labelEn: 'ABOUT', labelAr: 'عن', href: '/about', sort: 6 },
-  { id: 'contact', labelEn: 'CONTACT', labelAr: 'اتصل', href: '/contact', sort: 7 },
+  { id: 'shemaghs', labelEn: 'Shemaghs', labelAr: 'شماغ', href: '/category/shemaghs', sort: 3 },
+  { id: 'about', labelEn: 'ABOUT', labelAr: 'عن', href: '/about', sort: 4 },
+  { id: 'contact', labelEn: 'CONTACT', labelAr: 'اتصل', href: '/contact', sort: 5 },
 ];
 
 export function MainNav() {

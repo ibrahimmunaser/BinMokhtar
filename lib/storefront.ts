@@ -7,7 +7,7 @@ import type { Product } from '@/types';
  * Fetch all active products for the storefront
  * Only returns products with status='ACTIVE'
  */
-export async function getStorefrontProducts(audience?: 'MEN' | 'WOMEN' | 'CHILDREN'): Promise<Product[]> {
+export async function getStorefrontProducts(audience?: 'MEN' | 'CHILDREN'): Promise<Product[]> {
   if (typeof window === 'undefined') {
     // Server-side: return empty array, use static generation or server components
     return [];

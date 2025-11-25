@@ -61,28 +61,14 @@ export default function HomePage() {
       image: '/images/home page Shemaghs image.png',
     },
     {
-      titleEn: "Women's Abayas",
-      titleAr: 'عباية نسائية',
-      href: '/category/abayas',
-      image: '/images/home page abaya.png',
-    },
-    {
-      titleEn: 'Yemeni Shawls',
-      titleAr: 'شالات يمنية',
-      href: '/category/yemeni-shals',
-      image: '/images/yemeni shawls homepage.webp',
-      span: { cols: 2, rows: 1 },
+      titleEn: "Kids' Collection",
+      titleAr: 'مجموعة الأطفال',
+      href: '/shop/children',
+      image: '/images/kids 2.png',
     },
   ];
 
   const shemaghTabs: ShemaghTab[] = [
-    {
-      slug: 'yemeni',
-      labelEn: 'Yemeni Shemagh Scarves',
-      labelAr: 'شماغ يمني',
-      categoryFilter: 'SHAAL',
-      tagFilter: 'yemeni',
-    },
     {
       slug: 'saudi',
       labelEn: 'Saudi Shemagh Scarves',
