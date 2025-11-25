@@ -20,13 +20,13 @@ const defaultNavigation: NavItem[] = [
     ],
   },
   {
-    id: 'kids',
-    labelEn: 'Kids',
-    labelAr: 'أطفال',
+    id: 'boys',
+    labelEn: 'Boy',
+    labelAr: 'صبي',
     href: '/shop/children',
     sort: 2,
     children: [
-      { id: 'shop-all-kids', labelEn: 'Shop All Kids', labelAr: 'تسوق الأطفال', href: '/shop/children', sort: 1 },
+      { id: 'boys-thobes', labelEn: 'Thobes', labelAr: 'ثياب', href: '/category/boys-thobes', sort: 1 },
     ],
   },
   { id: 'shemaghs', labelEn: 'Shemaghs', labelAr: 'شماغ', href: '/category/shemaghs', sort: 3 },
