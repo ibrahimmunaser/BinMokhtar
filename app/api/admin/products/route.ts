@@ -58,11 +58,15 @@ export async function GET(request: NextRequest) {
     // Support filtering by status for storefront vs admin
     const statusFilter = searchParams.get('status'); // e.g., 'ACTIVE' for storefront
     
-    let query = adminDb().collection('products').orderBy('createdAt', 'desc');
+    let query;
     
     // Filter by status if requested (for storefront: only show ACTIVE products)
     if (statusFilter) {
-      query = query.where('status', '==', statusFilter) as any;
+      // Don't use orderBy with status filter to avoid requiring a composite index
+      query = adminDb().collection('products').where('status', '==', statusFilter);
+    } else {
+      // Only use orderBy when not filtering by status
+      query = adminDb().collection('products').orderBy('createdAt', 'desc');
     }
     
     const snapshot = await query.get();
