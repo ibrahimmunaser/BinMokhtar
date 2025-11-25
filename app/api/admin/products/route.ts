@@ -157,6 +157,14 @@ export async function POST(request: NextRequest) {
       sizes,
       sleeve: body.sleeve === 'short' || body.sleeve === 'long' ? body.sleeve : null,
       stock: Number.isFinite(totalStock) ? totalStock : 0,
+      // Counts object for dashboard display
+      counts: {
+        variants: normalizedVariants.length,
+        activeVariants: normalizedVariants.filter(v => v.stock > 0).length,
+        totalStock: Number.isFinite(totalStock) ? totalStock : 0,
+        reviewCount: 0,
+        ratingAvg: 0,
+      },
       // Image fields
       images: body.images || ['/placeholder.svg'], // Legacy
       thumbnail: body.thumbnail || body.images?.[0] || '/placeholder.svg', // Legacy
