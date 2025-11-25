@@ -27,7 +27,7 @@ export default function NewProductPage() {
     tags: [] as string[],
     published: true,
   });
-  const [variants, setVariants] = useState<{ size?: string; color?: string; stock: number; sku: string }[]>([]);
+  const [variants, setVariants] = useState<{ size?: string; color?: string; stock: number; sku: string; imageUrl?: string }[]>([]);
   
   // Dynamic size options based on category
   const getSizeOptions = () => {
@@ -61,10 +61,10 @@ export default function NewProductPage() {
 
   const syncVariantsFromSelections = (sizes: string[], colors: string[]) => {
     const key = (s?: string, c?: string) => `${s || ''}__${c || ''}`;
-    const currentMap = new Map<string, { size?: string; color?: string; stock: number; sku: string }>();
+    const currentMap = new Map<string, { size?: string; color?: string; stock: number; sku: string; imageUrl?: string }>();
     variants.forEach(v => currentMap.set(key(v.size, v.color), v));
 
-    const next: { size?: string; color?: string; stock: number; sku: string }[] = [];
+    const next: { size?: string; color?: string; stock: number; sku: string; imageUrl?: string }[] = [];
     
     // If sizes are hidden, only use colors
     const sizesList = hideSizes ? [undefined as unknown as string] : (sizes.length > 0 ? sizes : [undefined as unknown as string]);
@@ -94,7 +94,8 @@ export default function NewProductPage() {
           size: hideSizes ? undefined : s || undefined, 
           color: c || undefined, 
           stock: existing?.stock ?? 0,
-          sku: existing?.sku || autoSku
+          sku: existing?.sku || autoSku,
+          imageUrl: existing?.imageUrl || images[0] || '' // Default to first product image
         });
       });
     });
@@ -275,7 +276,13 @@ export default function NewProductPage() {
         compareAtPrice, // If there's a sale price, the regular price becomes compareAt
         images: images.length > 0 ? images : ['/placeholder.svg'],
         thumbnail: images.length > 0 ? images[0] : '/placeholder.svg',
-        variants: variants.map(v => ({ size: v.size, color: v.color, stock: Number.isFinite(v.stock) ? v.stock : 0, sku: v.sku })),
+        variants: variants.map(v => ({ 
+          size: v.size, 
+          color: v.color, 
+          stock: Number.isFinite(v.stock) ? v.stock : 0, 
+          sku: v.sku,
+          imageUrl: v.imageUrl || images[0] || ''
+        })),
         tags: formData.tags,
         category: `${formData.mainCategory} - ${formData.subCategory}`,
         mainCategory: formData.mainCategory,
@@ -646,8 +653,9 @@ export default function NewProductPage() {
                         <tr>
                           {!hideSizes && <th className="text-left p-3 border-b border-line font-medium">Size</th>}
                           <th className="text-left p-3 border-b border-line font-medium">Color</th>
+                          <th className="text-left p-3 border-b border-line font-medium">Image</th>
                           <th className="text-left p-3 border-b border-line font-medium">SKU *</th>
-                          <th className="text-left p-3 border-b border-line font-medium">Stock Quantity</th>
+                          <th className="text-left p-3 border-b border-line font-medium">Stock</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -655,6 +663,33 @@ export default function NewProductPage() {
                           <tr key={`${v.size || ''}-${v.color || ''}-${idx}`} className="hover:bg-surface-3">
                             {!hideSizes && <td className="p-3 border-b border-line font-medium">{v.size || '—'}</td>}
                             <td className="p-3 border-b border-line">{v.color || '—'}</td>
+                            <td className="p-3 border-b border-line">
+                              {images.length > 0 ? (
+                                <select
+                                  value={v.imageUrl || ''}
+                                  onChange={(e) => {
+                                    const next = [...variants];
+                                    next[idx] = { ...next[idx], imageUrl: e.target.value };
+                                    setVariants(next);
+                                  }}
+                                  className="w-32 px-2 py-2 border border-line rounded focus:outline-none focus:border-bmr-ink text-xs"
+                                >
+                                  <option value="">Select image</option>
+                                  {images.map((img, imgIdx) => (
+                                    <option key={imgIdx} value={img}>
+                                      Image {imgIdx + 1}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className="text-xs text-bmr-muted">Upload images first</span>
+                              )}
+                              {v.imageUrl && (
+                                <div className="mt-1">
+                                  <img src={v.imageUrl} alt="" className="w-10 h-10 object-cover rounded border border-line" />
+                                </div>
+                              )}
+                            </td>
                             <td className="p-3 border-b border-line">
                               <input
                                 type="text"
@@ -679,7 +714,7 @@ export default function NewProductPage() {
                                   next[idx] = { ...next[idx], stock: Math.max(0, parseInt(e.target.value || '0')) };
                                   setVariants(next);
                                 }}
-                                className="w-28 px-3 py-2 border border-line rounded focus:outline-none focus:border-bmr-ink"
+                                className="w-24 px-3 py-2 border border-line rounded focus:outline-none focus:border-bmr-ink"
                                 placeholder="0"
                               />
                             </td>
