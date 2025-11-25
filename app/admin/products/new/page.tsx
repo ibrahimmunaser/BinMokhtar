@@ -251,7 +251,12 @@ export default function NewProductPage() {
       
       // Add product to Firebase with images
       const productData = {
-        ...formData,
+        titleEn: formData.name,
+        titleAr: formData.name,
+        subtitleEn: formData.subtitle,
+        subtitleAr: formData.subtitle,
+        descriptionEn: formData.description,
+        descriptionAr: formData.description,
         audience,
         categoryId,
         price, // Use sale price if provided, otherwise regular price
@@ -261,6 +266,9 @@ export default function NewProductPage() {
         variants: variants.map(v => ({ size: v.size, color: v.color, stock: Number.isFinite(v.stock) ? v.stock : 0, sku: v.sku })),
         tags: formData.tags,
         category: `${formData.mainCategory} - ${formData.subCategory}`,
+        mainCategory: formData.mainCategory,
+        subCategory: formData.subCategory,
+        published: formData.published,
       };
 
       const newProduct = await addProduct(productData);
