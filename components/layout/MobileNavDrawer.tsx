@@ -29,7 +29,17 @@ const defaultNavigation: NavItem[] = [
       { id: 'boys-thobes', labelEn: 'Thobes', labelAr: 'ثياب', href: '/category/boys-thobes', sort: 1 },
     ],
   },
-  { id: 'shemaghs', labelEn: 'Shemaghs', labelAr: 'شماغ', href: '/category/shemaghs', sort: 3 },
+  {
+    id: 'shemaghs',
+    labelEn: 'Shemaghs',
+    labelAr: 'شماغ',
+    href: '/category/shemaghs',
+    sort: 3,
+    children: [
+      { id: 'yemeni-shemaghs', labelEn: 'Yemeni', labelAr: 'يمني', href: '/category/yemeni-shemaghs', sort: 1 },
+      { id: 'traditional-shemaghs', labelEn: 'Traditional', labelAr: 'تقليدي', href: '/category/traditional-shemaghs', sort: 2 },
+    ],
+  },
   { id: 'about', labelEn: 'ABOUT', labelAr: 'عن', href: '/about', sort: 4 },
   { id: 'contact', labelEn: 'CONTACT', labelAr: 'اتصل', href: '/contact', sort: 5 },
 ];
