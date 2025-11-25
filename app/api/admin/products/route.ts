@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
       subtitle: body.subtitle || '',
       brand: body.brand || 'Bin Mukhtar Retail',
       categoryId: body.categoryId,
-      audience: (body.categoryId || body.audience || 'MEN').toUpperCase(),
+      audience: (body.audience || 'MEN').toUpperCase(), // Use the audience field sent from form
       status, // DRAFT, ACTIVE, or ARCHIVED
       price: Math.round(parseFloat(body.price) * 100), // Convert to cents (basePrice)
       compareAtPrice: body.compareAtPrice ? Math.round(parseFloat(body.compareAtPrice) * 100) : null,
