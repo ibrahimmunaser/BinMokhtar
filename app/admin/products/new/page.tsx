@@ -269,8 +269,8 @@ export default function NewProductPage() {
         descriptionAr: formData.description,
         audience,
         categoryId,
-        status: formData.published ? 'ACTIVE' : 'DRAFT', // Map published to status
-        published: formData.published, // Keep for backward compatibility
+        status: formData.published ? 'ACTIVE' : 'DRAFT', // Required for storefront filtering
+        published: formData.published,
         price, // Use sale price if provided, otherwise regular price
         compareAtPrice, // If there's a sale price, the regular price becomes compareAt
         images: images.length > 0 ? images : ['/placeholder.svg'],
