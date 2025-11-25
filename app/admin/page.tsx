@@ -167,6 +167,7 @@ export default function AdminDashboard() {
               <thead className="bg-surface-3 border-b border-line">
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-medium">Product</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium">Audience</th>
                   <th className="px-6 py-4 text-left text-sm font-medium">Category</th>
                   <th className="px-6 py-4 text-left text-sm font-medium">Price</th>
                   <th className="px-6 py-4 text-left text-sm font-medium">Stock</th>
@@ -187,6 +188,11 @@ export default function AdminDashboard() {
                           <p className="text-sm text-bmr-muted">{product.subtitleEn || product.subtitleAr}</p>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="px-3 py-1 bg-blue-500/10 text-blue-600 rounded-full text-sm font-mono">
+                        {product.audience || '❌ MISSING'}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <span className="px-3 py-1 bg-surface-3 rounded-full text-sm">
