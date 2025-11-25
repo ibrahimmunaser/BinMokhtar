@@ -17,25 +17,38 @@ export default function NewProductPage() {
   const [formData, setFormData] = useState({
     name: '',
     subtitle: '',
-    categoryId: 'thobes',
-    audience: 'MEN',
+    mainCategory: '' as 'Men' | 'Boys' | 'Shemaghs' | '',
+    subCategory: '',
     price: '',
     compareAtPrice: '',
     description: '',
     colors: [] as string[],
     sizes: [] as string[],
-    sleeve: '' as 'short' | 'long' | '',
     tags: [] as string[],
     published: true,
   });
   const [variants, setVariants] = useState<{ size?: string; color?: string; stock: number }[]>([]);
   const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-  const colorOptions = ['White', 'Black', 'Navy', 'Gray', 'Beige', 'Brown'];
+  const colorOptions = ['White', 'Black', 'Navy', 'Gray', 'Beige', 'Brown', 'Red', 'Blue', 'Green'];
 
   const totalStock = variants.reduce((sum, v) => sum + (Number.isFinite(v.stock) ? v.stock : 0), 0);
   
-  // Check if sizes should be hidden (for Shemaghs and Shaals)
-  const hideSizes = formData.categoryId === 'shemaghs' || formData.categoryId === 'shaals';
+  // Define subcategories based on main category
+  const getSubCategories = (main: string) => {
+    switch (main) {
+      case 'Men':
+        return ['Saudi', 'Emirati'];
+      case 'Boys':
+        return ['Thobes'];
+      case 'Shemaghs':
+        return ['Traditional', 'Yemeni'];
+      default:
+        return [];
+    }
+  };
+  
+  // Check if sizes should be hidden (only for Shemaghs)
+  const hideSizes = formData.mainCategory === 'Shemaghs';
 
   const syncVariantsFromSelections = (sizes: string[], colors: string[]) => {
     const key = (s?: string, c?: string) => `${s || ''}__${c || ''}`;
@@ -90,10 +103,15 @@ export default function NewProductPage() {
     }
   }, [router]);
   
-  // Re-sync variants when category changes (affects whether sizes are included)
+  // Re-sync variants when main category changes (affects whether sizes are included)
   useEffect(() => {
     syncVariantsFromSelections(formData.sizes, formData.colors);
-  }, [formData.categoryId]);
+  }, [formData.mainCategory]);
+  
+  // Reset subcategory when main category changes
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, subCategory: '' }));
+  }, [formData.mainCategory]);
 
   const handleLogout = () => {
     clearAdminSession();
@@ -146,9 +164,26 @@ export default function NewProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate main category and subcategory
+    if (!formData.mainCategory) {
+      alert('Please select a main category');
+      return;
+    }
+    
+    if (!formData.subCategory) {
+      alert('Please select a sub category');
+      return;
+    }
+    
     // Validate tags
     if (formData.tags.length < 2) {
       alert('Please add at least 2 product tags');
+      return;
+    }
+    
+    // Validate variants
+    if (variants.length === 0) {
+      alert('Please add at least one variant with size and color');
       return;
     }
     
@@ -159,15 +194,29 @@ export default function NewProductPage() {
       const price = formData.compareAtPrice ? formData.compareAtPrice : formData.price;
       const compareAtPrice = formData.compareAtPrice ? formData.price : '';
       
+      // Determine audience based on main category
+      const audience = formData.mainCategory === 'Boys' ? 'CHILDREN' : 'MEN';
+      
+      // Determine categoryId for Firebase
+      let categoryId = 'thobes';
+      if (formData.mainCategory === 'Shemaghs') {
+        categoryId = 'shemaghs';
+      } else if (formData.mainCategory === 'Men' || formData.mainCategory === 'Boys') {
+        categoryId = 'thobes';
+      }
+      
       // Add product to Firebase with images
       const productData = {
         ...formData,
+        audience,
+        categoryId,
         price, // Use sale price if provided, otherwise regular price
         compareAtPrice, // If there's a sale price, the regular price becomes compareAt
         images: images.length > 0 ? images : ['/placeholder.svg'],
         thumbnail: images.length > 0 ? images[0] : '/placeholder.svg',
         variants: variants.map(v => ({ size: v.size, color: v.color, stock: Number.isFinite(v.stock) ? v.stock : 0 })),
         tags: formData.tags,
+        category: `${formData.mainCategory} - ${formData.subCategory}`,
       };
 
       const newProduct = await addProduct(productData);
@@ -293,47 +342,42 @@ export default function NewProductPage() {
 
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium mb-2">Audience *</label>
+                <label className="block text-sm font-medium mb-2">Main Category *</label>
                 <select
-                  value={formData.audience}
-                  onChange={(e) => setFormData({ ...formData, audience: e.target.value as any })}
+                  value={formData.mainCategory}
+                  onChange={(e) => setFormData({ ...formData, mainCategory: e.target.value as any, subCategory: '' })}
                   required
                   className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
                 >
-                  <option value="MEN">Men</option>
-                  <option value="WOMEN">Women</option>
-                  <option value="CHILDREN">Children</option>
+                  <option value="">Select Main Category</option>
+                  <option value="Men">Men</option>
+                  <option value="Boys">Boys</option>
+                  <option value="Shemaghs">Shemaghs</option>
                 </select>
+                <p className="text-xs text-bmr-muted mt-1">Choose the primary product category</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Category *</label>
-                <select
-                  value={formData.categoryId}
-                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                  required
-                  className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
-                >
-                  <option value="thobes">Thobes</option>
-                  <option value="shemaghs">Shemaghs</option>
-                  <option value="shaals">Shaals</option>
-                  <option value="kufis">Kufis</option>
-                </select>
-                {formData.categoryId === 'thobes' && (
-                  <div className="mt-3">
-                    <label className="block text-sm font-medium mb-2">Thobes Sleeve</label>
-                    <select
-                      value={formData.sleeve}
-                      onChange={(e) => setFormData({ ...formData, sleeve: e.target.value as any })}
-                      className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
-                    >
-                      <option value="">Select sleeve</option>
-                      <option value="long">Long Sleeve</option>
-                      <option value="short">Short Sleeve</option>
-                    </select>
-                    <p className="text-xs text-bmr-muted mt-1">This maps to /category/thobes/[long|short]-sleeve</p>
-                  </div>
-                )}
-              </div>
+              
+              {formData.mainCategory && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">Sub Category *</label>
+                  <select
+                    value={formData.subCategory}
+                    onChange={(e) => setFormData({ ...formData, subCategory: e.target.value })}
+                    required
+                    className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
+                  >
+                    <option value="">Select Sub Category</option>
+                    {getSubCategories(formData.mainCategory).map((sub) => (
+                      <option key={sub} value={sub}>{sub}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-bmr-muted mt-1">
+                    {formData.mainCategory === 'Men' && 'Saudi or Emirati style'}
+                    {formData.mainCategory === 'Boys' && 'Boys Thobes collection'}
+                    {formData.mainCategory === 'Shemaghs' && 'Traditional or Yemeni style'}
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium mb-2">Total Stock (sum of variants)</label>
@@ -455,87 +499,123 @@ export default function NewProductPage() {
 
           {/* Variants */}
           <div className="bg-surface-2 rounded-lg border border-line p-6 lg:p-8">
-            <h2 className="font-display text-xl mb-6">Variants</h2>
-
-            <div className={hideSizes ? 'grid grid-cols-1 gap-6' : 'grid md:grid-cols-2 gap-6'}>
-              {!hideSizes && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">Available Sizes</label>
-                  <div className="border border-line rounded-lg p-4">
-                    <div className="grid grid-cols-3 gap-2 mb-3">
-                      {sizeOptions.map((s) => (
-                        <label key={s} className="flex items-center gap-2 text-sm">
-                          <input type="checkbox" checked={formData.sizes.includes(s)} onChange={() => toggleSelection('sizes', s)} />
-                          <span>{s}</span>
-                        </label>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <input id="custom-size-input" type="text" placeholder="Add custom size" className="w-full px-3 py-2 border border-line rounded" />
-                      <button type="button" onClick={() => addCustomOption('sizes', 'custom-size-input')} className="px-3 py-2 border rounded">Add</button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Available Colors</label>
-                <div className="border border-line rounded-lg p-4">
-                  <div className="grid grid-cols-3 gap-2 mb-3">
-                    {colorOptions.map((c) => (
-                      <label key={c} className="flex items-center gap-2 text-sm">
-                        <input type="checkbox" checked={formData.colors.includes(c)} onChange={() => toggleSelection('colors', c)} />
-                        <span>{c}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <input id="custom-color-input" type="text" placeholder="Add custom color" className="w-full px-3 py-2 border border-line rounded" />
-                    <button type="button" onClick={() => addCustomOption('colors', 'custom-color-input')} className="px-3 py-2 border rounded">Add</button>
-                  </div>
-                </div>
+            <h2 className="font-display text-xl mb-6">Variants (Size & Color)</h2>
+            
+            {!formData.mainCategory ? (
+              <div className="text-center py-8 text-bmr-muted">
+                <p>Please select a main category and sub category first</p>
               </div>
-            </div>
+            ) : (
+              <>
+                {hideSizes && (
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-900">
+                      ℹ️ <strong>Shemaghs only require colors</strong> - No sizes needed
+                    </p>
+                  </div>
+                )}
+                
+                <div className={hideSizes ? 'grid grid-cols-1 gap-6' : 'grid md:grid-cols-2 gap-6'}>
+                  {!hideSizes && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Available Sizes *</label>
+                      <div className="border border-line rounded-lg p-4">
+                        <div className="grid grid-cols-3 gap-2 mb-3">
+                          {sizeOptions.map((s) => (
+                            <label key={s} className="flex items-center gap-2 text-sm">
+                              <input type="checkbox" checked={formData.sizes.includes(s)} onChange={() => toggleSelection('sizes', s)} />
+                              <span>{s}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <input id="custom-size-input" type="text" placeholder="Add custom size" className="w-full px-3 py-2 border border-line rounded" />
+                          <button type="button" onClick={() => addCustomOption('sizes', 'custom-size-input')} className="px-3 py-2 border rounded">Add</button>
+                        </div>
+                      </div>
+                      <p className="text-xs text-bmr-muted mt-1">Select all sizes available for this product</p>
+                    </div>
+                  )}
 
-            <div className="mt-6">
-              <label className="block text-sm font-medium mb-3">Variant Stock</label>
-              {variants.length === 0 ? (
-                <p className="text-sm text-bmr-muted">Select {hideSizes ? 'colors' : 'sizes/colors'} above to generate variant combinations.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm">
-                    <thead>
-                      <tr>
-                        {!hideSizes && <th className="text-left p-2 border-b border-line">Size</th>}
-                        <th className="text-left p-2 border-b border-line">Color</th>
-                        <th className="text-left p-2 border-b border-line">Stock</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {variants.map((v, idx) => (
-                        <tr key={`${v.size || ''}-${v.color || ''}-${idx}`}>
-                          {!hideSizes && <td className="p-2 border-b border-line">{v.size || '—'}</td>}
-                          <td className="p-2 border-b border-line">{v.color || '—'}</td>
-                          <td className="p-2 border-b border-line">
-                            <input
-                              type="number"
-                              min={0}
-                              value={Number.isFinite(v.stock) ? v.stock : 0}
-                              onChange={(e) => {
-                                const next = [...variants];
-                                next[idx] = { ...next[idx], stock: Math.max(0, parseInt(e.target.value || '0')) };
-                                setVariants(next);
-                              }}
-                              className="w-24 px-3 py-2 border border-line rounded"
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Available Colors *</label>
+                    <div className="border border-line rounded-lg p-4">
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        {colorOptions.map((c) => (
+                          <label key={c} className="flex items-center gap-2 text-sm">
+                            <input type="checkbox" checked={formData.colors.includes(c)} onChange={() => toggleSelection('colors', c)} />
+                            <span>{c}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <input id="custom-color-input" type="text" placeholder="Add custom color" className="w-full px-3 py-2 border border-line rounded" />
+                        <button type="button" onClick={() => addCustomOption('colors', 'custom-color-input')} className="px-3 py-2 border rounded">Add</button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-bmr-muted mt-1">Select all colors available for this product</p>
+                  </div>
                 </div>
-              )}
-            </div>
+              </>
+            )}
+
+            {formData.mainCategory && (
+              <div className="mt-6">
+                <label className="block text-sm font-medium mb-3">Stock by Variant</label>
+                {variants.length === 0 ? (
+                  <div className="p-6 border-2 border-dashed border-line rounded-lg text-center">
+                    <p className="text-sm text-bmr-muted">
+                      {hideSizes 
+                        ? '👆 Select colors above to generate variants'
+                        : '👆 Select sizes and colors above to generate variant combinations'
+                      }
+                    </p>
+                    <p className="text-xs text-bmr-muted mt-2">
+                      Each combination will create a separate variant where you can set individual stock levels
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto border border-line rounded-lg">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-surface-3">
+                        <tr>
+                          {!hideSizes && <th className="text-left p-3 border-b border-line font-medium">Size</th>}
+                          <th className="text-left p-3 border-b border-line font-medium">Color</th>
+                          <th className="text-left p-3 border-b border-line font-medium">Stock Quantity</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {variants.map((v, idx) => (
+                          <tr key={`${v.size || ''}-${v.color || ''}-${idx}`} className="hover:bg-surface-3">
+                            {!hideSizes && <td className="p-3 border-b border-line font-medium">{v.size || '—'}</td>}
+                            <td className="p-3 border-b border-line">{v.color || '—'}</td>
+                            <td className="p-3 border-b border-line">
+                              <input
+                                type="number"
+                                min={0}
+                                value={Number.isFinite(v.stock) ? v.stock : 0}
+                                onChange={(e) => {
+                                  const next = [...variants];
+                                  next[idx] = { ...next[idx], stock: Math.max(0, parseInt(e.target.value || '0')) };
+                                  setVariants(next);
+                                }}
+                                className="w-28 px-3 py-2 border border-line rounded focus:outline-none focus:border-bmr-ink"
+                                placeholder="0"
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="p-3 bg-surface-3 border-t border-line">
+                      <p className="text-sm text-bmr-muted">
+                        💡 <strong>Total Stock:</strong> {totalStock} units across {variants.length} variant{variants.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Product Tags */}
