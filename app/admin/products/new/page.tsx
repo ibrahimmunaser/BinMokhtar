@@ -269,6 +269,8 @@ export default function NewProductPage() {
         descriptionAr: formData.description,
         audience,
         categoryId,
+        status: formData.published ? 'ACTIVE' : 'DRAFT', // Map published to status
+        published: formData.published, // Keep for backward compatibility
         price, // Use sale price if provided, otherwise regular price
         compareAtPrice, // If there's a sale price, the regular price becomes compareAt
         images: images.length > 0 ? images : ['/placeholder.svg'],
@@ -278,7 +280,6 @@ export default function NewProductPage() {
         category: `${formData.mainCategory} - ${formData.subCategory}`,
         mainCategory: formData.mainCategory,
         subCategory: formData.subCategory,
-        published: formData.published,
       };
 
       const newProduct = await addProduct(productData);
