@@ -27,7 +27,7 @@ export default function NewProductPage() {
     tags: [] as string[],
     published: true,
   });
-  const [variants, setVariants] = useState<{ size?: string; color?: string; stock: number }[]>([]);
+  const [variants, setVariants] = useState<{ size?: string; color?: string; stock: number; sku: string }[]>([]);
   const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
   const colorOptions = ['White', 'Black', 'Navy', 'Gray', 'Beige', 'Brown', 'Red', 'Blue', 'Green'];
 
@@ -52,10 +52,10 @@ export default function NewProductPage() {
 
   const syncVariantsFromSelections = (sizes: string[], colors: string[]) => {
     const key = (s?: string, c?: string) => `${s || ''}__${c || ''}`;
-    const currentMap = new Map<string, { size?: string; color?: string; stock: number }>();
+    const currentMap = new Map<string, { size?: string; color?: string; stock: number; sku: string }>();
     variants.forEach(v => currentMap.set(key(v.size, v.color), v));
 
-    const next: { size?: string; color?: string; stock: number }[] = [];
+    const next: { size?: string; color?: string; stock: number; sku: string }[] = [];
     
     // If sizes are hidden, only use colors
     const sizesList = hideSizes ? [undefined as unknown as string] : (sizes.length > 0 ? sizes : [undefined as unknown as string]);
@@ -65,7 +65,16 @@ export default function NewProductPage() {
       colorsList.forEach(c => {
         const k = key(s, c);
         const existing = currentMap.get(k);
-        next.push({ size: hideSizes ? undefined : s || undefined, color: c || undefined, stock: existing?.stock ?? 0 });
+        // Auto-generate SKU if not exists: SIZE-COLOR or just COLOR for shemaghs
+        const autoSku = hideSizes 
+          ? `${c?.toUpperCase().replace(/\s+/g, '-') || 'SKU'}`
+          : `${s || 'ONE'}-${c?.toUpperCase().replace(/\s+/g, '-') || 'COLOR'}`;
+        next.push({ 
+          size: hideSizes ? undefined : s || undefined, 
+          color: c || undefined, 
+          stock: existing?.stock ?? 0,
+          sku: existing?.sku || autoSku
+        });
       });
     });
 
@@ -214,7 +223,7 @@ export default function NewProductPage() {
         compareAtPrice, // If there's a sale price, the regular price becomes compareAt
         images: images.length > 0 ? images : ['/placeholder.svg'],
         thumbnail: images.length > 0 ? images[0] : '/placeholder.svg',
-        variants: variants.map(v => ({ size: v.size, color: v.color, stock: Number.isFinite(v.stock) ? v.stock : 0 })),
+        variants: variants.map(v => ({ size: v.size, color: v.color, stock: Number.isFinite(v.stock) ? v.stock : 0, sku: v.sku })),
         tags: formData.tags,
         category: `${formData.mainCategory} - ${formData.subCategory}`,
       };
@@ -581,6 +590,7 @@ export default function NewProductPage() {
                         <tr>
                           {!hideSizes && <th className="text-left p-3 border-b border-line font-medium">Size</th>}
                           <th className="text-left p-3 border-b border-line font-medium">Color</th>
+                          <th className="text-left p-3 border-b border-line font-medium">SKU *</th>
                           <th className="text-left p-3 border-b border-line font-medium">Stock Quantity</th>
                         </tr>
                       </thead>
@@ -589,6 +599,20 @@ export default function NewProductPage() {
                           <tr key={`${v.size || ''}-${v.color || ''}-${idx}`} className="hover:bg-surface-3">
                             {!hideSizes && <td className="p-3 border-b border-line font-medium">{v.size || '—'}</td>}
                             <td className="p-3 border-b border-line">{v.color || '—'}</td>
+                            <td className="p-3 border-b border-line">
+                              <input
+                                type="text"
+                                value={v.sku || ''}
+                                onChange={(e) => {
+                                  const next = [...variants];
+                                  next[idx] = { ...next[idx], sku: e.target.value };
+                                  setVariants(next);
+                                }}
+                                className="w-40 px-3 py-2 border border-line rounded focus:outline-none focus:border-bmr-ink"
+                                placeholder="Enter SKU"
+                                required
+                              />
+                            </td>
                             <td className="p-3 border-b border-line">
                               <input
                                 type="number"
