@@ -28,7 +28,16 @@ export default function NewProductPage() {
     published: true,
   });
   const [variants, setVariants] = useState<{ size?: string; color?: string; stock: number; sku: string }[]>([]);
-  const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  
+  // Dynamic size options based on category
+  const getSizeOptions = () => {
+    if (formData.mainCategory === 'Boys' && formData.subCategory === 'Thobes') {
+      return ['30', '32', '34', '36', '38', '40', '42', '44', '46', '48', '50'];
+    }
+    return ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  };
+  
+  const sizeOptions = getSizeOptions();
   const colorOptions = ['White', 'Black', 'Navy', 'Gray', 'Beige', 'Brown', 'Red', 'Blue', 'Green'];
 
   const totalStock = variants.reduce((sum, v) => sum + (Number.isFinite(v.stock) ? v.stock : 0), 0);
@@ -117,10 +126,17 @@ export default function NewProductPage() {
     syncVariantsFromSelections(formData.sizes, formData.colors);
   }, [formData.mainCategory]);
   
-  // Reset subcategory when main category changes
+  // Reset subcategory and sizes when main category changes
   useEffect(() => {
-    setFormData(prev => ({ ...prev, subCategory: '' }));
+    setFormData(prev => ({ ...prev, subCategory: '', sizes: [], colors: [] }));
+    setVariants([]);
   }, [formData.mainCategory]);
+  
+  // Reset sizes when subcategory changes (to refresh size options)
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, sizes: [] }));
+    setVariants([]);
+  }, [formData.subCategory]);
 
   const handleLogout = () => {
     clearAdminSession();
@@ -529,7 +545,7 @@ export default function NewProductPage() {
                     <div>
                       <label className="block text-sm font-medium mb-2">Available Sizes *</label>
                       <div className="border border-line rounded-lg p-4">
-                        <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div className={`grid ${formData.mainCategory === 'Boys' ? 'grid-cols-4' : 'grid-cols-3'} gap-2 mb-3`}>
                           {sizeOptions.map((s) => (
                             <label key={s} className="flex items-center gap-2 text-sm">
                               <input type="checkbox" checked={formData.sizes.includes(s)} onChange={() => toggleSelection('sizes', s)} />
@@ -542,7 +558,9 @@ export default function NewProductPage() {
                           <button type="button" onClick={() => addCustomOption('sizes', 'custom-size-input')} className="px-3 py-2 border rounded">Add</button>
                         </div>
                       </div>
-                      <p className="text-xs text-bmr-muted mt-1">Select all sizes available for this product</p>
+                      <p className="text-xs text-bmr-muted mt-1">
+                        {formData.mainCategory === 'Boys' ? 'Select numeric sizes for boys thobes (in cm)' : 'Select all sizes available for this product'}
+                      </p>
                     </div>
                   )}
 
