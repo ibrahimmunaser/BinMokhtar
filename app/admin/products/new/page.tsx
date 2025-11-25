@@ -74,10 +74,22 @@ export default function NewProductPage() {
       colorsList.forEach(c => {
         const k = key(s, c);
         const existing = currentMap.get(k);
-        // Auto-generate SKU if not exists: SIZE-COLOR or just COLOR for shemaghs
-        const autoSku = hideSizes 
-          ? `${c?.toUpperCase().replace(/\s+/g, '-') || 'SKU'}`
-          : `${s || 'ONE'}-${c?.toUpperCase().replace(/\s+/g, '-') || 'COLOR'}`;
+        
+        // Auto-generate detailed SKU with category info
+        const mainCat = formData.mainCategory?.toUpperCase().replace(/\s+/g, '-') || 'PROD';
+        const subCat = formData.subCategory?.toUpperCase().replace(/\s+/g, '-') || '';
+        const colorPart = c?.toUpperCase().replace(/\s+/g, '-') || 'COLOR';
+        
+        let autoSku = '';
+        if (hideSizes) {
+          // For Shemaghs: SHEMAGH-TRADITIONAL-RED or SHEMAGH-YEMENI-BLUE
+          autoSku = subCat ? `${mainCat}-${subCat}-${colorPart}` : `${mainCat}-${colorPart}`;
+        } else {
+          // For Men/Boys: MEN-SAUDI-M-WHITE or BOYS-THOBES-34-BLACK
+          const sizePart = s || 'ONE';
+          autoSku = subCat ? `${mainCat}-${subCat}-${sizePart}-${colorPart}` : `${mainCat}-${sizePart}-${colorPart}`;
+        }
+        
         next.push({ 
           size: hideSizes ? undefined : s || undefined, 
           color: c || undefined, 
@@ -132,11 +144,18 @@ export default function NewProductPage() {
     setVariants([]);
   }, [formData.mainCategory]);
   
-  // Reset sizes when subcategory changes (to refresh size options)
+  // Reset sizes and re-sync variants when subcategory changes (to refresh size options and SKUs)
   useEffect(() => {
     setFormData(prev => ({ ...prev, sizes: [] }));
     setVariants([]);
   }, [formData.subCategory]);
+  
+  // Re-sync variants when category changes to update SKUs
+  useEffect(() => {
+    if (formData.sizes.length > 0 || formData.colors.length > 0) {
+      syncVariantsFromSelections(formData.sizes, formData.colors);
+    }
+  }, [formData.mainCategory, formData.subCategory]);
 
   const handleLogout = () => {
     clearAdminSession();
@@ -652,6 +671,11 @@ export default function NewProductPage() {
                     <div className="p-3 bg-surface-3 border-t border-line">
                       <p className="text-sm text-bmr-muted">
                         💡 <strong>Total Stock:</strong> {totalStock} units across {variants.length} variant{variants.length !== 1 ? 's' : ''}
+                      </p>
+                      <p className="text-xs text-bmr-muted mt-1">
+                        SKU format: {formData.mainCategory === 'Shemaghs' 
+                          ? 'CATEGORY-SUBCATEGORY-COLOR' 
+                          : 'CATEGORY-SUBCATEGORY-SIZE-COLOR'}
                       </p>
                     </div>
                   </div>
