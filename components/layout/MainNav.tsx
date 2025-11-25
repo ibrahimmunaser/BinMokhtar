@@ -14,9 +14,8 @@ const defaultNavigation: NavItem[] = [
     href: '/shop/mens',
     sort: 1,
     children: [
-      { id: 'shop-all-men', labelEn: 'Shop All Men', labelAr: 'تسوق الرجال', href: '/shop/mens', sort: 1 },
-      { id: 'short-sleeve', labelEn: 'Short Sleeves', labelAr: 'كم قصير', href: '/category/short-sleeves', sort: 2 },
-      { id: 'long-sleeve', labelEn: 'Long Sleeves', labelAr: 'كم طويل', href: '/category/long-sleeves', sort: 3 },
+      { id: 'saudi', labelEn: 'Saudi', labelAr: 'سعودي', href: '/category/saudi', sort: 1 },
+      { id: 'emirati', labelEn: 'Emirati', labelAr: 'إماراتي', href: '/category/emirati', sort: 2 },
     ],
   },
   {
