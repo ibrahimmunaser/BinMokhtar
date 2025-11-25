@@ -25,7 +25,7 @@ const defaultNavigation: NavItem[] = [
     href: '/shop/children',
     sort: 2,
     children: [
-      { id: 'boys-thobes', labelEn: 'Thobes', labelAr: 'ثياب', href: '/category/boys-thobes', sort: 1 },
+      { id: 'boys-thobes', labelEn: 'Thobes', labelAr: 'ثياب', href: '/shop/children', sort: 1 },
     ],
   },
   {
