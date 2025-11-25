@@ -48,8 +48,8 @@ export default function ChildrenCollectionPage() {
     // Import the storefront function
     import('@/lib/storefront').then(({ getStorefrontProducts }) => {
       getStorefrontProducts('CHILDREN').then((filtered) => {
-        setProducts(filtered);
-        setIsLoading(false);
+      setProducts(filtered);
+      setIsLoading(false);
       });
     });
   }, []);

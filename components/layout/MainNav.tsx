@@ -20,8 +20,8 @@ const defaultNavigation: NavItem[] = [
   },
   {
     id: 'boys',
-    labelEn: 'Boy',
-    labelAr: 'صبي',
+    labelEn: 'Boys',
+    labelAr: 'أولاد',
     href: '/shop/children',
     sort: 2,
     children: [

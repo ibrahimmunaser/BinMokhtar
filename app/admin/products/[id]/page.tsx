@@ -561,16 +561,16 @@ export default function EditProductForm() {
               <h2 className="font-display text-xl mb-6">Product Images</h2>
               
               <div className="space-y-6">
-                <Controller
-                  name="images"
-                  control={control}
-                  render={({ field }) => (
-                    <MultiImageUpload
-                      label="Product Images"
-                      name="images"
-                      required
-                      error={errors.images?.message}
-                      value={field.value}
+              <Controller
+                name="images"
+                control={control}
+                render={({ field }) => (
+                  <MultiImageUpload
+                    label="Product Images"
+                    name="images"
+                    required
+                    error={errors.images?.message}
+                    value={field.value}
                       onChange={(newImages: string[]) => {
                         field.onChange(newImages);
                         // Auto-update primary image URL if not set
@@ -580,9 +580,9 @@ export default function EditProductForm() {
                         // Auto-update gallery
                         register('galleryImageUrls').onChange({ target: { value: newImages } });
                       }}
-                    />
-                  )}
-                />
+                  />
+                )}
+              />
 
                 <div className="bg-surface-3/50 p-4 rounded-lg border border-line/50">
                   <p className="text-sm text-bmr-muted mb-3">
