@@ -39,7 +39,7 @@ export function ProductGrid({ products, title }: ProductGridProps) {
               compareAt: undefined,
               stock: product.counts?.totalStock ?? (product as any).stock ?? 0,
               active: true,
-              imageUrl: product.defaultImage?.url || (product as any).thumbnail,
+              imageUrl: product.primaryImageUrl || (product as any).thumbnail || (product as any).images?.[0] || '',
               createdAt: product.createdAt,
               updatedAt: product.updatedAt,
             }}

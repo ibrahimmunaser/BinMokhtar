@@ -470,7 +470,7 @@ export default function MensCollectionPage() {
                       compareAt: undefined,
                   stock: product.counts?.totalStock ?? 0,
                   active: true,
-                      imageUrl: product.defaultImage?.url || '',
+                      imageUrl: product.primaryImageUrl || (product as any).thumbnail || (product as any).images?.[0] || '',
                   createdAt: product.createdAt,
                   updatedAt: product.updatedAt,
                 }}
