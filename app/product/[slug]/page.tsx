@@ -14,6 +14,7 @@ import { useProductBySlug, useProductsByCategory } from '@/hooks/useData';
 import { useCartStore } from '@/store/cart';
 import { formatPrice } from '@/lib/utils';
 import { useLocale } from '@/contexts/LocaleContext';
+import { useToast } from '@/contexts/ToastContext';
 import { logProductView, logAddToCart } from '@/lib/analytics';
 import { Check, Truck, Shield } from 'lucide-react';
 
@@ -24,6 +25,7 @@ export default function ProductPage() {
   const { products: relatedProducts } = useProductsByCategory(product?.id || null);
   const { currency } = useLocale();
   const addToCart = useCartStore((state) => state.add);
+  const { showToast } = useToast();
 
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -87,17 +89,29 @@ export default function ProductPage() {
     addToCart({
       variantId: product.id,
       productId: product.id,
-      title: product.titleEn,
+      title: product.titleEn || (product as any).name,
       sku: product.sku,
       priceAtAdd: product.price || product.basePrice,
       qty,
       size: selectedSize || undefined,
       color: selectedColor || undefined,
-      imageUrl: product.defaultImage?.url || galleryImages[0],
+      imageUrl: product.primaryImageUrl || (product as any).thumbnail || galleryImages[0],
     });
 
     logAddToCart(product.id, product.titleEn, product.price || product.basePrice, qty);
-    alert('Added to cart!');
+    
+    // Show toast notification
+    showToast({
+      type: 'success',
+      message: 'Added to cart!',
+      description: `${qty} × ${product.titleEn || (product as any).name}${selectedSize ? ` (${selectedSize})` : ''}${selectedColor ? ` • ${selectedColor}` : ''}`,
+      imageUrl: product.primaryImageUrl || (product as any).thumbnail || galleryImages[0],
+      actionLabel: 'View Cart',
+      onAction: () => {
+        window.location.href = '/cart';
+      },
+      duration: 5000,
+    });
   };
 
   if (isLoading) {

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Playfair_Display, Inter, Amiri, Tajawal } from 'next/font/google';
 import { LocaleProvider } from '@/contexts/LocaleContext';
+import { ToastProvider } from '@/contexts/ToastContext';
 import { TopBar } from '@/components/layout/TopBar';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { Footer } from '@/components/layout/Footer';
@@ -50,10 +51,12 @@ export default function RootLayout({
     >
       <body>
         <LocaleProvider>
-          <TopBar />
-          <SiteHeader />
-          <main className="min-h-screen">{children}</main>
-          <Footer />
+          <ToastProvider>
+            <TopBar />
+            <SiteHeader />
+            <main className="min-h-screen">{children}</main>
+            <Footer />
+          </ToastProvider>
         </LocaleProvider>
       </body>
     </html>
