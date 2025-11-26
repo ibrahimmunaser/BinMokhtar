@@ -14,8 +14,9 @@ interface HeroCarouselProps {
 
 export function HeroCarousel({ slides, locale = 'en' }: HeroCarouselProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(true); // Start visible to prevent initial delay
   const [isPaused, setIsPaused] = useState(false);
+  const [hasInitialLoad, setHasInitialLoad] = useState(false);
 
   const isRtl = locale === 'ar';
 
@@ -29,10 +30,12 @@ export function HeroCarousel({ slides, locale = 'en' }: HeroCarouselProps) {
     return () => clearInterval(interval);
   }, [isPaused, slides.length]);
 
-  // Reset fade-in state on slide change
+  // Reset fade-in state on slide change (but not on initial load)
   useEffect(() => {
-    setImgLoaded(false);
-  }, [currentSlide]);
+    if (hasInitialLoad) {
+      setImgLoaded(false);
+    }
+  }, [currentSlide, hasInitialLoad]);
 
   const goToSlide = (index: number) => {
     setCurrentSlide(index);
@@ -80,7 +83,10 @@ export function HeroCarousel({ slides, locale = 'en' }: HeroCarouselProps) {
             className="object-cover object-[center_20%] sm:object-[center_22%] lg:object-[center_25%]"
             priority={currentSlide === 0}
             sizes="100vw"
-            onLoadingComplete={() => setImgLoaded(true)}
+            onLoadingComplete={() => {
+              setImgLoaded(true);
+              setHasInitialLoad(true);
+            }}
           />
         )}
       </div>

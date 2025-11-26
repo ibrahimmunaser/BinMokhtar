@@ -12,7 +12,19 @@ import type { HeroSlide, MosaicTile, ShemaghTab, Review, StoryBlock, IconItem } 
 
 export default function HomePage() {
   // Build hero slides dynamically from /public/images (hero*.{png,jpg,jpeg,webp}) and /public/videos (hero*.{mp4,webm,ogg})
-  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
+  // Initialize with placeholder to prevent empty hero on first render
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([{
+    type: 'image',
+    src: '/images/home page Men\'s Thobe.png',
+    titleEn: 'Luxury Thobes & Modest Fashion',
+    titleAr: 'ثوب فاخر وأزياء محتشمة',
+    subEn: 'Timeless elegance for every occasion',
+    subAr: 'أناقة خالدة لكل مناسبة',
+    ctaTextEn: 'Shop Now',
+    ctaTextAr: 'تسوق الآن',
+    href: '/shop'
+  }]);
+  
   useEffect(() => {
     let mounted = true;
     async function load() {
@@ -32,13 +44,12 @@ export default function HomePage() {
           ctaTextAr: 'تسوق الآن',
           href: '/shop',
         }));
-        if (mounted) setHeroSlides(mapped.length ? mapped : [{
-          type: 'image', src: '/placeholder.svg', titleEn: 'Luxury Thobes & Modest Fashion', titleAr: 'ثوب فاخر وأزياء محتشمة', subEn: 'Timeless elegance for every occasion', subAr: 'أناقة خالدة لكل مناسبة', ctaTextEn: 'Shop Now', ctaTextAr: 'تسوق الآن', href: '/shop'
-        }]);
-      } catch {
-        if (mounted) setHeroSlides([{
-          type: 'image', src: '/placeholder.svg', titleEn: 'Luxury Thobes & Modest Fashion', titleAr: 'ثوب فاخر وأزياء محتشمة', subEn: 'Timeless elegance for every occasion', subAr: 'أناقة خالدة لكل مناسبة', ctaTextEn: 'Shop Now', ctaTextAr: 'تسوق الآن', href: '/shop'
-        }]);
+        if (mounted && mapped.length > 0) {
+          setHeroSlides(mapped);
+        }
+      } catch (error) {
+        console.error('Error loading hero media:', error);
+        // Keep the initial placeholder slide on error
       }
     }
     load();
