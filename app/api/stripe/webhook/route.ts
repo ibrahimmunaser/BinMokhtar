@@ -1,0 +1,200 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { stripe, STRIPE_WEBHOOK_SECRET } from '@/lib/stripe/config';
+import { adminDb } from '@/lib/firebase/server';
+import Stripe from 'stripe';
+
+/**
+ * POST /api/stripe/webhook
+ * Handles Stripe webhook events
+ * IMPORTANT: This endpoint must be configured in your Stripe Dashboard
+ */
+export async function POST(request: NextRequest) {
+  const body = await request.text();
+  const signature = request.headers.get('stripe-signature');
+
+  if (!signature) {
+    console.error('❌ No Stripe signature found');
+    return NextResponse.json({ error: 'No signature' }, { status: 400 });
+  }
+
+  if (!STRIPE_WEBHOOK_SECRET) {
+    console.error('❌ STRIPE_WEBHOOK_SECRET is not configured');
+    return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
+  }
+
+  let event: Stripe.Event;
+
+  // Verify webhook signature
+  try {
+    event = stripe.webhooks.constructEvent(body, signature, STRIPE_WEBHOOK_SECRET);
+  } catch (err: any) {
+    console.error('❌ Webhook signature verification failed:', err.message);
+    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+  }
+
+  console.log('✅ Received Stripe webhook event:', event.type);
+
+  // Handle the event
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        await handleCheckoutSessionCompleted(session);
+        break;
+      }
+
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        console.log('💰 PaymentIntent succeeded:', paymentIntent.id);
+        break;
+      }
+
+      case 'payment_intent.payment_failed': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        console.log('❌ PaymentIntent failed:', paymentIntent.id);
+        break;
+      }
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    return NextResponse.json({ received: true });
+  } catch (error: any) {
+    console.error('❌ Error handling webhook:', error);
+    return NextResponse.json(
+      { error: 'Webhook handler failed', message: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Handle successful checkout session
+ * Creates order in Firebase and updates inventory
+ */
+async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+  console.log('🎉 Checkout session completed:', session.id);
+
+  try {
+    // Retrieve full session with line items
+    const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+      expand: ['line_items', 'line_items.data.price.product'],
+    });
+
+    // Parse cart items from metadata
+    const cartItemsStr = session.metadata?.cartItems;
+    let cartItems: any[] = [];
+    
+    if (cartItemsStr) {
+      try {
+        cartItems = JSON.parse(cartItemsStr);
+      } catch (e) {
+        console.error('Failed to parse cart items from metadata');
+      }
+    }
+
+    // Extract customer details
+    const customerEmail = session.customer_details?.email || session.customer_email || '';
+    const customerName = session.customer_details?.name || '';
+    const shippingAddress = session.shipping_details?.address;
+    const billingAddress = session.customer_details?.address;
+
+    // Calculate totals (amounts are in cents)
+    const subtotal = session.amount_subtotal || 0;
+    const total = session.amount_total || 0;
+    const shipping = (session.shipping_cost?.amount_total || 0);
+    const tax = (session.total_details?.amount_tax || 0);
+
+    // Create order in Firebase
+    const orderData = {
+      // Payment info
+      stripeSessionId: session.id,
+      stripePaymentIntentId: session.payment_intent as string,
+      paymentStatus: session.payment_status, // 'paid', 'unpaid', or 'no_payment_required'
+      
+      // Customer info
+      email: customerEmail,
+      customerName,
+      
+      // Shipping address
+      shippingAddress: shippingAddress ? {
+        fullName: customerName,
+        email: customerEmail,
+        address: shippingAddress.line1 || '',
+        address2: shippingAddress.line2 || '',
+        city: shippingAddress.city || '',
+        state: shippingAddress.state || '',
+        zip: shippingAddress.postal_code || '',
+        country: shippingAddress.country || '',
+        phone: session.customer_details?.phone || '',
+      } : null,
+
+      // Billing address
+      billingAddress: billingAddress ? {
+        line1: billingAddress.line1 || '',
+        line2: billingAddress.line2 || '',
+        city: billingAddress.city || '',
+        state: billingAddress.state || '',
+        zip: billingAddress.postal_code || '',
+        country: billingAddress.country || '',
+      } : null,
+      
+      // Order items
+      items: fullSession.line_items?.data.map((lineItem) => {
+        const product = lineItem.price?.product as Stripe.Product;
+        const matchingCartItem = cartItems.find(
+          (ci) => ci.sku === product.metadata?.sku
+        );
+
+        return {
+          id: lineItem.id,
+          productId: product.metadata?.productId || '',
+          variantId: product.metadata?.variantId || '',
+          title: lineItem.description || product.name,
+          sku: product.metadata?.sku || '',
+          qty: lineItem.quantity || 1,
+          unitPrice: lineItem.price?.unit_amount || 0,
+          imageUrl: matchingCartItem?.imageUrl || product.images?.[0] || '',
+          size: matchingCartItem?.size,
+          color: matchingCartItem?.color,
+        };
+      }) || [],
+      
+      // Financial details (all in cents)
+      subtotal,
+      shipping,
+      tax,
+      total,
+      currency: session.currency?.toUpperCase() || 'USD',
+      
+      // Status
+      status: 'PAID',
+      fulfillmentStatus: 'PENDING', // 'PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED'
+      
+      // Metadata
+      metadata: session.metadata || {},
+      
+      // Timestamps
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      paidAt: new Date(),
+    };
+
+    // Save to Firebase
+    const orderRef = await adminDb().collection('orders').add(orderData);
+    
+    console.log('✅ Order created in Firebase:', orderRef.id);
+
+    // TODO: Update product inventory
+    // TODO: Send confirmation email
+    // TODO: Notify admin of new order
+
+    return orderRef.id;
+
+  } catch (error) {
+    console.error('❌ Error handling checkout session:', error);
+    throw error;
+  }
+}
+
