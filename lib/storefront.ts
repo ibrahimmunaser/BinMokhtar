@@ -18,36 +18,16 @@ export async function getStorefrontProducts(audience?: 'MEN' | 'CHILDREN'): Prom
     const response = await fetch(`/api/admin/products?status=ACTIVE`);
     const data = await response.json();
     
-    console.log('🔍 DEBUG: Fetched products from API:', {
-      success: data.success,
-      totalProducts: data.products?.length || 0,
-      products: data.products
-    });
-    
     if (data.success) {
       let products: Product[] = data.products || [];
       
       // Filter by audience if specified
       if (audience) {
         const upper = audience.toUpperCase();
-        console.log(`🔍 DEBUG: Filtering for audience=${upper}`);
-        
-        products.forEach((p: any) => {
-          console.log(`  Product "${p.name || p.titleEn}": audience="${p.audience}", status="${p.status}"`);
-        });
-        
         products = products.filter((p: any) => {
           const productAudience = p.audience || 'MEN';
-          const matches = productAudience.toUpperCase() === upper;
-          if (!matches) {
-            console.log(`  ❌ Filtered out "${p.name || p.titleEn}" (audience=${productAudience}, expected=${upper})`);
-          } else {
-            console.log(`  ✅ Keeping "${p.name || p.titleEn}" (audience=${productAudience})`);
-          }
-          return matches;
+          return productAudience.toUpperCase() === upper;
         });
-        
-        console.log(`🔍 DEBUG: After filtering, ${products.length} products match audience=${upper}`);
       }
       
       // Ensure products have the new image fields, fallback to legacy if needed
@@ -58,14 +38,12 @@ export async function getStorefrontProducts(audience?: 'MEN' | 'CHILDREN'): Prom
         primaryImageAlt: p.primaryImageAlt || p.titleEn || p.name,
       }));
       
-      console.log(`🔍 DEBUG: Returning ${products.length} products`);
       return products;
     }
     
-    console.warn('❌ Failed to fetch storefront products');
     return [];
   } catch (error) {
-    console.error('❌ Error fetching storefront products:', error);
+    console.error('Error fetching storefront products:', error);
     return [];
   }
 }
