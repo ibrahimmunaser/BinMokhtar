@@ -383,6 +383,25 @@ export function AddressAutocomplete({
                 }
               }
             }}
+            onInput={(e) => {
+              // Auto-initialize if user starts typing and autocomplete isn't ready
+              if (isScriptLoaded && hasApiKey && !isInitialized.current && window.google?.maps?.places && inputRef.current) {
+                console.log('🔄 User typing - initializing autocomplete...');
+                try {
+                  autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
+                    types: ['address'],
+                    componentRestrictions: { country: 'us' },
+                    fields: ['formatted_address', 'geometry', 'name'],
+                  }) as GoogleAutocomplete;
+                  
+                  const listener = autocompleteRef.current.addListener('place_changed', handlePlaceSelect);
+                  isInitialized.current = true;
+                  console.log('✅ Autocomplete initialized on input');
+                } catch (error) {
+                  console.error('❌ Error initializing on input:', error);
+                }
+              }
+            }}
             onKeyDown={(e) => {
               // Prevent form submission when Enter is pressed (let Google Places handle it)
               if (e.key === 'Enter' && !isScriptLoaded) {

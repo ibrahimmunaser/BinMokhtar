@@ -221,24 +221,34 @@ export function CheckoutForm() {
         </div>
       </div>
 
-      {/* Address Autocomplete - Only show for delivery */}
-      {fulfillmentMethod === 'delivery' && (
-        <div>
-          <h2 className="text-xl font-display mb-4">Delivery Address</h2>
-          <AddressAutocomplete
-            onAddressSelect={handleAddressSelect}
-            onDeliveryStatusChange={handleDeliveryStatusChange}
-          />
-          {!addressData && (
-            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-900">
-                <strong>💡 Tip:</strong> Type your address and <strong>click a suggestion</strong> from the dropdown list. 
-                Don't just press Enter - you must select an address from the list.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Address Autocomplete - Always render but conditionally show */}
+      <div className={fulfillmentMethod === 'delivery' ? '' : 'hidden'}>
+        <h2 className="text-xl font-display mb-4">Delivery Address</h2>
+        <AddressAutocomplete
+          onAddressSelect={(data) => {
+            // Auto-select delivery when address is selected
+            if (fulfillmentMethod !== 'delivery') {
+              setFulfillmentMethod('delivery');
+            }
+            handleAddressSelect(data);
+          }}
+          onDeliveryStatusChange={(deliverable) => {
+            // Auto-select delivery when checking address
+            if (fulfillmentMethod !== 'delivery' && deliverable) {
+              setFulfillmentMethod('delivery');
+            }
+            handleDeliveryStatusChange(deliverable);
+          }}
+        />
+        {!addressData && (
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-900">
+              <strong>💡 Tip:</strong> Type your address and <strong>click a suggestion</strong> from the dropdown list. 
+              Don't just press Enter - you must select an address from the list.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Pickup Information */}
       {fulfillmentMethod === 'pickup' && (
