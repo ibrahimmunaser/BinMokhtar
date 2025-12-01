@@ -4,6 +4,9 @@ import { adminDb } from '@/lib/firebase/server';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 import Stripe from 'stripe';
 
+// Mark as dynamic route (webhooks are always dynamic)
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/stripe/webhook
  * Handles Stripe webhook events

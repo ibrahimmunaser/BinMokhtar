@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe/config';
 import Stripe from 'stripe';
 
+// Mark as dynamic route (uses request body)
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/stripe/create-checkout-session
  * Creates a Stripe Checkout session with cart items

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Mark as dynamic route (uses request body)
+export const dynamic = 'force-dynamic';
+
 // Haversine formula to calculate distance between two coordinates
 function haversineDistance(
   lat1: number,

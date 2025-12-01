@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 
+// Mark as dynamic route (uses request body)
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/test-email
  * Test endpoint to verify email sending works

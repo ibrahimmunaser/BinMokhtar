@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe/config';
 
+// Mark as dynamic route (uses searchParams)
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/stripe/get-session
  * Retrieves Stripe checkout session details
