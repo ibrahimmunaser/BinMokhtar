@@ -6,7 +6,7 @@ import { Minus, Plus, X, Heart, Share2, Package, Truck } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
 import { formatPrice } from '@/lib/utils';
 import { useLocale } from '@/contexts/LocaleContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export function CartTable() {
   const items = useCartStore((state) => state.items);
@@ -17,6 +17,16 @@ export function CartTable() {
   
   const [savedForLater, setSavedForLater] = useState<string[]>([]);
   const [giftItems, setGiftItems] = useState<string[]>([]);
+  const [deliveryDate, setDeliveryDate] = useState<string>('');
+
+  // Calculate delivery date only on client side to prevent hydration mismatch
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const date = new Date();
+      date.setDate(date.getDate() + 4); // 4 days from now
+      setDeliveryDate(date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
+    }
+  }, []);
 
   // Calculate free shipping threshold
   const total = useCartStore((state) => state.total());
@@ -37,13 +47,6 @@ export function CartTable() {
     return item.image || item.imageUrl;
   };
 
-  // Get estimated delivery date (3-5 business days from now)
-  const getDeliveryDate = () => {
-    const date = new Date();
-    date.setDate(date.getDate() + 4); // 4 days from now
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  };
-
   // Handle save for later
   const handleSaveForLater = (itemId: string) => {
     setSavedForLater([...savedForLater, itemId]);
@@ -62,6 +65,8 @@ export function CartTable() {
 
   // Handle share
   const handleShare = async (item: any) => {
+    if (typeof window === 'undefined') return;
+    
     const productUrl = `${window.location.origin}/product/${item.slug || item.productId}`;
     if (navigator.share) {
       try {
@@ -75,8 +80,10 @@ export function CartTable() {
       }
     } else {
       // Fallback - copy to clipboard
-      navigator.clipboard.writeText(productUrl);
-      alert('Product link copied to clipboard!');
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(productUrl);
+        alert('Product link copied to clipboard!');
+      }
     }
   };
 
@@ -219,9 +226,11 @@ export function CartTable() {
                 </div>
 
                 {/* Delivery Info */}
-                <p className="text-sm text-bmr-fg mb-2">
-                  <strong>FREE delivery</strong> <span className="font-semibold">{getDeliveryDate()}</span> available at checkout
-                </p>
+                {deliveryDate && (
+                  <p className="text-sm text-bmr-fg mb-2">
+                    <strong>FREE delivery</strong> <span className="font-semibold">{deliveryDate}</span> available at checkout
+                  </p>
+                )}
 
                 {/* Variants */}
                 {(item.size || item.color || item.sleeve || item.length) && (

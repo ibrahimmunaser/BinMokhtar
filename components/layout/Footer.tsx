@@ -1,13 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Container } from './Container';
 import { CreditCard } from 'lucide-react';
 
 export function Footer() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [currentYear, setCurrentYear] = useState<number>(2024);
+
+  // Calculate year only on client side to prevent hydration mismatch
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentYear(new Date().getFullYear());
+    }
+  }, []);
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,7 +122,7 @@ export function Footer() {
               <span className="text-xs">We accept all major payment methods</span>
             </div>
             <div className="text-xs opacity-50 text-center md:text-right">
-              &copy; {new Date().getFullYear()} Bin Mukhtar Retail. All rights reserved.
+              &copy; {currentYear} Bin Mukhtar Retail. All rights reserved.
             </div>
           </div>
         </div>
