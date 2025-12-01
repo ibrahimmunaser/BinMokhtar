@@ -164,8 +164,18 @@ export function AddressAutocomplete({
         }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+        throw new Error(errorData.error || `Server error: ${response.status}`);
+      }
+
       const result: DeliveryCheckResult = await response.json();
       console.log('✅ Delivery check result:', result);
+      
+      // Check if API returned an error
+      if (result.error) {
+        throw new Error(result.error);
+      }
       
       setDeliveryStatus(result);
 
@@ -178,13 +188,14 @@ export function AddressAutocomplete({
       if (onDeliveryStatusChange) {
         onDeliveryStatusChange(result.isDeliverable);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error checking delivery:', error);
+      const errorMessage = error.message || 'Failed to check delivery availability';
       setDeliveryStatus({
         isDeliverable: false,
         distanceMiles: 0,
         normalizedAddress: '',
-        error: 'Failed to check delivery availability',
+        error: errorMessage,
       });
     } finally {
       setIsChecking(false);

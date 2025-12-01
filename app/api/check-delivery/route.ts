@@ -69,16 +69,26 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { address, lat, lng } = body;
 
+    console.log('📍 Check delivery request:', { address, lat, lng });
+
     // Validate environment variables
     const storeLat = parseFloat(process.env.STORE_LAT || '');
     const storeLng = parseFloat(process.env.STORE_LNG || '');
     const deliveryRadius = parseFloat(process.env.DELIVERY_RADIUS_MILES || '');
 
+    console.log('🏪 Store config:', { storeLat, storeLng, deliveryRadius });
+
     if (!storeLat || !storeLng || !deliveryRadius) {
+      const missing = [];
+      if (!storeLat) missing.push('STORE_LAT');
+      if (!storeLng) missing.push('STORE_LNG');
+      if (!deliveryRadius) missing.push('DELIVERY_RADIUS_MILES');
+      
+      console.error('❌ Missing environment variables:', missing);
       return NextResponse.json(
         {
           isDeliverable: false,
-          error: 'Server configuration error: Store location not set',
+          error: `Server configuration error: Missing ${missing.join(', ')}. Please set these in Render environment variables.`,
         },
         { status: 500 }
       );
@@ -90,27 +100,32 @@ export async function POST(request: NextRequest) {
 
     // If lat/lng provided, use them directly
     if (lat && lng) {
+      console.log('✅ Using provided coordinates:', { lat, lng });
       customerLat = lat;
       customerLng = lng;
       normalizedAddress = address || 'Provided coordinates';
     } else if (address) {
       // Otherwise, geocode the address
+      console.log('🌍 Geocoding address:', address);
       const geocoded = await geocodeAddress(address);
 
       if (!geocoded) {
+        console.error('❌ Geocoding failed for address:', address);
         return NextResponse.json(
           {
             isDeliverable: false,
-            error: 'Could not geocode address. Please enter a valid address.',
+            error: 'Could not geocode address. Please enter a valid address and select it from the dropdown.',
           },
           { status: 400 }
         );
       }
 
+      console.log('✅ Geocoded successfully:', geocoded);
       customerLat = geocoded.lat;
       customerLng = geocoded.lng;
       normalizedAddress = geocoded.formattedAddress;
     } else {
+      console.error('❌ No address or coordinates provided');
       return NextResponse.json(
         {
           isDeliverable: false,
@@ -128,8 +143,12 @@ export async function POST(request: NextRequest) {
       customerLng
     );
 
+    console.log('📏 Distance calculated:', distanceMiles, 'miles');
+
     // Check if within delivery radius
     const isDeliverable = distanceMiles <= deliveryRadius;
+
+    console.log('✅ Delivery check complete:', { isDeliverable, distanceMiles, maxRadius: deliveryRadius });
 
     return NextResponse.json({
       isDeliverable,
@@ -139,12 +158,18 @@ export async function POST(request: NextRequest) {
       maxRadius: deliveryRadius,
     });
   } catch (error: any) {
-    console.error('Delivery check error:', error);
+    console.error('❌ Delivery check error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      message: error.message,
+      name: error.name,
+      cause: error.cause,
+    });
 
     return NextResponse.json(
       {
         isDeliverable: false,
-        error: error.message || 'Failed to check delivery availability',
+        error: error.message || 'Failed to check delivery availability. Please try again or contact support.',
       },
       { status: 500 }
     );
