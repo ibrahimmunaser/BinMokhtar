@@ -26,7 +26,7 @@ export default function CartPage() {
             <aside className="mt-6 lg:mt-0">
               <div className="lg:sticky lg:top-24">
                 <div className="bg-surface-2 rounded-lg border border-line p-6">
-                  <OrderSummary />
+                <OrderSummary />
                 </div>
               </div>
             </aside>

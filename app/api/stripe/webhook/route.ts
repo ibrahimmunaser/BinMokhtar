@@ -230,17 +230,28 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     console.log('✅ Order created in Firebase:', orderRef.id);
 
     // Send order confirmation email
-    console.log('📧 Attempting to send order confirmation email...');
+    console.log('📧 ===== EMAIL SENDING STARTED =====');
     console.log('📧 Customer email:', customerEmail);
+    console.log('📧 Customer name:', customerName);
+    console.log('📧 Order ID:', orderRef.id);
+    console.log('📧 Order number:', orderRef.id.slice(-8).toUpperCase());
     console.log('📧 Resend API key configured:', !!process.env.RESEND_API_KEY);
+    console.log('📧 RESEND_API_KEY length:', process.env.RESEND_API_KEY?.length || 0);
+    console.log('📧 RESEND_API_KEY starts with "re_":', process.env.RESEND_API_KEY?.startsWith('re_') || false);
     
     if (customerEmail) {
       const fulfillmentMethod = (session.metadata?.fulfillmentMethod || 'delivery') as 'delivery' | 'pickup';
       
       console.log('📧 Fulfillment method:', fulfillmentMethod);
       console.log('📧 Order items count:', orderData.items.length);
+      console.log('📧 Items:', JSON.stringify(orderData.items.map(item => ({
+        title: item.title,
+        qty: item.qty,
+        unitPrice: item.unitPrice,
+      })), null, 2));
       
       try {
+        console.log('📧 Calling sendOrderConfirmationEmail...');
         const emailResult = await sendOrderConfirmationEmail({
           customerEmail,
           customerName: customerName || 'Customer',
@@ -261,18 +272,27 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           shippingAddress: orderData.shippingAddress || undefined,
         });
 
+        console.log('📧 Email result received:', JSON.stringify(emailResult, null, 2));
+        
         if (emailResult.success) {
+          console.log('✅ ===== EMAIL SENT SUCCESSFULLY =====');
           console.log('✅ Order confirmation email sent successfully to:', customerEmail);
           console.log('✅ Email ID:', emailResult.emailId);
+          console.log('✅ Timestamp:', new Date().toISOString());
         } else {
+          console.error('❌ ===== EMAIL SEND FAILED =====');
           console.error('❌ Failed to send order confirmation email');
           console.error('❌ Error:', emailResult.error);
-          console.error('❌ Check RESEND_API_KEY in environment variables');
+          console.error('❌ Check RESEND_API_KEY in Render environment variables');
+          console.error('❌ Check Resend dashboard for domain verification');
+          console.error('❌ Check spam folder for test emails');
         }
       } catch (error: any) {
-        console.error('❌ Exception sending email:', error);
-        console.error('❌ Error message:', error.message);
-        console.error('❌ Stack:', error.stack);
+        console.error('❌ ===== EMAIL SEND EXCEPTION =====');
+        console.error('❌ Exception type:', error?.constructor?.name);
+        console.error('❌ Error message:', error?.message);
+        console.error('❌ Error stack:', error?.stack);
+        console.error('❌ Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
       }
     } else {
       console.warn('⚠️ No customer email found in session');

@@ -43,18 +43,33 @@ interface OrderConfirmationEmailData {
  * Send order confirmation email to customer
  */
 export async function sendOrderConfirmationEmail(data: OrderConfirmationEmailData) {
-  console.log('📧 sendOrderConfirmationEmail called');
-  console.log('📧 RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
-  console.log('📧 Resend instance exists:', !!resend);
+  console.log('📧 ===== sendOrderConfirmationEmail STARTED =====');
+  console.log('📧 Timestamp:', new Date().toISOString());
+  console.log('📧 Customer email:', data.customerEmail);
+  console.log('📧 Customer name:', data.customerName);
+  console.log('📧 Order number:', data.orderNumber);
+  console.log('📧 Items count:', data.items.length);
+  console.log('📧 Fulfillment method:', data.fulfillmentMethod);
+  
+  console.log('📧 Environment check:');
+  console.log('  - RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
+  console.log('  - RESEND_API_KEY length:', process.env.RESEND_API_KEY?.length || 0);
+  console.log('  - RESEND_API_KEY starts with "re_":', process.env.RESEND_API_KEY?.startsWith('re_') || false);
+  console.log('  - RESEND_API_KEY first 10 chars:', process.env.RESEND_API_KEY?.substring(0, 10) || 'NOT SET');
+  console.log('  - Resend instance exists:', !!resend);
+  console.log('  - FROM_EMAIL:', FROM_EMAIL);
+  console.log('  - REPLY_TO_EMAIL:', REPLY_TO_EMAIL);
   
   if (!process.env.RESEND_API_KEY) {
     console.error('❌ RESEND_API_KEY not set in environment variables');
-    console.error('❌ Add RESEND_API_KEY=re_... to your .env.local file');
+    console.error('❌ Add RESEND_API_KEY=re_... to your Render environment variables');
+    console.error('❌ For local testing, add to .env.local file');
     return { success: false, error: 'RESEND_API_KEY not configured' };
   }
   
   if (!resend) {
     console.error('❌ Resend instance not created - check RESEND_API_KEY format');
+    console.error('❌ RESEND_API_KEY should start with "re_"');
     return { success: false, error: 'Email service not configured' };
   }
 
@@ -66,7 +81,14 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationEmailDat
       }).format(cents / 100);
     };
 
-    const { data: emailData, error } = await resend.emails.send({
+    console.log('📧 Preparing email payload:');
+    console.log('  - From:', FROM_EMAIL);
+    console.log('  - To:', data.customerEmail);
+    console.log('  - Reply-to:', REPLY_TO_EMAIL);
+    console.log('  - Subject:', `Order Confirmation - ${data.orderNumber}`);
+    
+    console.log('📧 Calling resend.emails.send...');
+    const emailPayload = {
       from: FROM_EMAIL,
       to: data.customerEmail,
       reply_to: REPLY_TO_EMAIL,
@@ -177,18 +199,35 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationEmailDat
           </body>
         </html>
       `,
-    });
-
+    };
+    
+    console.log('📧 Email payload prepared, sending...');
+    const startTime = Date.now();
+    const { data: emailData, error } = await resend.emails.send(emailPayload);
+    const duration = Date.now() - startTime;
+    
+    console.log('📧 Resend API call completed in', duration, 'ms');
+    
     if (error) {
-      console.error('❌ Error sending email:', error);
-      return { success: false, error };
+      console.error('❌ ===== EMAIL SEND FAILED =====');
+      console.error('❌ Resend API error:', JSON.stringify(error, null, 2));
+      console.error('❌ Error type:', typeof error);
+      console.error('❌ Error keys:', Object.keys(error || {}));
+      return { success: false, error: JSON.stringify(error) };
     }
 
-    console.log('✅ Order confirmation email sent to:', data.customerEmail);
+    console.log('✅ ===== EMAIL SEND SUCCESS =====');
+    console.log('✅ Email sent to:', data.customerEmail);
+    console.log('✅ Email ID:', emailData?.id);
+    console.log('✅ Response data:', JSON.stringify(emailData, null, 2));
     return { success: true, emailId: emailData?.id };
   } catch (error: any) {
-    console.error('❌ Error sending order confirmation email:', error);
-    return { success: false, error: error.message };
+    console.error('❌ ===== EMAIL SEND EXCEPTION =====');
+    console.error('❌ Exception type:', error?.constructor?.name);
+    console.error('❌ Error message:', error?.message);
+    console.error('❌ Error stack:', error?.stack);
+    console.error('❌ Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+    return { success: false, error: error?.message || 'Unknown error' };
   }
 }
 
