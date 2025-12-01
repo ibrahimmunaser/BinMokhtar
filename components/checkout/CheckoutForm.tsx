@@ -310,11 +310,26 @@ export function CheckoutForm() {
         className="w-full px-8 py-4 bg-bmr-night text-surface-2 font-medium uppercase tracking-wideish rounded-lg hover:bg-bmr-night/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-sm"
         title={
           fulfillmentMethod === 'delivery' && !addressData
-            ? 'Please select a delivery address from the dropdown'
+            ? 'Please select a delivery address from the dropdown. Type your address and click a suggestion.'
             : fulfillmentMethod === 'delivery' && !isDeliverable
-            ? 'This address is outside our delivery area'
+            ? 'This address is outside our delivery area. Please select pickup or choose a different address.'
             : undefined
         }
+        onClick={(e) => {
+          // If delivery is selected but no address, show helpful error and focus input
+          if (fulfillmentMethod === 'delivery' && !addressData) {
+            e.preventDefault();
+            setError('Please select a delivery address from the dropdown list. Type your address and click one of the suggestions that appears.');
+            // Scroll to address input
+            setTimeout(() => {
+              const addressInput = document.getElementById('address-autocomplete');
+              if (addressInput) {
+                addressInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                addressInput.focus();
+              }
+            }, 100);
+          }
+        }}
       >
           {isSubmitting ? (
             <>
