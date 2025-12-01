@@ -140,6 +140,12 @@ export function CheckoutForm() {
             name="email"
             value={formData.email}
             onChange={handleChange}
+            onKeyDown={(e) => {
+              // Prevent form submission when Enter is pressed in email field
+              if (e.key === 'Enter') {
+                e.preventDefault();
+              }
+            }}
             placeholder="your.email@example.com"
             className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-ink"
           />

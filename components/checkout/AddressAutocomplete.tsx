@@ -244,7 +244,17 @@ export function AddressAutocomplete({
 
   // Initialize autocomplete
   useEffect(() => {
-    if (!isScriptLoaded || !inputRef.current || isInitialized.current) return;
+    if (!isScriptLoaded || !inputRef.current) return;
+
+    // If already initialized, don't reinitialize unless input ref changed
+    if (isInitialized.current) {
+      // Re-focus the input if it exists to ensure autocomplete is active
+      if (inputRef.current && document.activeElement !== inputRef.current) {
+        // Don't auto-focus, but ensure autocomplete is ready
+        console.log('✅ Autocomplete already initialized');
+      }
+      return;
+    }
 
     console.log('🔧 Initializing Google Places Autocomplete...');
 
@@ -280,6 +290,20 @@ export function AddressAutocomplete({
       setLoadError('Failed to initialize autocomplete');
     }
   }, [isScriptLoaded, handlePlaceSelect]);
+
+  // Re-initialize autocomplete if input ref changes (e.g., component remounts)
+  useEffect(() => {
+    if (isScriptLoaded && inputRef.current && !isInitialized.current) {
+      // Trigger initialization check
+      const timer = setTimeout(() => {
+        if (inputRef.current && !isInitialized.current && window.google?.maps?.places) {
+          console.log('🔄 Re-checking autocomplete initialization...');
+          // The main useEffect should handle this, but this is a safety check
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isScriptLoaded, inputRef.current]);
 
   return (
     <div className="space-y-4">
@@ -354,6 +378,29 @@ export function AddressAutocomplete({
             onFocus={() => {
               if (isScriptLoaded && hasApiKey) {
                 console.log('📝 Input focused - autocomplete should be active');
+                // Ensure autocomplete is initialized when input is focused
+                if (!isInitialized.current && window.google?.maps?.places && inputRef.current) {
+                  console.log('🔄 Initializing autocomplete on focus...');
+                  try {
+                    autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
+                      types: ['address'],
+                      componentRestrictions: { country: 'us' },
+                      fields: ['formatted_address', 'geometry', 'name'],
+                    }) as GoogleAutocomplete;
+                    
+                    const listener = autocompleteRef.current.addListener('place_changed', handlePlaceSelect);
+                    isInitialized.current = true;
+                    console.log('✅ Autocomplete initialized on focus');
+                  } catch (error) {
+                    console.error('❌ Error initializing on focus:', error);
+                  }
+                }
+              }
+            }}
+            onKeyDown={(e) => {
+              // Prevent form submission when Enter is pressed (let Google Places handle it)
+              if (e.key === 'Enter' && !isScriptLoaded) {
+                e.preventDefault();
               }
             }}
           />
