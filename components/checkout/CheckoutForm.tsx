@@ -35,7 +35,8 @@ export function CheckoutForm() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleAddressSelect = (data: AddressData) => {
+  const handleAddressSelect = useCallback((data: AddressData) => {
+    console.log('📦 CheckoutForm: handleAddressSelect called with:', data);
     setAddressData(data);
     setIsDeliverable(data.isDeliverable);
     
@@ -43,16 +44,17 @@ export function CheckoutForm() {
     if (!data.isDeliverable) {
       setFulfillmentMethod('pickup');
     }
-  };
+  }, []);
 
-  const handleDeliveryStatusChange = (deliverable: boolean) => {
+  const handleDeliveryStatusChange = useCallback((deliverable: boolean) => {
+    console.log('📦 CheckoutForm: handleDeliveryStatusChange called with:', deliverable);
     setIsDeliverable(deliverable);
     
     // Force pickup if not deliverable
     if (!deliverable) {
       setFulfillmentMethod('pickup');
     }
-  };
+  }, []);
 
   const handleStripeCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
