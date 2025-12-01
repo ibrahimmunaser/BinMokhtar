@@ -7,23 +7,56 @@ import Stripe from 'stripe';
 // Mark as dynamic route (webhooks are always dynamic)
 export const dynamic = 'force-dynamic';
 
+// Disable body parsing - we need raw body for signature verification
+export const runtime = 'nodejs';
+
+/**
+ * GET /api/stripe/webhook
+ * Test endpoint to verify webhook URL is accessible
+ */
+export async function GET() {
+  return NextResponse.json({ 
+    status: 'ok', 
+    message: 'Webhook endpoint is active',
+    timestamp: new Date().toISOString()
+  });
+}
+
 /**
  * POST /api/stripe/webhook
  * Handles Stripe webhook events
  * IMPORTANT: This endpoint must be configured in your Stripe Dashboard
  */
 export async function POST(request: NextRequest) {
-  const body = await request.text();
+  console.log('📥 Webhook received at:', new Date().toISOString());
+  console.log('📥 Request method:', request.method);
+  console.log('📥 Request URL:', request.url);
+  
+  let body: string;
+  try {
+    body = await request.text();
+    console.log('📥 Body received, length:', body.length);
+  } catch (error: any) {
+    console.error('❌ Error reading request body:', error);
+    return NextResponse.json({ error: 'Failed to read request body' }, { status: 400 });
+  }
+  
   const signature = request.headers.get('stripe-signature');
+  console.log('📥 Signature present:', !!signature);
 
   if (!signature) {
     console.error('❌ No Stripe signature found');
+    console.error('❌ Request headers:', Object.fromEntries(request.headers.entries()));
     return NextResponse.json({ error: 'No signature' }, { status: 400 });
   }
 
   if (!STRIPE_WEBHOOK_SECRET) {
     console.error('❌ STRIPE_WEBHOOK_SECRET is not configured');
-    return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
+    console.error('❌ Add STRIPE_WEBHOOK_SECRET to Render environment variables');
+    return NextResponse.json({ 
+      error: 'Webhook secret not configured',
+      message: 'Add STRIPE_WEBHOOK_SECRET to environment variables'
+    }, { status: 500 });
   }
 
   let event: Stripe.Event;
