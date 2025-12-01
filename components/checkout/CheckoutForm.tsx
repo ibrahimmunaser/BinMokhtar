@@ -221,9 +221,11 @@ export function CheckoutForm() {
         </div>
       </div>
 
-      {/* Address Autocomplete - Always render but conditionally show */}
-      <div className={fulfillmentMethod === 'delivery' ? '' : 'hidden'}>
-        <h2 className="text-xl font-display mb-4">Delivery Address</h2>
+      {/* Address Autocomplete - Always render and show, auto-selects delivery when address entered */}
+      <div>
+        <h2 className="text-xl font-display mb-4">
+          Delivery Address {fulfillmentMethod === 'pickup' && <span className="text-sm font-normal text-bmr-muted">(optional - only needed for delivery)</span>}
+        </h2>
         <AddressAutocomplete
           onAddressSelect={(data) => {
             // Auto-select delivery when address is selected
@@ -233,18 +235,26 @@ export function CheckoutForm() {
             handleAddressSelect(data);
           }}
           onDeliveryStatusChange={(deliverable) => {
-            // Auto-select delivery when checking address
+            // Auto-select delivery when checking address (if deliverable)
             if (fulfillmentMethod !== 'delivery' && deliverable) {
               setFulfillmentMethod('delivery');
             }
             handleDeliveryStatusChange(deliverable);
           }}
         />
-        {!addressData && (
+        {fulfillmentMethod === 'delivery' && !addressData && (
           <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-900">
               <strong>💡 Tip:</strong> Type your address and <strong>click a suggestion</strong> from the dropdown list. 
               Don't just press Enter - you must select an address from the list.
+            </p>
+          </div>
+        )}
+        {fulfillmentMethod === 'pickup' && addressData && (
+          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-900">
+              <strong>Note:</strong> You've entered a delivery address, but "Pickup" is selected. 
+              If you want delivery, select "Delivery" above. Otherwise, you can proceed with pickup.
             </p>
           </div>
         )}
