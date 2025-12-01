@@ -3,6 +3,21 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { MapPin, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
+// Type for Google Maps Autocomplete
+type GoogleAutocomplete = {
+  getPlace(): {
+    formatted_address?: string;
+    geometry?: {
+      location?: {
+        lat(): number;
+        lng(): number;
+      };
+    };
+    name?: string;
+  };
+  addListener(event: string, handler: () => void): { remove(): void };
+};
+
 interface AddressResult {
   formattedAddress: string;
   lat: number;
@@ -27,7 +42,7 @@ export function AddressAutocomplete({
   onDeliveryStatusChange,
 }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const autocompleteRef = useRef<GoogleAutocomplete | null>(null);
   const isInitialized = useRef(false);
   
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
@@ -223,12 +238,16 @@ export function AddressAutocomplete({
     console.log('🔧 Initializing Google Places Autocomplete...');
 
     try {
-      // Create autocomplete instance
-      autocompleteRef.current = new google.maps.places.Autocomplete(inputRef.current, {
+      // Create autocomplete instance using window.google (available at runtime)
+      if (!window.google?.maps?.places) {
+        throw new Error('Google Maps Places API not loaded');
+      }
+
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
         types: ['address'],
         componentRestrictions: { country: 'us' }, // Restrict to US addresses
         fields: ['formatted_address', 'geometry', 'name'],
-      });
+      }) as GoogleAutocomplete;
 
       console.log('✅ Autocomplete instance created');
       console.log('📝 You should now see suggestions when typing');
@@ -240,8 +259,8 @@ export function AddressAutocomplete({
       isInitialized.current = true;
 
       return () => {
-        if (listener) {
-          google.maps.event.removeListener(listener);
+        if (listener && window.google?.maps?.event) {
+          window.google.maps.event.removeListener(listener);
           console.log('🧹 Cleanup: Event listener removed');
         }
       };
