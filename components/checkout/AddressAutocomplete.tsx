@@ -180,12 +180,17 @@ export function AddressAutocomplete({
       setDeliveryStatus(result);
 
       // Notify parent component
+      console.log('📦 AddressAutocomplete: Calling onAddressSelect with:', {
+        ...addressResult,
+        isDeliverable: result.isDeliverable,
+      });
       onAddressSelect({
         ...addressResult,
         isDeliverable: result.isDeliverable,
       });
 
       if (onDeliveryStatusChange) {
+        console.log('📦 AddressAutocomplete: Calling onDeliveryStatusChange with:', result.isDeliverable);
         onDeliveryStatusChange(result.isDeliverable);
       }
     } catch (error: any) {
