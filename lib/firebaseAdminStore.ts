@@ -18,7 +18,7 @@ import {
 } from './adminStore';
 
 // Products
-export async function getAllProducts(audience?: 'MEN'|'CHILDREN'): Promise<Product[]> {
+export async function getAllProducts(audience?: 'MEN'|'BOYS'): Promise<Product[]> {
   if (!USE_FIREBASE) return getLocalProducts();
 
   try {

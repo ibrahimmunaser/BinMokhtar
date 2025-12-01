@@ -4,6 +4,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cart';
 import { logBeginCheckout } from '@/lib/analytics';
+import { AddressAutocomplete } from './AddressAutocomplete';
+import { AlertCircle, Package, Truck } from 'lucide-react';
+
+type FulfillmentMethod = 'delivery' | 'pickup';
+
+interface AddressData {
+  formattedAddress: string;
+  lat: number;
+  lng: number;
+  isDeliverable: boolean;
+}
 
 export function CheckoutForm() {
   const router = useRouter();
@@ -12,6 +23,10 @@ export function CheckoutForm() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<FulfillmentMethod>('delivery');
+  const [addressData, setAddressData] = useState<AddressData | null>(null);
+  const [isDeliverable, setIsDeliverable] = useState<boolean>(true);
+  
   const [formData, setFormData] = useState({
     email: '',
   });
@@ -20,9 +35,39 @@ export function CheckoutForm() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleAddressSelect = (data: AddressData) => {
+    setAddressData(data);
+    setIsDeliverable(data.isDeliverable);
+    
+    // Force pickup if not deliverable
+    if (!data.isDeliverable) {
+      setFulfillmentMethod('pickup');
+    }
+  };
+
+  const handleDeliveryStatusChange = (deliverable: boolean) => {
+    setIsDeliverable(deliverable);
+    
+    // Force pickup if not deliverable
+    if (!deliverable) {
+      setFulfillmentMethod('pickup');
+    }
+  };
+
   const handleStripeCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting || items.length === 0) return;
+
+    // Validation: Check delivery constraints
+    if (fulfillmentMethod === 'delivery' && !addressData) {
+      setError('Please select a delivery address from the dropdown list. Type your address and click one of the suggestions that appears.');
+      return;
+    }
+
+    if (fulfillmentMethod === 'delivery' && !isDeliverable) {
+      setError('This address is outside our delivery area. Please select pickup or choose a different address.');
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
@@ -54,6 +99,8 @@ export function CheckoutForm() {
           customerEmail: formData.email || undefined,
           metadata: {
             source: 'web_checkout',
+            fulfillmentMethod,
+            deliveryAddress: fulfillmentMethod === 'delivery' ? addressData?.formattedAddress : undefined,
           },
         }),
       });
@@ -83,9 +130,6 @@ export function CheckoutForm() {
       {/* Contact Information */}
       <div>
         <h2 className="text-xl font-display mb-4">Contact Information</h2>
-        <p className="text-sm text-bmr-muted mb-4">
-          You'll be redirected to Stripe's secure checkout to enter your shipping and payment details.
-        </p>
         <div>
           <label htmlFor="email" className="block text-sm font-medium mb-2">
             Email Address <span className="text-bmr-muted font-normal">(optional)</span>
@@ -97,13 +141,123 @@ export function CheckoutForm() {
             value={formData.email}
             onChange={handleChange}
             placeholder="your.email@example.com"
-            className="w-full px-4 py-3 border border-border rounded focus:outline-none focus:ring-2 focus:ring-bmr-ink"
+            className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-ink"
           />
           <p className="mt-2 text-xs text-bmr-muted">
             Pre-fill your email to speed up checkout (you can change it later)
           </p>
         </div>
       </div>
+
+      {/* Fulfillment Method Selection */}
+      <div>
+        <h2 className="text-xl font-display mb-4">Fulfillment Method</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Delivery Option */}
+          <button
+            type="button"
+            onClick={() => {
+              if (isDeliverable) {
+                setFulfillmentMethod('delivery');
+              }
+            }}
+            disabled={!isDeliverable}
+            className={`p-6 border-2 rounded-lg text-left transition-all ${
+              fulfillmentMethod === 'delivery'
+                ? 'border-bmr-night bg-bmr-night/5'
+                : 'border-border hover:border-bmr-muted'
+            } ${
+              !isDeliverable ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+            }`}
+          >
+            <div className="flex items-start gap-4">
+              <Truck className={`w-6 h-6 flex-shrink-0 ${
+                fulfillmentMethod === 'delivery' ? 'text-bmr-night' : 'text-bmr-muted'
+              }`} />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-semibold">Delivery</span>
+                  {!isDeliverable && addressData && (
+                    <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded">
+                      Not Available
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-bmr-muted">
+                  {isDeliverable
+                    ? 'We deliver to your address'
+                    : 'Address is outside delivery area'}
+                </p>
+              </div>
+            </div>
+          </button>
+
+          {/* Pickup Option */}
+          <button
+            type="button"
+            onClick={() => setFulfillmentMethod('pickup')}
+            className={`p-6 border-2 rounded-lg text-left transition-all cursor-pointer ${
+              fulfillmentMethod === 'pickup'
+                ? 'border-bmr-night bg-bmr-night/5'
+                : 'border-border hover:border-bmr-muted'
+            }`}
+          >
+            <div className="flex items-start gap-4">
+              <Package className={`w-6 h-6 flex-shrink-0 ${
+                fulfillmentMethod === 'pickup' ? 'text-bmr-night' : 'text-bmr-muted'
+              }`} />
+              <div className="flex-1">
+                <div className="font-semibold mb-1">Pickup</div>
+                <p className="text-sm text-bmr-muted">DM for pick up</p>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Address Autocomplete - Only show for delivery */}
+      {fulfillmentMethod === 'delivery' && (
+        <div>
+          <h2 className="text-xl font-display mb-4">Delivery Address</h2>
+          <AddressAutocomplete
+            onAddressSelect={handleAddressSelect}
+            onDeliveryStatusChange={handleDeliveryStatusChange}
+          />
+          {!addressData && (
+            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-900">
+                <strong>💡 Tip:</strong> Type your address and <strong>click a suggestion</strong> from the dropdown list. 
+                Don't just press Enter - you must select an address from the list.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Pickup Information */}
+      {fulfillmentMethod === 'pickup' && (
+        <div className="p-6 bg-surface-3/50 rounded-lg border border-line">
+          <h3 className="font-semibold mb-3">Pickup Location</h3>
+          <p className="text-sm text-bmr-muted">
+            We are located in <strong>Detroit Metro Area</strong>. You'll receive pickup instructions via email after placing your order.
+          </p>
+        </div>
+      )}
+
+      {/* Not Deliverable Warning */}
+      {!isDeliverable && addressData && fulfillmentMethod === 'delivery' && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-red-900">
+              Cannot proceed with delivery to this address
+            </p>
+            <p className="text-sm text-red-800 mt-1">
+              Please select <strong>Pickup</strong> or choose a different delivery address within our service area.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Stripe Information */}
       <div className="bg-surface-3/50 p-6 rounded-lg border border-line/50">
@@ -115,7 +269,7 @@ export function CheckoutForm() {
         </h3>
         <ul className="text-sm text-bmr-muted space-y-1">
           <li>• Industry-leading payment security</li>
-          <li>• Enter shipping address at checkout</li>
+          <li>• {fulfillmentMethod === 'delivery' ? 'Confirm delivery details' : 'Confirm pickup details'} at checkout</li>
           <li>• Multiple payment methods accepted</li>
           <li>• Your payment information is never stored on our servers</li>
         </ul>
@@ -123,7 +277,7 @@ export function CheckoutForm() {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
           <p className="text-sm font-medium">Error</p>
           <p className="text-sm">{error}</p>
         </div>
@@ -132,26 +286,37 @@ export function CheckoutForm() {
       {/* Submit Button */}
       <button
         type="submit"
-        disabled={isSubmitting || items.length === 0}
-        className="w-full px-8 py-4 bg-bmr-ink text-surface-2 font-medium uppercase tracking-wideish hover:bg-bmr-fg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+        disabled={
+          isSubmitting || 
+          items.length === 0 || 
+          (fulfillmentMethod === 'delivery' && (!addressData || !isDeliverable))
+        }
+        className="w-full px-8 py-4 bg-bmr-night text-surface-2 font-medium uppercase tracking-wideish rounded-lg hover:bg-bmr-night/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-sm"
+        title={
+          fulfillmentMethod === 'delivery' && !addressData
+            ? 'Please select a delivery address from the dropdown'
+            : fulfillmentMethod === 'delivery' && !isDeliverable
+            ? 'This address is outside our delivery area'
+            : undefined
+        }
       >
-        {isSubmitting ? (
-          <>
-            <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Redirecting to Stripe...
-          </>
-        ) : (
-          <>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-            </svg>
-            Proceed to Secure Checkout
-          </>
-        )}
-      </button>
+          {isSubmitting ? (
+            <>
+              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Redirecting to checkout...
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+              Proceed to Secure Checkout
+            </>
+          )}
+        </button>
 
       {/* Trust Badges */}
       <div className="flex items-center justify-center gap-6 pt-4">

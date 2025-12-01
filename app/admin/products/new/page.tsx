@@ -240,7 +240,7 @@ export default function NewProductPage() {
       const compareAtPrice = formData.compareAtPrice ? formData.price : '';
       
       // Determine audience based on main category
-      const audience = formData.mainCategory === 'Boys' ? 'CHILDREN' : 'MEN';
+      const audience = formData.mainCategory === 'Boys' ? 'BOYS' : 'MEN';
       
       // Determine categoryId for Firebase
       let categoryId = 'thobes';
@@ -428,26 +428,26 @@ export default function NewProductPage() {
               </div>
               
               {formData.mainCategory && (
-                <div>
+              <div>
                   <label className="block text-sm font-medium mb-2">Sub Category *</label>
-                  <select
+                <select
                     value={formData.subCategory}
                     onChange={(e) => setFormData({ ...formData, subCategory: e.target.value })}
-                    required
-                    className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
-                  >
+                  required
+                  className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
+                >
                     <option value="">Select Sub Category</option>
                     {getSubCategories(formData.mainCategory).map((sub) => (
                       <option key={sub} value={sub}>{sub}</option>
                     ))}
-                  </select>
+                </select>
                   <p className="text-xs text-bmr-muted mt-1">
                     {formData.mainCategory === 'Men' && 'Saudi or Emirati style'}
                     {formData.mainCategory === 'Boys' && 'Boys Thobes collection'}
                     {formData.mainCategory === 'Shemaghs' && 'Traditional or Yemeni style'}
                   </p>
-                </div>
-              )}
+                  </div>
+                )}
 
               <div>
                 <label className="block text-sm font-medium mb-2">Total Stock (sum of variants)</label>
@@ -584,57 +584,57 @@ export default function NewProductPage() {
                     </p>
                   </div>
                 )}
-                
-                <div className={hideSizes ? 'grid grid-cols-1 gap-6' : 'grid md:grid-cols-2 gap-6'}>
-                  {!hideSizes && (
-                    <div>
+
+            <div className={hideSizes ? 'grid grid-cols-1 gap-6' : 'grid md:grid-cols-2 gap-6'}>
+              {!hideSizes && (
+                <div>
                       <label className="block text-sm font-medium mb-2">Available Sizes *</label>
-                      <div className="border border-line rounded-lg p-4">
+                  <div className="border border-line rounded-lg p-4">
                         <div className={`grid ${formData.mainCategory === 'Boys' ? 'grid-cols-4' : 'grid-cols-3'} gap-2 mb-3`}>
-                          {sizeOptions.map((s) => (
-                            <label key={s} className="flex items-center gap-2 text-sm">
-                              <input type="checkbox" checked={formData.sizes.includes(s)} onChange={() => toggleSelection('sizes', s)} />
-                              <span>{s}</span>
-                            </label>
-                          ))}
-                        </div>
-                        <div className="flex gap-2">
-                          <input id="custom-size-input" type="text" placeholder="Add custom size" className="w-full px-3 py-2 border border-line rounded" />
-                          <button type="button" onClick={() => addCustomOption('sizes', 'custom-size-input')} className="px-3 py-2 border rounded">Add</button>
-                        </div>
-                      </div>
+                      {sizeOptions.map((s) => (
+                        <label key={s} className="flex items-center gap-2 text-sm">
+                          <input type="checkbox" checked={formData.sizes.includes(s)} onChange={() => toggleSelection('sizes', s)} />
+                          <span>{s}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <input id="custom-size-input" type="text" placeholder="Add custom size" className="w-full px-3 py-2 border border-line rounded" />
+                      <button type="button" onClick={() => addCustomOption('sizes', 'custom-size-input')} className="px-3 py-2 border rounded">Add</button>
+                    </div>
+                  </div>
                       <p className="text-xs text-bmr-muted mt-1">
                         {formData.mainCategory === 'Boys' ? 'Select numeric sizes for boys thobes (in cm)' : 'Select all sizes available for this product'}
                       </p>
-                    </div>
-                  )}
+                </div>
+              )}
 
-                  <div>
+              <div>
                     <label className="block text-sm font-medium mb-2">Available Colors *</label>
-                    <div className="border border-line rounded-lg p-4">
-                      <div className="grid grid-cols-3 gap-2 mb-3">
-                        {colorOptions.map((c) => (
-                          <label key={c} className="flex items-center gap-2 text-sm">
-                            <input type="checkbox" checked={formData.colors.includes(c)} onChange={() => toggleSelection('colors', c)} />
-                            <span>{c}</span>
-                          </label>
-                        ))}
-                      </div>
-                      <div className="flex gap-2">
-                        <input id="custom-color-input" type="text" placeholder="Add custom color" className="w-full px-3 py-2 border border-line rounded" />
-                        <button type="button" onClick={() => addCustomOption('colors', 'custom-color-input')} className="px-3 py-2 border rounded">Add</button>
-                      </div>
-                    </div>
-                    <p className="text-xs text-bmr-muted mt-1">Select all colors available for this product</p>
+                <div className="border border-line rounded-lg p-4">
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {colorOptions.map((c) => (
+                      <label key={c} className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={formData.colors.includes(c)} onChange={() => toggleSelection('colors', c)} />
+                        <span>{c}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input id="custom-color-input" type="text" placeholder="Add custom color" className="w-full px-3 py-2 border border-line rounded" />
+                    <button type="button" onClick={() => addCustomOption('colors', 'custom-color-input')} className="px-3 py-2 border rounded">Add</button>
                   </div>
                 </div>
+                    <p className="text-xs text-bmr-muted mt-1">Select all colors available for this product</p>
+              </div>
+            </div>
               </>
             )}
 
             {formData.mainCategory && (
-              <div className="mt-6">
+            <div className="mt-6">
                 <label className="block text-sm font-medium mb-3">Stock by Variant</label>
-                {variants.length === 0 ? (
+              {variants.length === 0 ? (
                   <div className="p-6 border-2 border-dashed border-line rounded-lg text-center">
                     <p className="text-sm text-bmr-muted">
                       {hideSizes 
@@ -646,20 +646,20 @@ export default function NewProductPage() {
                       Each combination will create a separate variant where you can set individual stock levels
                     </p>
                   </div>
-                ) : (
+              ) : (
                   <div className="overflow-x-auto border border-line rounded-lg">
-                    <table className="min-w-full text-sm">
+                  <table className="min-w-full text-sm">
                       <thead className="bg-surface-3">
-                        <tr>
+                      <tr>
                           {!hideSizes && <th className="text-left p-3 border-b border-line font-medium">Size</th>}
                           <th className="text-left p-3 border-b border-line font-medium">Color</th>
                           <th className="text-left p-3 border-b border-line font-medium">Image</th>
                           <th className="text-left p-3 border-b border-line font-medium">SKU *</th>
                           <th className="text-left p-3 border-b border-line font-medium">Stock</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {variants.map((v, idx) => (
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {variants.map((v, idx) => (
                           <tr key={`${v.size || ''}-${v.color || ''}-${idx}`} className="hover:bg-surface-3">
                             {!hideSizes && <td className="p-3 border-b border-line font-medium">{v.size || '—'}</td>}
                             <td className="p-3 border-b border-line">{v.color || '—'}</td>
@@ -705,23 +705,23 @@ export default function NewProductPage() {
                               />
                             </td>
                             <td className="p-3 border-b border-line">
-                              <input
-                                type="number"
-                                min={0}
-                                value={Number.isFinite(v.stock) ? v.stock : 0}
-                                onChange={(e) => {
-                                  const next = [...variants];
-                                  next[idx] = { ...next[idx], stock: Math.max(0, parseInt(e.target.value || '0')) };
-                                  setVariants(next);
-                                }}
+                            <input
+                              type="number"
+                              min={0}
+                              value={Number.isFinite(v.stock) ? v.stock : 0}
+                              onChange={(e) => {
+                                const next = [...variants];
+                                next[idx] = { ...next[idx], stock: Math.max(0, parseInt(e.target.value || '0')) };
+                                setVariants(next);
+                              }}
                                 className="w-24 px-3 py-2 border border-line rounded focus:outline-none focus:border-bmr-ink"
                                 placeholder="0"
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                     <div className="p-3 bg-surface-3 border-t border-line">
                       <p className="text-sm text-bmr-muted">
                         💡 <strong>Total Stock:</strong> {totalStock} units across {variants.length} variant{variants.length !== 1 ? 's' : ''}
@@ -732,9 +732,9 @@ export default function NewProductPage() {
                           : 'CATEGORY-SUBCATEGORY-SIZE-COLOR'}
                       </p>
                     </div>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
+            </div>
             )}
           </div>
 

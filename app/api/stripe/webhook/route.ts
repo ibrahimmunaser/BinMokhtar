@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe, STRIPE_WEBHOOK_SECRET } from '@/lib/stripe/config';
 import { adminDb } from '@/lib/firebase/server';
+import { sendOrderConfirmationEmail } from '@/lib/email';
 import Stripe from 'stripe';
 
 /**
@@ -33,12 +34,18 @@ export async function POST(request: NextRequest) {
   }
 
   console.log('✅ Received Stripe webhook event:', event.type);
+  console.log('📋 Event ID:', event.id);
+  console.log('📋 Event created:', new Date(event.created * 1000).toISOString());
 
   // Handle the event
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
+        console.log('🎉 Processing checkout.session.completed');
+        console.log('📧 Session customer email:', session.customer_email);
+        console.log('📧 Session customer_details:', session.customer_details);
+        console.log('📧 Session metadata:', session.metadata);
         await handleCheckoutSessionCompleted(session);
         break;
       }
@@ -186,8 +193,59 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     
     console.log('✅ Order created in Firebase:', orderRef.id);
 
+    // Send order confirmation email
+    console.log('📧 Attempting to send order confirmation email...');
+    console.log('📧 Customer email:', customerEmail);
+    console.log('📧 Resend API key configured:', !!process.env.RESEND_API_KEY);
+    
+    if (customerEmail) {
+      const fulfillmentMethod = (session.metadata?.fulfillmentMethod || 'delivery') as 'delivery' | 'pickup';
+      
+      console.log('📧 Fulfillment method:', fulfillmentMethod);
+      console.log('📧 Order items count:', orderData.items.length);
+      
+      try {
+        const emailResult = await sendOrderConfirmationEmail({
+          customerEmail,
+          customerName: customerName || 'Customer',
+          orderId: orderRef.id,
+          orderNumber: orderRef.id.slice(-8).toUpperCase(),
+          items: orderData.items.map(item => ({
+            title: item.title,
+            qty: item.qty,
+            unitPrice: item.unitPrice,
+            imageUrl: item.imageUrl,
+          })),
+          subtotal: orderData.subtotal,
+          shipping: orderData.shipping,
+          tax: orderData.tax,
+          total: orderData.total,
+          currency: orderData.currency,
+          fulfillmentMethod,
+          shippingAddress: orderData.shippingAddress || undefined,
+        });
+
+        if (emailResult.success) {
+          console.log('✅ Order confirmation email sent successfully to:', customerEmail);
+          console.log('✅ Email ID:', emailResult.emailId);
+        } else {
+          console.error('❌ Failed to send order confirmation email');
+          console.error('❌ Error:', emailResult.error);
+          console.error('❌ Check RESEND_API_KEY in environment variables');
+        }
+      } catch (error: any) {
+        console.error('❌ Exception sending email:', error);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Stack:', error.stack);
+      }
+    } else {
+      console.warn('⚠️ No customer email found in session');
+      console.warn('⚠️ Session customer_email:', session.customer_email);
+      console.warn('⚠️ Session customer_details:', session.customer_details);
+      console.warn('⚠️ Skipping order confirmation email');
+    }
+
     // TODO: Update product inventory
-    // TODO: Send confirmation email
     // TODO: Notify admin of new order
 
     return orderRef.id;

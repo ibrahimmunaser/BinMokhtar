@@ -33,7 +33,7 @@ export function HeroCarousel({ slides, locale = 'en' }: HeroCarouselProps) {
   // Reset fade-in state on slide change (but not on initial load)
   useEffect(() => {
     if (hasInitialLoad) {
-      setImgLoaded(false);
+    setImgLoaded(false);
     }
   }, [currentSlide, hasInitialLoad]);
 

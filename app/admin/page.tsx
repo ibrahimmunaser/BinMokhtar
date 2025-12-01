@@ -184,14 +184,14 @@ export default function AdminDashboard() {
                           <Package className="w-6 h-6 text-bmr-muted" />
                         </div>
                         <div>
-                          <p className="font-medium">{product.titleEn || product.titleAr}</p>
-                          <p className="text-sm text-bmr-muted">{product.subtitleEn || product.subtitleAr}</p>
+                          <p className="font-medium">{product.name || product.titleEn || product.titleAr || 'Unnamed Product'}</p>
+                          <p className="text-sm text-bmr-muted">{product.subtitle || product.subtitleEn || product.subtitleAr}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className="px-3 py-1 bg-blue-500/10 text-blue-600 rounded-full text-sm font-mono">
-                        {product.audience || '❌ MISSING'}
+                        {product.audience === 'CHILDREN' ? 'BOYS' : (product.audience || '❌ MISSING')}
                       </span>
                     </td>
                     <td className="px-6 py-4">

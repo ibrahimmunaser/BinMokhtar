@@ -86,16 +86,23 @@ export default function ProductPage() {
       return;
     }
 
+    const itemTitle = product.titleEn || (product as any).name;
+    const itemImage = product.primaryImageUrl || (product as any).thumbnail || galleryImages[0];
+    
     addToCart({
       variantId: product.id,
       productId: product.id,
-      title: product.titleEn || (product as any).name,
+      title: itemTitle,
+      name: itemTitle, // alias for compatibility
       sku: product.sku,
       priceAtAdd: product.price || product.basePrice,
+      price: product.price || product.basePrice, // alias for compatibility
       qty,
       size: selectedSize || undefined,
       color: selectedColor || undefined,
-      imageUrl: product.primaryImageUrl || (product as any).thumbnail || galleryImages[0],
+      imageUrl: itemImage,
+      image: itemImage, // alias for compatibility
+      slug: product.slug,
     });
 
     logAddToCart(product.id, product.titleEn, product.price || product.basePrice, qty);

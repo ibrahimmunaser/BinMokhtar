@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     // Get base URL for redirects
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.headers.get('origin') || 'http://localhost:3000';
 
-    // Create Checkout Session
+    // Create Checkout Session with custom branding
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
@@ -69,6 +69,11 @@ export async function POST(request: NextRequest) {
       },
       allow_promotion_codes: true, // Enable promo codes
       billing_address_collection: 'required',
+      // Custom appearance to match your brand
+      ui_mode: 'hosted', // Use Stripe's hosted checkout page
+      locale: 'auto', // Automatically detect user's language
+      // Note: For more advanced customization, configure branding in Stripe Dashboard:
+      // Dashboard > Settings > Branding > Checkout appearance
     });
 
     return NextResponse.json({ 

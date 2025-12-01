@@ -52,10 +52,10 @@ export default function RootLayout({
       <body>
         <LocaleProvider>
           <ToastProvider>
-            <TopBar />
-            <SiteHeader />
-            <main className="min-h-screen">{children}</main>
-            <Footer />
+          <TopBar />
+          <SiteHeader />
+          <main className="min-h-screen">{children}</main>
+          <Footer />
           </ToastProvider>
         </LocaleProvider>
       </body>
