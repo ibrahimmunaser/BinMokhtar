@@ -14,12 +14,29 @@ export default function ShopPage() {
   // Load products from storefront (only ACTIVE products)
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
-  const isLoading = false;
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setIsLoading(true);
+    setError(null);
+    
     // Load ACTIVE products only from storefront API
-    getStorefrontProducts().then(products => setProducts(products));
-    getAllCategories().then(cats => setCategories(cats));
+    Promise.all([
+      getStorefrontProducts().catch(err => {
+        console.error('Error loading products:', err);
+        setError('Failed to load products');
+        return [];
+      }),
+      getAllCategories().catch(err => {
+        console.error('Error loading categories:', err);
+        return [];
+      })
+    ]).then(([products, cats]) => {
+      setProducts(products);
+      setCategories(cats);
+      setIsLoading(false);
+    });
   }, []);
 
   const [filters, setFilters] = useState<FilterState>({
@@ -142,7 +159,22 @@ export default function ShopPage() {
 
             {/* Products Grid */}
             <div className="min-h-[600px]">
-              {filteredAndSortedProducts.length === 0 ? (
+              {isLoading ? (
+                <div className="text-center py-20 text-bmr-muted">
+                  <div className="inline-block w-8 h-8 border-4 border-bmr-ink border-t-transparent rounded-full animate-spin mb-4"></div>
+                  <p>Loading products...</p>
+                </div>
+              ) : error ? (
+                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-center">
+                  <p>{error}</p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : filteredAndSortedProducts.length === 0 ? (
                 <div className="bg-surface-2 rounded-lg border border-line p-12 text-center">
                   <h3 className="font-display text-2xl mb-4">No products found</h3>
                   <p className="text-bmr-muted mb-8">Try adjusting your filters</p>
