@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import type { NavItem } from '@/types';
@@ -45,7 +45,33 @@ const defaultNavigation: NavItem[] = [
 
 export function MainNav() {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
   const primaryNav = defaultNavigation;
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeout) {
+        clearTimeout(hoverTimeout);
+      }
+    };
+  }, [hoverTimeout]);
+
+  const handleMouseEnter = (itemId: string) => {
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      setHoverTimeout(null);
+    }
+    setActiveMenu(itemId);
+  };
+
+  const handleMouseLeave = () => {
+    // Add a small delay before hiding to allow moving to dropdown
+    const timeout = setTimeout(() => {
+      setActiveMenu(null);
+    }, 150);
+    setHoverTimeout(timeout);
+  };
 
   return (
     <nav className="hidden lg:flex items-center gap-4 xl:gap-6">
@@ -54,8 +80,8 @@ export function MainNav() {
           key={item.id}
           item={item}
           isActive={activeMenu === item.id}
-          onMouseEnter={() => setActiveMenu(item.id)}
-          onMouseLeave={() => setActiveMenu(null)}
+          onMouseEnter={() => handleMouseEnter(item.id)}
+          onMouseLeave={handleMouseLeave}
         />
       ))}
     </nav>
@@ -77,11 +103,19 @@ function NavMenuItem({
   const isMegaMenu = false;
 
   return (
-    <div className="relative" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+    <div 
+      className="relative" 
+      onMouseEnter={onMouseEnter} 
+      onMouseLeave={onMouseLeave}
+    >
       {item.href ? (
         <Link
           href={item.href}
-          className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider text-bmr-black hover:text-muted transition-colors py-2 whitespace-nowrap"
+          className={`flex items-center gap-1 text-[11px] font-medium uppercase tracking-wider transition-colors py-2 whitespace-nowrap ${
+            hasChildren && isActive 
+              ? 'text-bmr-muted' 
+              : 'text-bmr-black hover:text-bmr-muted'
+          }`}
           aria-haspopup={hasChildren ? 'menu' : undefined}
           aria-expanded={hasChildren ? (isActive ? 'true' : 'false') : undefined}
         >
@@ -112,7 +146,11 @@ function NavMenuItem({
       )}
 
       {hasChildren && isActive && !isMegaMenu && (
-        <div className="absolute top-full left-0 mt-0 min-w-[220px] rounded-lg bg-surface-2 shadow-xl ring-1 ring-black/10 z-[110]">
+        <div 
+          className="absolute top-full left-0 mt-1 min-w-[220px] rounded-lg bg-surface-2 shadow-xl ring-1 ring-black/10 z-[110]"
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        >
           <div className="py-2">
             {item.children!.map((child) => (
               <SubMenuItem key={child.id} item={child} />
