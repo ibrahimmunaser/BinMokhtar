@@ -69,7 +69,7 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationEmailDat
     const { data: emailData, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: data.customerEmail,
-      replyTo: REPLY_TO_EMAIL,
+      reply_to: REPLY_TO_EMAIL,
       subject: `Order Confirmation - ${data.orderNumber}`,
       html: `
         <!DOCTYPE html>
