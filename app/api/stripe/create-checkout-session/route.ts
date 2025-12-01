@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       billing_address_collection: 'required',
       // Custom appearance to match your brand
       ui_mode: 'hosted', // Use Stripe's hosted checkout page
-      locale: 'auto', // Automatically detect user's language
+      locale: 'en', // Set to English to avoid i18n module loading errors
       // Note: For more advanced customization, configure branding in Stripe Dashboard:
       // Dashboard > Settings > Branding > Checkout appearance
     });
