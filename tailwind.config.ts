@@ -27,6 +27,7 @@ const config: Config = {
           3: 'var(--surface-3)',
         },
         line: 'var(--line)',
+        border: 'var(--line)',
         'border-default': 'var(--border-default)',
         'text-primary': 'var(--text-primary)',
         'text-secondary': 'var(--text-secondary)',

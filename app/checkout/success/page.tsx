@@ -14,6 +14,7 @@ function SuccessContent() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [fulfillmentMethod, setFulfillmentMethod] = useState<string | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const session_id = searchParams.get('session_id');
@@ -23,17 +24,30 @@ function SuccessContent() {
       // Clear cart on successful payment
       clear();
       
+      // Set a timeout to prevent infinite loading
+      const timeout = setTimeout(() => {
+        setIsLoadingSession(false);
+      }, 5000);
+      
       // Fetch session details to get fulfillment method
       fetch(`/api/stripe/get-session?session_id=${session_id}`)
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) {
+            throw new Error('Failed to fetch session');
+          }
+          return res.json();
+        })
         .then(data => {
+          clearTimeout(timeout);
           if (data.metadata?.fulfillmentMethod) {
             setFulfillmentMethod(data.metadata.fulfillmentMethod);
           }
           setIsLoadingSession(false);
         })
         .catch(err => {
+          clearTimeout(timeout);
           console.error('Error fetching session:', err);
+          setError('Unable to load order details, but your payment was successful.');
           setIsLoadingSession(false);
         });
     } else {
@@ -42,10 +56,31 @@ function SuccessContent() {
     }
   }, [searchParams, clear, router]);
 
-  if (!sessionId || isLoadingSession) {
+  if (!sessionId) {
     return (
-      <Container className="py-12 text-center">
-        <p className="text-bmr-muted">Loading order details...</p>
+      <Container className="py-12 lg:py-16">
+        <div className="max-w-2xl mx-auto text-center">
+          <p className="text-bmr-muted mb-4">No session found. Redirecting...</p>
+          <Link
+            href="/"
+            className="text-bmr-ink hover:underline"
+          >
+            Go to homepage
+          </Link>
+        </div>
+      </Container>
+    );
+  }
+
+  if (isLoadingSession) {
+    return (
+      <Container className="py-12 lg:py-16">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 border-4 border-bmr-ink border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <p className="text-lg text-bmr-muted">Loading order details...</p>
+        </div>
       </Container>
     );
   }
@@ -72,6 +107,13 @@ function SuccessContent() {
             Order Reference: <code className="px-2 py-1 bg-surface-3 rounded text-bmr-ink font-mono text-xs">{sessionId.slice(-12)}</code>
           </p>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-6">
+            <p className="text-sm">{error}</p>
+          </div>
+        )}
 
         {/* What's Next Section */}
         <div className="bg-surface-2 rounded-lg border border-line p-8 mb-8">
@@ -199,8 +241,13 @@ function SuccessContent() {
 export default function CheckoutSuccessPage() {
   return (
     <Suspense fallback={
-      <Container className="py-12 text-center">
-        <p className="text-bmr-muted">Loading...</p>
+      <Container className="py-12 lg:py-16">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 border-4 border-bmr-ink border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <p className="text-lg text-bmr-muted">Loading order details...</p>
+        </div>
       </Container>
     }>
       <SuccessContent />
