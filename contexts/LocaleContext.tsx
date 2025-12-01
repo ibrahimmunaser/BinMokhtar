@@ -13,24 +13,42 @@ interface LocaleContextType {
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
+  // Initialize with default values to avoid hydration mismatch
   const [language, setLanguageState] = useState<Language>('en');
   const [currency, setCurrencyState] = useState<Currency>('USD');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Only access localStorage on client side after mount
+    if (typeof window === 'undefined') return;
+    
     // Load from localStorage on mount
-    const savedLang = localStorage.getItem('bmr-language') as Language;
-    const savedCurr = localStorage.getItem('bmr-currency') as Currency;
-    if (savedLang) setLanguageState(savedLang);
-    if (savedCurr) setCurrencyState(savedCurr);
+    try {
+      const savedLang = localStorage.getItem('bmr-language') as Language;
+      const savedCurr = localStorage.getItem('bmr-currency') as Currency;
+      if (savedLang && (savedLang === 'en' || savedLang === 'ar')) {
+        setLanguageState(savedLang);
+      }
+      if (savedCurr && (savedCurr === 'USD' || savedCurr === 'EUR' || savedCurr === 'GBP' || savedCurr === 'AED')) {
+        setCurrencyState(savedCurr);
+      }
+    } catch (error) {
+      console.warn('Failed to load locale from localStorage:', error);
+    }
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!mounted) return;
-    // Update document direction
-    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = language;
+    // Only update document on client side
+    if (typeof window === 'undefined' || !mounted) return;
+    
+    try {
+      // Update document direction
+      document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.lang = language;
+    } catch (error) {
+      console.warn('Failed to update document direction:', error);
+    }
   }, [language, mounted]);
 
   const setLanguage = (lang: Language) => {

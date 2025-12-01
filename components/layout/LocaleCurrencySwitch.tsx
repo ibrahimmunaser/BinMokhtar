@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocale } from '@/contexts/LocaleContext';
 import { Globe, ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { Language, Currency } from '@/types';
 
 export function LocaleCurrencySwitch() {
@@ -18,6 +19,8 @@ export function LocaleCurrencySwitch() {
   const currencies: Currency[] = ['USD', 'EUR', 'GBP', 'AED'];
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -89,9 +92,6 @@ export function LocaleCurrencySwitch() {
   );
 }
 
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
-}
 
 
 
