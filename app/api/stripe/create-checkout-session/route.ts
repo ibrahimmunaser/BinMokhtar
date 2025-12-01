@@ -10,6 +10,14 @@ export const dynamic = 'force-dynamic';
  * Creates a Stripe Checkout session with cart items
  */
 export async function POST(request: NextRequest) {
+  // Validate Stripe key at runtime
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return NextResponse.json(
+      { error: 'Stripe is not configured. Please set STRIPE_SECRET_KEY environment variable.' },
+      { status: 500 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { items, customerEmail, metadata } = body;
