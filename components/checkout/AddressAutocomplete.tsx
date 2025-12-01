@@ -214,6 +214,14 @@ export function AddressAutocomplete({
 
     if (!place) {
       console.error('❌ No place object returned');
+      // Try to get place again after a short delay
+      setTimeout(() => {
+        const retryPlace = autocompleteRef.current?.getPlace();
+        if (retryPlace) {
+          console.log('✅ Retry successful, got place:', retryPlace);
+          handlePlaceSelect();
+        }
+      }, 100);
       return;
     }
 
@@ -405,6 +413,22 @@ export function AddressAutocomplete({
                 } catch (error) {
                   console.error('❌ Error initializing on input:', error);
                 }
+              }
+            }}
+            onBlur={async () => {
+              // Fallback: If input has a value but place_changed didn't fire, try to get place manually
+              if (inputRef.current?.value && autocompleteRef.current && isInitialized.current) {
+                console.log('🔍 Input blurred, checking if place was selected...');
+                // Small delay to let Google Autocomplete finish processing
+                setTimeout(() => {
+                  const place = autocompleteRef.current?.getPlace();
+                  if (place && place.geometry && place.geometry.location) {
+                    console.log('✅ Found place on blur, triggering selection:', place);
+                    handlePlaceSelect();
+                  } else {
+                    console.log('⚠️ No place found on blur, user may have typed manually');
+                  }
+                }, 300);
               }
             }}
             onKeyDown={(e) => {
