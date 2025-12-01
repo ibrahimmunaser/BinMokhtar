@@ -33,9 +33,9 @@ export async function getStorefrontProducts(audience?: 'MEN' | 'BOYS'): Promise<
       // Ensure products have the new image fields, fallback to legacy if needed
       products = products.map(p => ({
         ...p,
-        primaryImageUrl: p.primaryImageUrl || p.images?.[0] || p.thumbnail || p.defaultImage?.url,
-        galleryImageUrls: p.galleryImageUrls || p.images || [],
-        primaryImageAlt: p.primaryImageAlt || p.titleEn || p.name,
+        primaryImageUrl: p.primaryImageUrl || p.galleryImageUrls?.[0] || (p.defaultImage?.url) || undefined,
+        galleryImageUrls: p.galleryImageUrls || [],
+        primaryImageAlt: p.primaryImageAlt || p.titleEn,
       }));
       
       return products;
