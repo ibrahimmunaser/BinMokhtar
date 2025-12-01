@@ -8,8 +8,10 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
-const FROM_EMAIL = process.env.FROM_EMAIL || 'Bin Mukhtar Retail <orders@binmukhtarretail.com>';
-const REPLY_TO_EMAIL = process.env.REPLY_TO_EMAIL || 'info@binmukhtarretail.com';
+// Use Resend test domain if custom domain not verified
+// For production, verify binmukhtarretail.com in Resend Dashboard
+const FROM_EMAIL = process.env.FROM_EMAIL || 'Bin Mukhtar Retail <onboarding@resend.dev>';
+const REPLY_TO_EMAIL = process.env.REPLY_TO_EMAIL || 'onboarding@resend.dev';
 
 interface OrderConfirmationEmailData {
   customerEmail: string;
