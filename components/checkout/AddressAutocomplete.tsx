@@ -291,20 +291,6 @@ export function AddressAutocomplete({
     }
   }, [isScriptLoaded, handlePlaceSelect]);
 
-  // Re-initialize autocomplete if input ref changes (e.g., component remounts)
-  useEffect(() => {
-    if (isScriptLoaded && inputRef.current && !isInitialized.current) {
-      // Trigger initialization check
-      const timer = setTimeout(() => {
-        if (inputRef.current && !isInitialized.current && window.google?.maps?.places) {
-          console.log('🔄 Re-checking autocomplete initialization...');
-          // The main useEffect should handle this, but this is a safety check
-        }
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [isScriptLoaded, inputRef.current]);
-
   return (
     <div className="space-y-4">
       {/* API Key Warning */}
