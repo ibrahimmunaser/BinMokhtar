@@ -9,16 +9,13 @@ import { cn } from '@/lib/utils';
 
 interface HeroCarouselProps {
   slides: HeroSlide[];
-  locale?: string;
 }
 
-export function HeroCarousel({ slides, locale = 'en' }: HeroCarouselProps) {
+export function HeroCarousel({ slides }: HeroCarouselProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(true); // Start visible to prevent initial delay
   const [isPaused, setIsPaused] = useState(false);
   const [hasInitialLoad, setHasInitialLoad] = useState(false);
-
-  const isRtl = locale === 'ar';
 
   useEffect(() => {
     if (isPaused || slides.length <= 1) return;
@@ -52,9 +49,9 @@ export function HeroCarousel({ slides, locale = 'en' }: HeroCarouselProps) {
   if (!slides || slides.length === 0) return null;
 
   const slide = slides[currentSlide];
-  const title = isRtl ? slide.titleAr : slide.titleEn;
-  const sub = isRtl ? slide.subAr : slide.subEn;
-  const ctaText = isRtl ? slide.ctaTextAr : slide.ctaTextEn;
+  const title = slide.titleEn;
+  const sub = slide.subEn;
+  const ctaText = slide.ctaTextEn;
 
   return (
     <section
@@ -97,10 +94,7 @@ export function HeroCarousel({ slides, locale = 'en' }: HeroCarouselProps) {
       {/* Content */}
       <div className="relative h-full flex items-center">
         <div className="container-wide">
-          <div className={cn(
-            "max-w-xl text-white",
-            isRtl ? "mr-auto text-right" : "text-left"
-          )}>
+          <div className="max-w-xl text-white text-left">
             {slide.eyebrow && (
               <p className="text-sm uppercase tracking-wideish mb-4 opacity-90">
                 {slide.eyebrow}

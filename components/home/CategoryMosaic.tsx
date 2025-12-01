@@ -7,12 +7,9 @@ import { cn } from '@/lib/utils';
 
 interface CategoryMosaicProps {
   tiles: MosaicTile[];
-  locale?: string;
 }
 
-export function CategoryMosaic({ tiles, locale = 'en' }: CategoryMosaicProps) {
-  const isRtl = locale === 'ar';
-
+export function CategoryMosaic({ tiles }: CategoryMosaicProps) {
   if (!tiles || tiles.length === 0) return null;
 
   return (
@@ -20,7 +17,7 @@ export function CategoryMosaic({ tiles, locale = 'en' }: CategoryMosaicProps) {
       <div className="container-wide">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 auto-rows-[250px] md:auto-rows-[300px]">
           {tiles.map((tile, index) => {
-            const title = isRtl ? tile.titleAr : tile.titleEn;
+            const title = tile.titleEn;
             const colSpan = tile.span?.cols || 1;
             const rowSpan = tile.span?.rows || 1;
 

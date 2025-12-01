@@ -8,13 +8,12 @@ import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
   variant: Variant;
-  locale?: string;
   showSoldOut?: boolean;
   className?: string;
 }
 
-export function ProductCard({ variant, locale = 'en', showSoldOut = false, className }: ProductCardProps) {
-  const title = locale === 'ar' ? (variant.productTitleAr || variant.productTitleEn) : (variant.productTitleEn || variant.productTitleAr);
+export function ProductCard({ variant, showSoldOut = false, className }: ProductCardProps) {
+  const title = variant.productTitleEn || variant.productTitleAr;
   const price = variant.price || 0;
   const compareAt = variant.compareAt;
   const isOnSale = !!compareAt && compareAt > price;
@@ -89,11 +88,11 @@ export function ProductCard({ variant, locale = 'en', showSoldOut = false, class
             "text-lg font-medium",
             isSoldOut && "text-bmr-muted"
           )}>
-            {formatPrice(price, 'USD', locale === 'ar' ? 'ar-SA' : 'en-US')}
+            {formatPrice(price, 'USD', 'en-US')}
           </span>
           {isOnSale && (
             <span className="text-sm text-bmr-muted line-through">
-              {formatPrice(compareAt, 'USD', locale === 'ar' ? 'ar-SA' : 'en-US')}
+              {formatPrice(compareAt, 'USD', 'en-US')}
             </span>
           )}
         </div>

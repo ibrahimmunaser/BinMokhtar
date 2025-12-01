@@ -6,7 +6,6 @@ import { Menu, Search, User, ShoppingBag } from 'lucide-react';
 import { MainNav } from './MainNav';
 import { MobileNavDrawer } from './MobileNavDrawer';
 import { SearchDialog } from './SearchDialog';
-import { LocaleCurrencySwitch } from './LocaleCurrencySwitch';
 import { useCartStore } from '@/store/cart';
 
 export function SiteHeader() {
@@ -47,7 +46,6 @@ export function SiteHeader() {
 
             {/* Right: Actions */}
             <div className="flex items-center gap-4 lg:gap-6 shrink-0">
-              <LocaleCurrencySwitch />
               <button
                 onClick={() => setIsSearchOpen(true)}
                 className="text-bmr-black hover:text-muted"

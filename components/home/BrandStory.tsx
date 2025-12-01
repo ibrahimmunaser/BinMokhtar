@@ -6,17 +6,13 @@ import { StoryBlock } from '@/types';
 interface BrandStoryProps {
   title?: string;
   storyBlocks: StoryBlock[];
-  locale?: string;
 }
 
 export function BrandStory({
   title = 'BMR — Luxury Thobes & Modest Fashion',
   storyBlocks,
-  locale = 'en',
 }: BrandStoryProps) {
   if (!storyBlocks || storyBlocks.length === 0) return null;
-
-  const isRtl = locale === 'ar';
 
   return (
     <section className="py-16 lg:py-24 bg-surface-2">
@@ -27,8 +23,8 @@ export function BrandStory({
 
         <div className="space-y-8 max-w-3xl mx-auto">
           {storyBlocks.map((block, index) => {
-            const blockTitle = isRtl ? block.titleAr : block.titleEn;
-            const body = isRtl ? block.bodyAr : block.bodyEn;
+            const blockTitle = block.titleEn;
+            const body = block.bodyEn;
 
             return (
               <div key={index} className="prose prose-lg max-w-none">

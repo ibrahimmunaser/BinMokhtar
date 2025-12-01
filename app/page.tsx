@@ -168,19 +168,18 @@ export default function HomePage() {
 
   return (
     <>
-      <HeroCarousel slides={heroSlides} locale="en" />
+      <HeroCarousel slides={heroSlides} />
 
-      <CategoryMosaic tiles={mosaicTiles} locale="en" />
+      <CategoryMosaic tiles={mosaicTiles} />
 
       {/* Best Sellers - will be empty until products are added to Firebase */}
-      <BestSellers products={[]} locale="en" />
+      <BestSellers products={[]} />
 
       <PromoBand
         title="Men's & Kids Collection"
         subtitle="Match your loved one"
         imageLeft="/images/kids 2.png"
         imageRight="/images/home page placeholder.png"
-        locale="en"
       />
 
       <ReviewsCarousel reviews={reviews} />
@@ -188,12 +187,11 @@ export default function HomePage() {
       <ShemaghTabs
         tabs={shemaghTabs}
         productsByTab={{}}
-        locale="en"
       />
 
-      <BrandStory storyBlocks={storyBlocks} locale="en" />
+      <BrandStory storyBlocks={storyBlocks} />
 
-      <IconRow items={iconItems} locale="en" />
+      <IconRow items={iconItems} />
     </>
   );
 }

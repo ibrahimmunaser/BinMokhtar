@@ -10,7 +10,6 @@ interface BestSellersProps {
   linkText?: string;
   linkHref?: string;
   products: Variant[];
-  locale?: string;
 }
 
 export function BestSellers({
@@ -18,7 +17,6 @@ export function BestSellers({
   linkText = 'Shop Best Sellers',
   linkHref = '/shop',
   products,
-  locale = 'en',
 }: BestSellersProps) {
   if (!products || products.length === 0) return null;
 
@@ -45,7 +43,6 @@ export function BestSellers({
             <ProductCard
               key={product.id}
               variant={product}
-              locale={locale}
             />
           ))}
         </div>

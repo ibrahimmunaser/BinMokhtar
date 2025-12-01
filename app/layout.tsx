@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Playfair_Display, Inter, Amiri, Tajawal } from 'next/font/google';
+import { Playfair_Display, Inter } from 'next/font/google';
 import { LocaleProvider } from '@/contexts/LocaleContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { TopBar } from '@/components/layout/TopBar';
@@ -22,20 +22,6 @@ const inter = Inter({
   display: 'swap',
 });
 
-const amiri = Amiri({
-  subsets: ['arabic'],
-  variable: '--font-amiri',
-  display: 'swap',
-  weight: ['400', '700'],
-});
-
-const tajawal = Tajawal({
-  subsets: ['arabic'],
-  variable: '--font-tajawal',
-  display: 'swap',
-  weight: ['300', '400', '500', '700'],
-});
-
 export const metadata: Metadata = defaultMetadata;
 
 export default function RootLayout({
@@ -47,7 +33,7 @@ export default function RootLayout({
     <html 
       lang="en" 
       suppressHydrationWarning
-      className={`${playfair.variable} ${inter.variable} ${amiri.variable} ${tajawal.variable}`}
+      className={`${playfair.variable} ${inter.variable}`}
     >
       <body>
         <LocaleProvider>

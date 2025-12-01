@@ -11,14 +11,12 @@ interface ShemaghTabsProps {
   title?: string;
   tabs: ShemaghTab[];
   productsByTab: Record<string, Variant[]>;
-  locale?: string;
 }
 
 export function ShemaghTabs({
   title = 'Shemagh & Kufi Collections',
   tabs,
   productsByTab,
-  locale = 'en',
 }: ShemaghTabsProps) {
   const [activeTab, setActiveTab] = useState(tabs[0]?.slug || '');
 
@@ -38,7 +36,7 @@ export function ShemaghTabs({
         {/* Tabs */}
         <div className="flex flex-wrap items-center justify-center gap-2 mb-12">
           {tabs.map((tab) => {
-            const label = locale === 'ar' ? tab.labelAr : tab.labelEn;
+            const label = tab.labelEn;
             const isActive = tab.slug === activeTab;
 
             return (
@@ -64,7 +62,6 @@ export function ShemaghTabs({
             <ProductCard
               key={product.id}
               variant={product}
-              locale={locale}
               showSoldOut
             />
           ))}
@@ -77,7 +74,7 @@ export function ShemaghTabs({
               href={`/category/${activeTab}`}
               className="inline-flex items-center gap-2 text-sm uppercase tracking-wide text-bmr-ink hover:underline"
             >
-              Shop {locale === 'ar' ? activeTabData.labelAr : activeTabData.labelEn}
+              Shop {activeTabData.labelEn}
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

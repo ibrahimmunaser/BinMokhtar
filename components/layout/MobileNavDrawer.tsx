@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
-import { useLocale } from '@/contexts/LocaleContext';
-import type { NavItem, Language, Currency } from '@/types';
+import type { NavItem } from '@/types';
 
 // Navigation structure: Men, Kids, Shemaghs, About, Contact
 const defaultNavigation: NavItem[] = [
@@ -50,7 +49,6 @@ interface MobileNavDrawerProps {
 }
 
 export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
-  const { language, currency, setLanguage, setCurrency } = useLocale();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   useEffect(() => {
@@ -80,11 +78,7 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
         className="fixed inset-0 bg-bmr-black/50 z-40 lg:hidden"
         onClick={onClose}
       />
-      <div
-        className={`fixed top-0 ${
-          language === 'ar' ? 'left-0' : 'right-0'
-        } h-full w-full max-w-sm bg-surface-2 z-50 overflow-y-auto lg:hidden`}
-      >
+      <div className="fixed top-0 right-0 h-full w-full max-w-sm bg-surface-2 z-50 overflow-y-auto lg:hidden">
         <div className="p-6">
           <button
             onClick={onClose}
@@ -106,52 +100,6 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
                 setExpandedItems={setExpandedItems}
               />
             ))}
-          </div>
-
-          <div className="mt-12 pt-6 border-t border-border space-y-4">
-            <div>
-              <div className="text-xs font-medium mb-2 uppercase tracking-wideish">
-                Language
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setLanguage('en')}
-                  className={`px-3 py-2 text-sm border ${
-                    language === 'en'
-                      ? 'border-bmr-black bg-bmr-black text-bmr-white'
-                      : 'border-border'
-                  }`}
-                >
-                  English
-                </button>
-                <button
-                  onClick={() => setLanguage('ar')}
-                  className={`px-3 py-2 text-sm border ${
-                    language === 'ar'
-                      ? 'border-bmr-black bg-bmr-black text-bmr-white'
-                      : 'border-border'
-                  }`}
-                >
-                  العربية
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <div className="text-xs font-medium mb-2 uppercase tracking-wideish">
-                Currency
-              </div>
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value as Currency)}
-                className="w-full px-3 py-2 border border-border bg-bmr-white text-sm"
-              >
-                <option value="USD">USD $</option>
-                <option value="EUR">EUR €</option>
-                <option value="GBP">GBP £</option>
-                <option value="AED">AED</option>
-              </select>
-            </div>
           </div>
         </div>
       </div>
