@@ -43,6 +43,10 @@ export async function POST(request: NextRequest) {
   
   const signature = request.headers.get('stripe-signature');
   console.log('📥 Signature present:', !!signature);
+  console.log('📥 STRIPE_WEBHOOK_SECRET exists:', !!STRIPE_WEBHOOK_SECRET);
+  console.log('📥 STRIPE_WEBHOOK_SECRET length:', STRIPE_WEBHOOK_SECRET?.length || 0);
+  console.log('📥 STRIPE_WEBHOOK_SECRET first 10 chars:', STRIPE_WEBHOOK_SECRET?.substring(0, 10) || 'NOT SET');
+  console.log('📥 STRIPE_WEBHOOK_SECRET last 10 chars:', STRIPE_WEBHOOK_SECRET?.substring(STRIPE_WEBHOOK_SECRET.length - 10) || 'NOT SET');
 
   if (!signature) {
     console.error('❌ No Stripe signature found');
@@ -63,10 +67,22 @@ export async function POST(request: NextRequest) {
 
   // Verify webhook signature
   try {
+    console.log('🔐 Attempting to verify webhook signature...');
     event = stripe.webhooks.constructEvent(body, signature, STRIPE_WEBHOOK_SECRET);
+    console.log('✅ Webhook signature verified successfully');
   } catch (err: any) {
-    console.error('❌ Webhook signature verification failed:', err.message);
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+    console.error('❌ ===== WEBHOOK SIGNATURE VERIFICATION FAILED =====');
+    console.error('❌ Error message:', err.message);
+    console.error('❌ This usually means:');
+    console.error('   1. STRIPE_WEBHOOK_SECRET in Render does not match Stripe Dashboard');
+    console.error('   2. Webhook secret was rolled/changed in Stripe but not updated in Render');
+    console.error('   3. Wrong webhook endpoint (using secret from different webhook)');
+    console.error('❌ Expected secret from Stripe Dashboard:', 'whsec_FdaKRHnDuiQhUV6UX6TyG800g5amQD84');
+    console.error('❌ Check Render environment variable STRIPE_WEBHOOK_SECRET matches exactly');
+    return NextResponse.json({ 
+      error: `Webhook Error: ${err.message}`,
+      hint: 'Check that STRIPE_WEBHOOK_SECRET in Render matches the signing secret in Stripe Dashboard'
+    }, { status: 400 });
   }
 
   console.log('✅ Received Stripe webhook event:', event.type);
