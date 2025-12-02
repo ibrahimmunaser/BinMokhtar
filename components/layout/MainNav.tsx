@@ -5,27 +5,27 @@ import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 import type { NavItem } from '@/types';
 
-// Navigation structure: Men, Kids, Shemaghs, About, Contact
+// Navigation structure: Men, Boys, Shemaghs, About, Contact
 const defaultNavigation: NavItem[] = [
   {
     id: 'men',
     labelEn: 'Men',
     labelAr: 'رجال',
-    href: '/shop/mens',
+    href: '/category/men',
     sort: 1,
     children: [
-      { id: 'saudi', labelEn: 'Saudi', labelAr: 'سعودي', href: '/category/saudi', sort: 1 },
-      { id: 'emirati', labelEn: 'Emirati', labelAr: 'إماراتي', href: '/category/emirati', sort: 2 },
+      { id: 'emirati', labelEn: 'Emirati', labelAr: 'إماراتي', href: '/category/emirati', sort: 1 },
+      { id: 'saudi', labelEn: 'Saudi', labelAr: 'سعودي', href: '/category/saudi', sort: 2 },
     ],
   },
   {
     id: 'boys',
     labelEn: 'Boys',
     labelAr: 'أولاد',
-    href: '/shop/children',
+    href: '/category/boys',
     sort: 2,
     children: [
-      { id: 'boys-thobes', labelEn: 'Thobes', labelAr: 'ثياب', href: '/shop/children', sort: 1 },
+      { id: 'thobes', labelEn: 'Thobes', labelAr: 'ثياب', href: '/category/thobes', sort: 1 },
     ],
   },
   {
@@ -35,8 +35,8 @@ const defaultNavigation: NavItem[] = [
     href: '/category/shemaghs',
     sort: 3,
     children: [
-      { id: 'yemeni-shemaghs', labelEn: 'Yemeni', labelAr: 'يمني', href: '/category/yemeni-shemaghs', sort: 1 },
-      { id: 'traditional-shemaghs', labelEn: 'Traditional', labelAr: 'تقليدي', href: '/category/traditional-shemaghs', sort: 2 },
+      { id: 'traditional', labelEn: 'Traditional', labelAr: 'تقليدي', href: '/category/traditional', sort: 1 },
+      { id: 'yemeni', labelEn: 'Yemeni', labelAr: 'يمني', href: '/category/yemeni', sort: 2 },
     ],
   },
   { id: 'about', labelEn: 'ABOUT', labelAr: 'عن', href: '/about', sort: 4 },
