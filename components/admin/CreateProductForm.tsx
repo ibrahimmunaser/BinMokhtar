@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -46,6 +46,11 @@ interface ColorImageMapping {
 // Validation Schema
 const productSchema = z.object({
   title: z.string().min(4, 'Title must be at least 4 characters'),
+  slug: z.string().min(3, 'Slug must be at least 3 characters').regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens').optional(),
+  brand: z.string().min(1, 'Brand is required').default('Bin Mukhtar Retail'),
+  status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED'], {
+    required_error: 'Status is required',
+  }).default('DRAFT'),
   price: z.number().positive('Price must be greater than 0'),
   salePrice: z.preprocess(
     (v) => {
@@ -56,6 +61,9 @@ const productSchema = z.object({
     z.number().positive('Sale price must be greater than 0').optional()
   ),
   images: z.array(z.string()).min(1, 'At least 1 product image is required'),
+  primaryImageUrl: z.string().url().optional(),
+  galleryImageUrls: z.array(z.string().url()).optional(),
+  primaryImageAlt: z.string().optional(),
   category: z.string().min(1, 'Category is required'),
   subcategory: z.string().optional(),
   sizes: z.array(z.string()),
@@ -64,10 +72,10 @@ const productSchema = z.object({
     size: z.string(),
     color: z.string(),
     stock: z.number().int().nonnegative('Stock must be non-negative'),
-    sku: z.string().min(1, 'SKU is required'), // Now required
+    sku: z.string().min(1, 'SKU is required'),
     barcode: z.string().optional(),
-    price: z.number().positive().optional(), // Per-variant price override
-    salePrice: z.number().positive().optional(), // Per-variant sale price
+    price: z.number().positive().optional(),
+    salePrice: z.number().positive().optional(),
   })).min(1, 'At least 1 variant is required'),
   colorImageMappings: z.array(z.object({
     color: z.string(),
@@ -75,6 +83,20 @@ const productSchema = z.object({
   })).optional(),
   sleeve: z.enum(['short', 'long']).optional(),
   tags: z.array(z.string()).min(2, 'At least 2 tags are required'),
+  rating: z.preprocess(
+    (v) => {
+      if (v === '' || v === undefined || (typeof v === 'number' && Number.isNaN(v))) return undefined;
+      return Number(v);
+    },
+    z.number().min(0).max(5).optional()
+  ),
+  numReviews: z.preprocess(
+    (v) => {
+      if (v === '' || v === undefined || (typeof v === 'number' && Number.isNaN(v))) return undefined;
+      return Number(v);
+    },
+    z.number().int().nonnegative().optional()
+  ),
 }).refine((data) => {
   // Sizes are required for all categories except Shemaghs
   if (data.subcategory !== 'Shemaghs' && data.sizes.length === 0) {
@@ -96,11 +118,17 @@ const productSchema = z.object({
 
 type ProductFormData = z.infer<typeof productSchema>;
 
-export function CreateProductForm() {
+interface CreateProductFormProps {
+  productId?: string; // If provided, form is in edit mode
+}
+
+export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(!!productId);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const isEditMode = !!productId;
 
   const {
     register,
@@ -115,9 +143,15 @@ export function CreateProductForm() {
     mode: 'onChange',
     defaultValues: {
       title: '',
+      slug: undefined,
+      brand: 'Bin Mukhtar Retail',
+      status: 'DRAFT' as const,
       price: 0,
       salePrice: undefined,
       images: [],
+      primaryImageUrl: undefined,
+      galleryImageUrls: [],
+      primaryImageAlt: undefined,
       category: '',
       subcategory: undefined,
       sleeve: undefined,
@@ -126,6 +160,8 @@ export function CreateProductForm() {
       variants: [],
       colorImageMappings: [],
       tags: [],
+      rating: undefined,
+      numReviews: undefined,
     },
   });
 
@@ -136,6 +172,72 @@ export function CreateProductForm() {
   
   // Check if basic information is filled (required fields only)
   const isBasicInfoComplete = title && title.length >= 4 && price && price > 0 && category;
+
+  // Load product data if in edit mode
+  useEffect(() => {
+    if (productId) {
+      loadProduct();
+    }
+  }, [productId]);
+
+  const loadProduct = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/admin/products?id=${productId}`);
+      const result = await response.json();
+
+      if (!response.ok || !result.product) {
+        throw new Error(result.error || 'Failed to load product');
+      }
+
+      const product = result.product;
+      
+      // Convert price from cents to dollars
+      const priceInDollars = product.price ? product.price / 100 : 0;
+      const compareAtPriceInDollars = product.compareAtPrice ? product.compareAtPrice / 100 : undefined;
+
+      // Prepare variants - convert prices from cents to dollars
+      const variants = (product.variants || []).map((v: any) => ({
+        size: v.size || '',
+        color: v.color || '',
+        stock: v.stock || 0,
+        sku: v.sku || '',
+        barcode: v.barcode || undefined,
+        price: v.price ? v.price / 100 : undefined,
+        salePrice: v.salePrice ? v.salePrice / 100 : undefined,
+      }));
+
+      // Reset form with product data
+      reset({
+        title: product.name || '',
+        slug: product.slug || '',
+        brand: product.brand || 'Bin Mukhtar Retail',
+        status: product.status || 'DRAFT',
+        price: priceInDollars,
+        salePrice: compareAtPriceInDollars,
+        images: product.galleryImageUrls || product.images || [],
+        primaryImageUrl: product.primaryImageUrl || product.images?.[0] || undefined,
+        galleryImageUrls: product.galleryImageUrls || product.images || [],
+        primaryImageAlt: product.primaryImageAlt || undefined,
+        category: product.categoryId || '',
+        subcategory: product.subcategory || undefined,
+        sizes: product.sizes || [],
+        colors: product.colors || [],
+        variants: variants,
+        colorImageMappings: product.colorImageMappings || [],
+        sleeve: product.sleeve || undefined,
+        tags: product.tags || [],
+        rating: product.rating || undefined,
+        numReviews: product.numReviews || undefined,
+      });
+    } catch (error: any) {
+      console.error('Error loading product:', error);
+      setSubmitStatus('error');
+      setErrorMessage(error.message || 'Failed to load product');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const onSubmit = async (data: ProductFormData) => {
     console.log('Form submitted with data:', data);
@@ -149,9 +251,13 @@ export function CreateProductForm() {
       const totalStock = data.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
       const activeVariants = data.variants.filter(v => v.stock > 0).length;
 
+      // Generate slug from title if not provided
+      const slug = data.slug || data.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
       // Prepare data for API
-      const productData = {
+      const productData: any = {
         name: data.title,
+        slug: slug,
         subtitle: '',
         price: data.salePrice ? data.salePrice.toString() : data.price.toString(), // Use sale price if provided, otherwise regular price
         compareAtPrice: data.salePrice ? data.price.toString() : undefined, // If there's a sale price, the regular price becomes compareAt
@@ -162,18 +268,27 @@ export function CreateProductForm() {
         audience: (data.category || 'Men').toUpperCase(),
         sizes: data.sizes,
         colors: data.colors,
-        variants: data.variants,
+        variants: data.variants.map(v => ({
+          ...v,
+          price: v.price ? v.price * 100 : undefined, // Convert to cents
+          salePrice: v.salePrice ? v.salePrice * 100 : undefined, // Convert to cents
+        })),
         colorImageMappings: data.colorImageMappings || [],
         tags: data.tags,
         published: true,
         description: `${data.category}`,
       };
 
+      // Add id for edit mode
+      if (isEditMode) {
+        productData.id = productId;
+      }
+
       console.log('Sending to API:', productData);
 
       // Send to API route
       const response = await fetch('/api/admin/products', {
-        method: 'POST',
+        method: isEditMode ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -184,20 +299,23 @@ export function CreateProductForm() {
       console.log('API response:', result);
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to create product');
+        throw new Error(result.error || `Failed to ${isEditMode ? 'update' : 'create'} product`);
       }
 
-      console.log('Product created successfully with ID:', result.product?.id);
+      console.log(`Product ${isEditMode ? 'updated' : 'created'} successfully with ID:`, result.product?.id);
       
-      // Invalidate cache so the frontend shows new product
+      // Invalidate cache so the frontend shows updated product
       try {
         const slug = data.title.toLowerCase().replace(/\s+/g, '-');
         await fetch('/api/revalidate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'all-products' }),
+          body: JSON.stringify({ 
+            type: isEditMode ? 'product' : 'all-products',
+            ...(isEditMode && { slug })
+          }),
         });
-        console.log('Cache invalidated for all products');
+        console.log(`Cache invalidated for ${isEditMode ? 'product' : 'all products'}`);
       } catch (cacheError) {
         console.warn('Failed to invalidate cache:', cacheError);
       }
@@ -207,15 +325,17 @@ export function CreateProductForm() {
       
       // Reset form and redirect after 2 seconds
       setTimeout(() => {
-        reset();
+        if (!isEditMode) {
+          reset();
+        }
         setSubmitStatus('idle');
         router.push('/admin/products');
       }, 2000);
       
     } catch (error: any) {
-      console.error('Error creating product:', error);
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} product:`, error);
       setSubmitStatus('error');
-      setErrorMessage(error.message || 'Failed to create product. Please try again.');
+      setErrorMessage(error.message || `Failed to ${isEditMode ? 'update' : 'create'} product. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -223,13 +343,24 @@ export function CreateProductForm() {
 
   // No subcategory options in this simplified model
 
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto flex items-center justify-center py-12">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-bmr-ink mx-auto mb-4" />
+          <p className="text-bmr-muted">Loading product...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Success Banner */}
       {submitStatus === 'success' && (
         <div className="mb-6 p-4 bg-bmr-acc-green/10 border border-bmr-acc-green rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
           <CheckCircle className="w-5 h-5 text-bmr-acc-green flex-shrink-0" />
-          <p className="text-bmr-acc-green font-medium">Product created successfully!</p>
+          <p className="text-bmr-acc-green font-medium">Product {isEditMode ? 'updated' : 'created'} successfully!</p>
         </div>
       )}
 
@@ -238,7 +369,7 @@ export function CreateProductForm() {
         <div className="mb-6 p-4 bg-bmr-acc-red/10 border border-bmr-acc-red rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
           <AlertCircle className="w-5 h-5 text-bmr-acc-red flex-shrink-0" />
           <div>
-            <p className="text-bmr-acc-red font-medium">Failed to create product</p>
+            <p className="text-bmr-acc-red font-medium">Failed to {isEditMode ? 'update' : 'create'} product</p>
             <p className="text-sm text-bmr-acc-red/80">{errorMessage}</p>
           </div>
         </div>
@@ -513,10 +644,10 @@ export function CreateProductForm() {
             {isSubmitting ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Creating Product...
+                {isEditMode ? 'Updating Product...' : 'Creating Product...'}
               </>
             ) : (
-              'Create Product'
+              isEditMode ? 'Update Product' : 'Create Product'
             )}
           </button>
         </div>
