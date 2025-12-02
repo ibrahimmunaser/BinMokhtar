@@ -217,17 +217,22 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
       }));
 
       // Handle tags - ensure it's always an array
-      let tags = [];
-      if (product.tags) {
+      // Check multiple possible locations for tags
+      let tags: string[] = [];
+      
+      // Try product.tags first
+      if (product.tags !== undefined && product.tags !== null) {
         if (Array.isArray(product.tags)) {
-          tags = product.tags;
+          tags = product.tags.filter(Boolean); // Remove any empty/null values
         } else if (typeof product.tags === 'string') {
           // Handle case where tags might be stored as comma-separated string
           tags = product.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
         }
       }
 
+      console.log('🏷️ Raw tags from API:', product.tags);
       console.log('🏷️ Processed tags:', tags);
+      console.log('🏷️ Tags will be set in form:', tags);
 
       // Reset form with product data
       reset({

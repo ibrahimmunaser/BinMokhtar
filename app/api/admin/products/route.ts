@@ -20,13 +20,24 @@ export async function GET(request: NextRequest) {
       const variantsSnap = await adminDb().collection('products').doc(productId).collection('variants').get();
       const variants = variantsSnap.docs.map((v) => ({ id: v.id, ...v.data() }));
 
+      const docData = doc.data();
+      
+      // Ensure tags are always included, even if empty
       const product = {
         id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data()?.createdAt?.toDate?.() || new Date(),
-        updatedAt: doc.data()?.updatedAt?.toDate?.() || new Date(),
+        ...docData,
+        tags: Array.isArray(docData?.tags) ? docData.tags : (docData?.tags ? [docData.tags] : []),
+        createdAt: docData?.createdAt?.toDate?.() || new Date(),
+        updatedAt: docData?.updatedAt?.toDate?.() || new Date(),
         variants,
       };
+
+      console.log('📦 API GET - Product tags:', {
+        rawTags: docData?.tags,
+        tagsType: typeof docData?.tags,
+        isArray: Array.isArray(docData?.tags),
+        finalTags: product.tags,
+      });
 
       return NextResponse.json({ product, success: true });
     }
