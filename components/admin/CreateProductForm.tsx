@@ -356,7 +356,7 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
           reset();
         }
         setSubmitStatus('idle');
-        router.push('/admin/products');
+        router.push('/admin');
       }, 2000);
       
     } catch (error: any) {
