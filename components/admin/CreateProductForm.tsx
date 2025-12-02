@@ -14,12 +14,13 @@ import { ColorImageMapper } from './ColorImageMapper';
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
 // Category options and subcategories (per your spec)
-const CATEGORY_OPTIONS = ['Men', 'Women', 'Boys', 'Girls'] as const;
+const CATEGORY_OPTIONS = ['Men', 'Women', 'Boys', 'Girls', 'Shemaghs'] as const;
 const CATEGORY_TREE: Record<string, { subcategories: string[] }> = {
-  Men: { subcategories: ['Thobes - Long Sleeve', 'Thobe - Short Sleeve', 'Shemaghs', 'Yemeni Shals'] },
+  Men: { subcategories: ['Emirati', 'Saudi'] },
   Women: { subcategories: ['Hijabs', 'Abayas'] },
-  Boys: { subcategories: [] },
+  Boys: { subcategories: ['thobes'] },
   Girls: { subcategories: [] },
+  Shemaghs: { subcategories: ['Traditional', 'Yemeni'] },
 };
 
 // Available sizes and colors
@@ -99,7 +100,7 @@ const productSchema = z.object({
   ),
 }).refine((data) => {
   // Sizes are required for all categories except Shemaghs
-  if (data.subcategory !== 'Shemaghs' && data.sizes.length === 0) {
+  if (data.category !== 'Shemaghs' && data.sizes.length === 0) {
     return false;
   }
   return true;
