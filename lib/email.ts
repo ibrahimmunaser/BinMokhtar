@@ -251,11 +251,11 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationEmailDat
                               <table role="presentation" style="margin: 0 auto; border-collapse: collapse;">
                                 <tr>
                                   <td style="padding: 0 8px;">
-                                    <a href="https://binmukhtarretail.com" style="color: #666666; text-decoration: none; font-size: 13px;">Website</a>
+                                    <a href="https://binmukhtarretail.com/" style="color: #666666; text-decoration: none; font-size: 13px;">Website</a>
                                   </td>
                                   <td style="padding: 0 8px; color: #E5E5E5;">|</td>
                                   <td style="padding: 0 8px;">
-                                    <a href="https://www.instagram.com/binmukhtarretail" style="color: #666666; text-decoration: none; font-size: 13px;">Instagram</a>
+                                    <a href="https://www.instagram.com/binmukhtarretail?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" style="color: #666666; text-decoration: none; font-size: 13px;">Instagram</a>
                                   </td>
                                 </tr>
                               </table>
