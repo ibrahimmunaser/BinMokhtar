@@ -189,6 +189,26 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     const shipping = (session.shipping_cost?.amount_total || 0);
     const tax = (session.total_details?.amount_tax || 0);
 
+    // Helper function to remove undefined values from an object
+    const removeUndefined = (obj: any): any => {
+      if (obj === null || obj === undefined) {
+        return obj;
+      }
+      if (Array.isArray(obj)) {
+        return obj.map(removeUndefined).filter(item => item !== undefined);
+      }
+      if (typeof obj === 'object') {
+        const cleaned: any = {};
+        for (const [key, value] of Object.entries(obj)) {
+          if (value !== undefined) {
+            cleaned[key] = removeUndefined(value);
+          }
+        }
+        return cleaned;
+      }
+      return obj;
+    };
+
     // Create order in Firebase
     const orderData = {
       // Payment info
@@ -230,7 +250,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           (ci) => ci.sku === product.metadata?.sku
         );
 
-        return {
+        const item: any = {
           id: lineItem.id,
           productId: product.metadata?.productId || '',
           variantId: product.metadata?.variantId || '',
@@ -239,9 +259,17 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           qty: lineItem.quantity || 1,
           unitPrice: lineItem.price?.unit_amount || 0,
           imageUrl: matchingCartItem?.imageUrl || product.images?.[0] || '',
-          size: matchingCartItem?.size,
-          color: matchingCartItem?.color,
         };
+
+        // Only add size and color if they exist (avoid undefined)
+        if (matchingCartItem?.size) {
+          item.size = matchingCartItem.size;
+        }
+        if (matchingCartItem?.color) {
+          item.color = matchingCartItem.color;
+        }
+
+        return item;
       }) || [],
       
       // Financial details (all in cents)
@@ -264,6 +292,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       paidAt: new Date(),
     };
 
+    // Remove all undefined values before saving to Firestore
+    const cleanedOrderData = removeUndefined(orderData);
+
     // Save to Firebase
     console.log('📦 Step 2: Initializing Firebase...');
     let db;
@@ -278,7 +309,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     }
     
     console.log('📦 Step 3: Saving order to Firebase...');
-    const orderRef = await db.collection('orders').add(orderData);
+    const orderRef = await db.collection('orders').add(cleanedOrderData);
     console.log('✅ Step 3: Order created in Firebase:', orderRef.id);
 
     // Send order confirmation email
@@ -309,8 +340,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       const fulfillmentMethod = (session.metadata?.fulfillmentMethod || 'delivery') as 'delivery' | 'pickup';
       
       console.log('📧 Fulfillment method:', fulfillmentMethod);
-      console.log('📧 Order items count:', orderData.items.length);
-      console.log('📧 Items summary:', JSON.stringify(orderData.items.map(item => ({
+      console.log('📧 Order items count:', cleanedOrderData.items.length);
+      console.log('📧 Items summary:', JSON.stringify(cleanedOrderData.items.map((item: any) => ({
         title: item.title,
         qty: item.qty,
         unitPrice: item.unitPrice,
@@ -323,24 +354,24 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         customerName: customerName || 'Customer',
         orderId: orderRef.id,
         orderNumber: orderRef.id.slice(-8).toUpperCase(),
-        items: orderData.items.map(item => ({
+        items: cleanedOrderData.items.map((item: any) => ({
           title: item.title,
           qty: item.qty,
           unitPrice: item.unitPrice,
           imageUrl: item.imageUrl,
         })),
-        subtotal: orderData.subtotal,
-        shipping: orderData.shipping,
-        tax: orderData.tax,
-        total: orderData.total,
-        currency: orderData.currency,
+        subtotal: cleanedOrderData.subtotal,
+        shipping: cleanedOrderData.shipping,
+        tax: cleanedOrderData.tax,
+        total: cleanedOrderData.total,
+        currency: cleanedOrderData.currency,
         fulfillmentMethod,
-        shippingAddress: orderData.shippingAddress || undefined,
+        shippingAddress: cleanedOrderData.shippingAddress || undefined,
       };
       
       console.log('📧 Email data prepared:', JSON.stringify({
         ...emailData,
-        items: emailData.items.map(i => ({ ...i, imageUrl: i.imageUrl ? 'SET' : 'NOT SET' })),
+        items: emailData.items.map((i: any) => ({ ...i, imageUrl: i.imageUrl ? 'SET' : 'NOT SET' })),
       }, null, 2));
       
       try {
