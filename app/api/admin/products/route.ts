@@ -176,6 +176,7 @@ export async function POST(request: NextRequest) {
       galleryImageUrls: body.galleryImageUrls || body.images || [],
       primaryImageAlt: body.primaryImageAlt || body.name,
       colorImageMappings,
+      tags: Array.isArray(body.tags) ? body.tags : [],
       descriptionHtml: body.description ? `<p>${body.description}</p>` : '',
       published: status === 'ACTIVE', // Derived from status
       createdAt: new Date(),
@@ -349,6 +350,7 @@ export async function PUT(request: NextRequest) {
       galleryImageUrls: body.galleryImageUrls || body.images || existingData?.galleryImageUrls || [],
       primaryImageAlt: body.primaryImageAlt || body.name || existingData?.primaryImageAlt,
       colorImageMappings: body.colorImageMappings || [],
+      tags: Array.isArray(body.tags) ? body.tags : (existingData?.tags || []),
       descriptionHtml: body.description ? `<p>${body.description}</p>` : '',
       published: status === 'ACTIVE',
       updatedAt: new Date(),

@@ -192,6 +192,15 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
 
       const product = result.product;
       
+      // Debug: Log product data to see what we're getting
+      console.log('📦 Loading product data:', {
+        name: product.name,
+        tags: product.tags,
+        tagsType: typeof product.tags,
+        tagsIsArray: Array.isArray(product.tags),
+        allKeys: Object.keys(product),
+      });
+      
       // Convert price from cents to dollars
       const priceInDollars = product.price ? product.price / 100 : 0;
       const compareAtPriceInDollars = product.compareAtPrice ? product.compareAtPrice / 100 : undefined;
@@ -206,6 +215,19 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
         price: v.price ? v.price / 100 : undefined,
         salePrice: v.salePrice ? v.salePrice / 100 : undefined,
       }));
+
+      // Handle tags - ensure it's always an array
+      let tags = [];
+      if (product.tags) {
+        if (Array.isArray(product.tags)) {
+          tags = product.tags;
+        } else if (typeof product.tags === 'string') {
+          // Handle case where tags might be stored as comma-separated string
+          tags = product.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
+        }
+      }
+
+      console.log('🏷️ Processed tags:', tags);
 
       // Reset form with product data
       reset({
@@ -226,7 +248,7 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
         variants: variants,
         colorImageMappings: product.colorImageMappings || [],
         sleeve: product.sleeve || undefined,
-        tags: product.tags || [],
+        tags: tags, // Use processed tags array
         rating: product.rating || undefined,
         numReviews: product.numReviews || undefined,
       });
