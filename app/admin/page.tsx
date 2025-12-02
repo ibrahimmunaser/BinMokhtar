@@ -167,8 +167,8 @@ export default function AdminDashboard() {
               <thead className="bg-surface-3 border-b border-line">
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-medium">Product</th>
-                  <th className="px-6 py-4 text-left text-sm font-medium">Audience</th>
                   <th className="px-6 py-4 text-left text-sm font-medium">Category</th>
+                  <th className="px-6 py-4 text-left text-sm font-medium">Subcategory</th>
                   <th className="px-6 py-4 text-left text-sm font-medium">Price</th>
                   <th className="px-6 py-4 text-left text-sm font-medium">Stock</th>
                   <th className="px-6 py-4 text-left text-sm font-medium">Status</th>
@@ -190,13 +190,13 @@ export default function AdminDashboard() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="px-3 py-1 bg-blue-500/10 text-blue-600 rounded-full text-sm font-mono">
-                        {product.audience === 'CHILDREN' ? 'BOYS' : (product.audience || '❌ MISSING')}
+                      <span className="px-3 py-1 bg-blue-500/10 text-blue-600 rounded-full text-sm">
+                        {product.categoryId || '—'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <span className="px-3 py-1 bg-surface-3 rounded-full text-sm">
-                        {product.categoryId}
+                        {product.subcategory || '—'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
