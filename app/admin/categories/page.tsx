@@ -3,61 +3,96 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAdminAuthenticated, clearAdminSession } from '@/lib/adminAuth';
-import { getAllCategories, addCategory, deleteCategory, updateCategory } from '@/lib/firebaseAdminStore';
 import Link from 'next/link';
-import { ArrowLeft, LogOut, Edit, Trash2, Plus } from 'lucide-react';
+import { ArrowLeft, LogOut, ChevronDown, ChevronRight } from 'lucide-react';
+
+// Define the category structure that matches the product form and navigation
+const CATEGORY_STRUCTURE = [
+  {
+    id: 'men',
+    name: 'Men',
+    slug: 'men',
+    description: 'Traditional Islamic attire for men',
+    subcategories: [
+      { id: 'emirati', name: 'Emirati', slug: 'emirati', description: 'Emirati style thobes' },
+      { id: 'saudi', name: 'Saudi', slug: 'saudi', description: 'Saudi style thobes' },
+    ],
+  },
+  {
+    id: 'boys',
+    name: 'Boys',
+    slug: 'boys',
+    description: 'Traditional Islamic attire for boys',
+    subcategories: [
+      { id: 'thobes', name: 'Thobes', slug: 'thobes', description: 'Boys thobes' },
+    ],
+  },
+  {
+    id: 'shemaghs',
+    name: 'Shemaghs',
+    slug: 'shemaghs',
+    description: 'Traditional head scarves',
+    subcategories: [
+      { id: 'traditional', name: 'Traditional', slug: 'traditional', description: 'Traditional shemaghs' },
+      { id: 'yemeni', name: 'Yemeni', slug: 'yemeni', description: 'Yemeni style shemaghs' },
+    ],
+  },
+];
 
 export default function CategoriesPage() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newCategory, setNewCategory] = useState({ name: '', description: '' });
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(['men', 'boys', 'shemaghs']);
+  const [productCounts, setProductCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!isAdminAuthenticated()) {
       router.push('/admin/login');
     } else {
       setIsAuthenticated(true);
-      // Load categories from Firebase
-      getAllCategories().then(cats => setCategories(cats));
+      // Fetch product counts per category
+      fetchProductCounts();
     }
-  }, [router, refreshKey]);
+  }, [router]);
+
+  const fetchProductCounts = async () => {
+    try {
+      const response = await fetch('/api/admin/products');
+      const data = await response.json();
+      if (data.success && data.products) {
+        const counts: Record<string, number> = {};
+        data.products.forEach((product: any) => {
+          const categoryId = product.categoryId;
+          const subcategory = product.subcategory;
+          
+          // Count by category
+          if (categoryId) {
+            counts[categoryId] = (counts[categoryId] || 0) + 1;
+          }
+          
+          // Count by subcategory
+          if (subcategory) {
+            counts[`${categoryId}-${subcategory}`] = (counts[`${categoryId}-${subcategory}`] || 0) + 1;
+          }
+        });
+        setProductCounts(counts);
+      }
+    } catch (error) {
+      console.error('Error fetching product counts:', error);
+    }
+  };
 
   const handleLogout = () => {
     clearAdminSession();
     router.push('/admin/login');
   };
 
-  const handleAddCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await addCategory(newCategory);
-    setNewCategory({ name: '', description: '' });
-    setShowAddModal(false);
-    setRefreshKey(prev => prev + 1); // Force refresh
-    alert('✓ Category saved to Firebase!');
-  };
-
-  const handleDelete = async (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId);
-    if (category && category.productCount > 0) {
-      alert(`Cannot delete category with ${category.productCount} products. Please move or delete the products first.`);
-      return;
-    }
-    if (confirm('Are you sure you want to delete this category?')) {
-      await deleteCategory(categoryId);
-      setRefreshKey(prev => prev + 1); // Force refresh
-      alert('✓ Category deleted from Firebase!');
-    }
-  };
-
-  const toggleActive = async (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId);
-    if (category) {
-      await updateCategory(categoryId, { active: !category.active });
-      setRefreshKey(prev => prev + 1); // Force refresh
-    }
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories(prev => 
+      prev.includes(categoryId) 
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    );
   };
 
   if (!isAuthenticated) {
@@ -112,136 +147,112 @@ export default function CategoriesPage() {
       </header>
 
       <div className="container-wide py-12">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <Link href="/admin" className="flex items-center gap-2 text-bmr-muted hover:text-bmr-ink mb-4">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </Link>
-            <h1 className="font-display text-3xl lg:text-4xl">Categories</h1>
-          </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="btn-primary flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Add Category
-          </button>
+        <div className="mb-8">
+          <Link href="/admin" className="flex items-center gap-2 text-bmr-muted hover:text-bmr-ink mb-4">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Dashboard
+          </Link>
+          <h1 className="font-display text-3xl lg:text-4xl mb-2">Categories</h1>
+          <p className="text-bmr-muted">Product categories and subcategories for your store</p>
         </div>
 
         <div className="bg-surface-2 rounded-lg border border-line overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-surface-3 border-b border-line">
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-medium">Name</th>
-                <th className="px-6 py-4 text-left text-sm font-medium">Description</th>
-                <th className="px-6 py-4 text-left text-sm font-medium">Products</th>
-                <th className="px-6 py-4 text-left text-sm font-medium">Status</th>
-                <th className="px-6 py-4 text-right text-sm font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {categories.map((category) => (
-                <tr key={category.id} className="hover:bg-surface-3 transition-colors">
-                  <td className="px-6 py-4">
-                    <div>
-                      <p className="font-medium">{category.name}</p>
-                      <p className="text-sm text-bmr-muted">/{category.slug}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm text-bmr-muted">{category.description}</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 bg-surface-3 rounded-full text-sm">
-                      {category.productCount} products
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => toggleActive(category.id)}
-                      className={`px-3 py-1 rounded-full text-sm ${
-                        category.active
-                          ? 'bg-bmr-acc-green/10 text-bmr-acc-green'
-                          : 'bg-bmr-muted/10 text-bmr-muted'
-                      }`}
-                    >
-                      {category.active ? 'Active' : 'Inactive'}
-                    </button>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        className="p-2 hover:bg-surface-3 rounded transition-colors"
-                        title="Edit"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(category.id)}
-                        className="p-2 hover:bg-bmr-acc-red/10 text-bmr-acc-red rounded transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Add Category Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-2 rounded-lg max-w-md w-full p-8">
-            <h2 className="font-display text-2xl mb-6">Add New Category</h2>
-            
-            <form onSubmit={handleAddCategory} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Category Name *</label>
-                <input
-                  type="text"
-                  value={newCategory.name}
-                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                  required
-                  placeholder="e.g., Abayas"
-                  className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Description</label>
-                <textarea
-                  value={newCategory.description}
-                  onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                  rows={3}
-                  placeholder="Brief description..."
-                  className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddModal(false);
-                    setNewCategory({ name: '', description: '' });
-                  }}
-                  className="btn-ghost"
+          <div className="p-6 border-b border-line bg-surface-3">
+            <div className="grid grid-cols-12 gap-4 text-sm font-medium text-bmr-muted">
+              <div className="col-span-4">Category</div>
+              <div className="col-span-4">Description</div>
+              <div className="col-span-2">Products</div>
+              <div className="col-span-2">Status</div>
+            </div>
+          </div>
+          
+          <div className="divide-y divide-line">
+            {CATEGORY_STRUCTURE.map((category) => (
+              <div key={category.id}>
+                {/* Main Category Row */}
+                <div 
+                  className="p-6 hover:bg-surface-3 transition-colors cursor-pointer"
+                  onClick={() => toggleCategory(category.id)}
                 >
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary">
-                  Add Category
-                </button>
+                  <div className="grid grid-cols-12 gap-4 items-center">
+                    <div className="col-span-4 flex items-center gap-3">
+                      {expandedCategories.includes(category.id) ? (
+                        <ChevronDown className="w-5 h-5 text-bmr-muted" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5 text-bmr-muted" />
+                      )}
+                      <div>
+                        <p className="font-semibold text-lg">{category.name}</p>
+                        <p className="text-sm text-bmr-muted">/{category.slug}</p>
+                      </div>
+                    </div>
+                    <div className="col-span-4">
+                      <p className="text-bmr-muted">{category.description}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="px-3 py-1 bg-blue-500/10 text-blue-600 rounded-full text-sm font-medium">
+                        {productCounts[category.name] || 0} products
+                      </span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="px-3 py-1 bg-bmr-acc-green/10 text-bmr-acc-green rounded-full text-sm">
+                        Active
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subcategories */}
+                {expandedCategories.includes(category.id) && category.subcategories.length > 0 && (
+                  <div className="bg-surface-3/50">
+                    {category.subcategories.map((sub) => (
+                      <div 
+                        key={sub.id}
+                        className="p-6 pl-16 border-t border-line/50 hover:bg-surface-3 transition-colors"
+                      >
+                        <div className="grid grid-cols-12 gap-4 items-center">
+                          <div className="col-span-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-bmr-muted">↳</span>
+                              <div>
+                                <p className="font-medium">{sub.name}</p>
+                                <p className="text-sm text-bmr-muted">/{category.slug}/{sub.slug}</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="col-span-4">
+                            <p className="text-bmr-muted text-sm">{sub.description}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="px-3 py-1 bg-surface-3 rounded-full text-sm">
+                              {productCounts[`${category.name}-${sub.name}`] || 0} products
+                            </span>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="px-3 py-1 bg-bmr-acc-green/10 text-bmr-acc-green rounded-full text-sm">
+                              Active
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </form>
+            ))}
           </div>
         </div>
-      )}
+
+        {/* Info Box */}
+        <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="font-semibold text-blue-900 mb-2">ℹ️ About Categories</h3>
+          <p className="text-blue-800 text-sm">
+            Categories are predefined to match your store navigation. When creating or editing products, 
+            select the appropriate Category and Subcategory. Products will automatically appear in the 
+            correct section of your storefront.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
