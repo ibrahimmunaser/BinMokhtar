@@ -55,7 +55,7 @@ export default function MensCollectionPage() {
     setIsLoading(true);
     // Import the storefront function
     import('@/lib/storefront').then(({ getStorefrontProducts }) => {
-      getStorefrontProducts('MEN').then((filtered) => {
+      getStorefrontProducts('Men').then((filtered) => {
       setProducts(filtered);
       setIsLoading(false);
       });

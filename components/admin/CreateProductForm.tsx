@@ -282,13 +282,6 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
       // Generate slug from title if not provided
       const slug = data.slug || data.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
-      // Map category to valid audience (MEN or BOYS only)
-      const getAudience = (category: string): 'MEN' | 'BOYS' => {
-        const cat = category?.toUpperCase();
-        if (cat === 'BOYS' || cat === 'GIRLS') return 'BOYS';
-        return 'MEN'; // Men, Women, Shemaghs all map to MEN
-      };
-
       // Prepare data for API
       const productData: any = {
         name: data.title,
@@ -300,7 +293,6 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
         thumbnail: data.images[0],
         categoryId: data.category,
         subcategory: data.subcategory,
-        audience: getAudience(data.category),
         sizes: data.sizes,
         colors: data.colors,
         variants: data.variants.map(v => ({

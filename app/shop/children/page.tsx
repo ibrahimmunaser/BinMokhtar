@@ -47,7 +47,7 @@ export default function ChildrenCollectionPage() {
     setIsLoading(true);
     // Import the storefront function
     import('@/lib/storefront').then(({ getStorefrontProducts }) => {
-      getStorefrontProducts('BOYS').then((filtered) => {
+      getStorefrontProducts('Boys').then((filtered) => {
       setProducts(filtered);
       setIsLoading(false);
       });

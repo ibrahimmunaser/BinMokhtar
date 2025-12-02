@@ -1,13 +1,17 @@
 // Storefront product fetching utilities
-// Filters products by status=ACTIVE and uses new image fields
+// Filters products by status=ACTIVE and uses category/subcategory
 
 import type { Product } from '@/types';
+
+// Valid categories for filtering
+export type CategoryFilter = 'Men' | 'Boys' | 'Women' | 'Girls' | 'Shemaghs';
 
 /**
  * Fetch all active products for the storefront
  * Only returns products with status='ACTIVE'
+ * @param category - Optional category to filter by (e.g., 'Men', 'Boys', 'Shemaghs')
  */
-export async function getStorefrontProducts(audience?: 'MEN' | 'BOYS'): Promise<Product[]> {
+export async function getStorefrontProducts(category?: CategoryFilter): Promise<Product[]> {
   if (typeof window === 'undefined') {
     // Server-side: return empty array, use static generation or server components
     return [];
@@ -21,12 +25,11 @@ export async function getStorefrontProducts(audience?: 'MEN' | 'BOYS'): Promise<
     if (data.success) {
       let products: Product[] = data.products || [];
       
-      // Filter by audience if specified
-      if (audience) {
-        const upper = audience.toUpperCase();
+      // Filter by category if specified
+      if (category) {
         products = products.filter((p: any) => {
-          const productAudience = p.audience || 'MEN';
-          return productAudience.toUpperCase() === upper;
+          const productCategory = p.categoryId || '';
+          return productCategory.toLowerCase() === category.toLowerCase();
         });
       }
       
