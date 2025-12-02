@@ -100,103 +100,181 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationEmailDat
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Order Confirmation</title>
+            <title>Order Confirmation - Bin Mukhtar Retail</title>
           </head>
-          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: #f5f2ee; padding: 30px; border-radius: 8px; margin-bottom: 20px;">
-              <h1 style="margin: 0; font-size: 28px; color: #111;">Thank You for Your Order!</h1>
-              <p style="margin: 10px 0 0; color: #666;">Order #${data.orderNumber}</p>
-            </div>
+          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #000000; background-color: #F7F3EF;">
+            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #F7F3EF; padding: 0; margin: 0;">
+              <tr>
+                <td align="center" style="padding: 40px 20px 30px;">
+                  <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #FFFFFF; border-radius: 8px; overflow: hidden;">
+                    <!-- Logo Header -->
+                    <tr>
+                      <td align="center" style="padding: 40px 30px 30px; background-color: #F7F3EF;">
+                        <div style="text-align: center;">
+                          <div style="font-size: 36px; font-weight: bold; letter-spacing: -0.02em; color: #000000; line-height: 1; margin-bottom: 4px;">BMR</div>
+                          <div style="font-size: 10px; letter-spacing: 0.3em; color: #000000; text-transform: uppercase; margin-top: 4px;">BIN MUKHTAR RETAIL</div>
+                        </div>
+                      </td>
+                    </tr>
+                    
+                    <!-- Thank You Header -->
+                    <tr>
+                      <td style="padding: 30px 30px 20px; background-color: #FFFFFF;">
+                        <h1 style="margin: 0; font-size: 28px; font-weight: 600; color: #000000; text-align: center; line-height: 1.2;">Thank You for Your Order!</h1>
+                        <p style="margin: 12px 0 0; font-size: 16px; color: #666666; text-align: center;">Order #${data.orderNumber}</p>
+                      </td>
+                    </tr>
 
-            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd;">
-              <h2 style="margin-top: 0; font-size: 20px; color: #111;">Order Details</h2>
-              
-              ${data.items.map(item => `
-                <div style="display: flex; gap: 15px; padding: 15px 0; border-bottom: 1px solid #eee;">
-                  ${item.imageUrl ? `
-                    <img src="${item.imageUrl}" alt="${item.title}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px;">
-                  ` : ''}
-                  <div style="flex: 1;">
-                    <h3 style="margin: 0 0 5px; font-size: 16px; color: #111;">${item.title}</h3>
-                    <p style="margin: 0; color: #666; font-size: 14px;">Quantity: ${item.qty}</p>
-                    <p style="margin: 5px 0 0; font-weight: bold; color: #111;">${formatPrice(item.unitPrice * item.qty)}</p>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
+                    <!-- Order Items -->
+                    <tr>
+                      <td style="padding: 0 30px 30px; background-color: #FFFFFF;">
+                        <h2 style="margin: 0 0 20px; font-size: 18px; font-weight: 600; color: #000000; text-transform: uppercase; letter-spacing: 0.05em;">Your Order</h2>
+                        ${data.items.map(item => `
+                          <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #F7F3EF;">
+                            <tr>
+                              ${item.imageUrl ? `
+                                <td style="width: 100px; padding-right: 15px; vertical-align: top;">
+                                  <img src="${item.imageUrl}" alt="${item.title}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px; display: block;">
+                                </td>
+                              ` : ''}
+                              <td style="vertical-align: top;">
+                                <h3 style="margin: 0 0 8px; font-size: 16px; font-weight: 500; color: #000000; line-height: 1.4;">${item.title}</h3>
+                                <p style="margin: 0 0 8px; font-size: 14px; color: #666666;">Quantity: ${item.qty}</p>
+                                <p style="margin: 0; font-size: 16px; font-weight: 600; color: #000000;">${formatPrice(item.unitPrice * item.qty)}</p>
+                              </td>
+                            </tr>
+                          </table>
+                        `).join('')}
+                      </td>
+                    </tr>
 
-            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd;">
-              <h2 style="margin-top: 0; font-size: 20px; color: #111;">Order Summary</h2>
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td style="padding: 8px 0; color: #666;">Subtotal:</td>
-                  <td style="text-align: right; padding: 8px 0; color: #111;">${formatPrice(data.subtotal)}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #666;">Shipping:</td>
-                  <td style="text-align: right; padding: 8px 0; color: #111;">${data.shipping > 0 ? formatPrice(data.shipping) : 'FREE'}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #666;">Tax:</td>
-                  <td style="text-align: right; padding: 8px 0; color: #111;">${formatPrice(data.tax)}</td>
-                </tr>
-                <tr style="border-top: 2px solid #111;">
-                  <td style="padding: 12px 0; font-weight: bold; color: #111; font-size: 18px;">Total:</td>
-                  <td style="text-align: right; padding: 12px 0; font-weight: bold; color: #111; font-size: 18px;">${formatPrice(data.total)}</td>
-                </tr>
-              </table>
-            </div>
+                    <!-- Order Summary -->
+                    <tr>
+                      <td style="padding: 0 30px 30px; background-color: #FFFFFF;">
+                        <h2 style="margin: 0 0 20px; font-size: 18px; font-weight: 600; color: #000000; text-transform: uppercase; letter-spacing: 0.05em;">Order Summary</h2>
+                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                          <tr>
+                            <td style="padding: 8px 0; font-size: 14px; color: #666666;">Subtotal</td>
+                            <td align="right" style="padding: 8px 0; font-size: 14px; color: #000000;">${formatPrice(data.subtotal)}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 8px 0; font-size: 14px; color: #666666;">Shipping</td>
+                            <td align="right" style="padding: 8px 0; font-size: 14px; color: #000000;">${data.shipping > 0 ? formatPrice(data.shipping) : 'FREE'}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 8px 0; font-size: 14px; color: #666666;">Tax</td>
+                            <td align="right" style="padding: 8px 0; font-size: 14px; color: #000000;">${formatPrice(data.tax)}</td>
+                          </tr>
+                          <tr>
+                            <td colspan="2" style="padding: 16px 0 8px; border-top: 2px solid #C8A94E;"></td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 8px 0; font-size: 18px; font-weight: 600; color: #000000;">Total</td>
+                            <td align="right" style="padding: 8px 0; font-size: 18px; font-weight: 600; color: #000000;">${formatPrice(data.total)}</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
 
-            ${data.fulfillmentMethod === 'delivery' && data.shippingAddress ? `
-              <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd;">
-                <h2 style="margin-top: 0; font-size: 20px; color: #111;">Shipping Address</h2>
-                <p style="margin: 5px 0; color: #666;">
-                  ${data.shippingAddress.fullName}<br>
-                  ${data.shippingAddress.address}${data.shippingAddress.address2 ? `<br>${data.shippingAddress.address2}` : ''}<br>
-                  ${data.shippingAddress.city}, ${data.shippingAddress.state} ${data.shippingAddress.zip}<br>
-                  ${data.shippingAddress.country}
-                </p>
-              </div>
-            ` : ''}
+                    <!-- Shipping Address -->
+                    ${data.fulfillmentMethod === 'delivery' && data.shippingAddress ? `
+                      <tr>
+                        <td style="padding: 0 30px 30px; background-color: #FFFFFF;">
+                          <h2 style="margin: 0 0 20px; font-size: 18px; font-weight: 600; color: #000000; text-transform: uppercase; letter-spacing: 0.05em;">Shipping Address</h2>
+                          <div style="font-size: 14px; color: #666666; line-height: 1.8;">
+                            <div style="color: #000000; font-weight: 500; margin-bottom: 4px;">${data.shippingAddress.fullName}</div>
+                            <div>${data.shippingAddress.address}${data.shippingAddress.address2 ? `<br>${data.shippingAddress.address2}` : ''}</div>
+                            <div>${data.shippingAddress.city}, ${data.shippingAddress.state} ${data.shippingAddress.zip}</div>
+                            <div>${data.shippingAddress.country}</div>
+                          </div>
+                        </td>
+                      </tr>
+                    ` : ''}
 
-            ${data.fulfillmentMethod === 'pickup' ? `
-              <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ffc107;">
-                <h2 style="margin-top: 0; font-size: 20px; color: #856404;">Pickup Instructions</h2>
-                <p style="margin: 5px 0; color: #856404;">
-                  <strong>We are located in Detroit Metro Area.</strong><br>
-                  To arrange your pickup, please send us a direct message on Instagram with your order reference (#${data.orderNumber}).
-                </p>
-                <p style="margin: 15px 0 0;">
-                  <a href="https://www.instagram.com/binmukhtarretail?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" 
-                     style="display: inline-block; padding: 12px 24px; background: linear-gradient(to right, #833AB4, #E1306C); color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
-                    DM on Instagram
-                  </a>
-                </p>
-              </div>
-            ` : ''}
+                    <!-- Pickup Instructions -->
+                    ${data.fulfillmentMethod === 'pickup' ? `
+                      <tr>
+                        <td style="padding: 0 30px 30px; background-color: #FFFFFF;">
+                          <div style="background-color: #F7F3EF; padding: 20px; border-radius: 4px; border-left: 3px solid #C8A94E;">
+                            <h2 style="margin: 0 0 12px; font-size: 18px; font-weight: 600; color: #000000;">Pickup Instructions</h2>
+                            <p style="margin: 0 0 16px; font-size: 14px; color: #666666; line-height: 1.6;">
+                              <strong style="color: #000000;">We are located in Dearborn, Michigan.</strong><br>
+                              To arrange your pickup, please send us a direct message on Instagram with your order reference (#${data.orderNumber}).
+                            </p>
+                            <div style="text-align: center;">
+                              <a href="https://www.instagram.com/binmukhtarretail?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" 
+                                 style="display: inline-block; padding: 12px 24px; background: linear-gradient(to right, #833AB4, #E1306C); color: #FFFFFF; text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 14px;">
+                                DM on Instagram
+                              </a>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ` : ''}
 
-            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd;">
-              <h2 style="margin-top: 0; font-size: 20px; color: #111;">What's Next?</h2>
-              ${data.fulfillmentMethod === 'delivery' ? `
-                <p style="margin: 5px 0; color: #666;">
-                  Our team will carefully prepare your order. This usually takes 1-2 business days. Once shipped, you'll receive tracking information via email.
-                </p>
-              ` : `
-                <p style="margin: 5px 0; color: #666;">
-                  Our team will carefully prepare your order. Once ready, we'll contact you via Instagram to arrange pickup.
-                </p>
-              `}
-            </div>
+                    <!-- What Happens Next -->
+                    <tr>
+                      <td style="padding: 0 30px 30px; background-color: #FFFFFF;">
+                        <h2 style="margin: 0 0 16px; font-size: 18px; font-weight: 600; color: #000000; text-transform: uppercase; letter-spacing: 0.05em;">What Happens Next?</h2>
+                        ${data.fulfillmentMethod === 'delivery' ? `
+                          <p style="margin: 0; font-size: 14px; color: #666666; line-height: 1.8;">
+                            We're so excited to prepare your order! Our team will carefully handpick and package each item with care. Your order typically takes 1-2 business days to process. Once your package ships, you'll receive a tracking number via email so you can follow your order's journey to your door.
+                          </p>
+                        ` : `
+                          <p style="margin: 0; font-size: 14px; color: #666666; line-height: 1.8;">
+                            We're so excited to prepare your order! Our team will carefully handpick and package each item with care. Once your order is ready, we'll reach out to you via Instagram to coordinate a convenient pickup time. We can't wait to see you!
+                          </p>
+                        `}
+                      </td>
+                    </tr>
 
-            <div style="text-align: center; padding: 20px; color: #666; font-size: 14px;">
-              <p style="margin: 0;">Questions about your order?</p>
-              <p style="margin: 5px 0;">
-                <a href="mailto:${REPLY_TO_EMAIL}" style="color: #111; text-decoration: underline;">Contact us</a>
-              </p>
-              <p style="margin: 20px 0 0; font-size: 12px;">
-                © ${new Date().getFullYear()} Bin Mukhtar Retail. All rights reserved.
-              </p>
-            </div>
+                    <!-- Footer -->
+                    <tr>
+                      <td style="padding: 40px 30px; background-color: #F7F3EF; border-top: 1px solid #E5E5E5;">
+                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                          <tr>
+                            <td align="center" style="padding-bottom: 24px;">
+                              <div style="font-size: 20px; font-weight: bold; letter-spacing: -0.02em; color: #000000; line-height: 1; margin-bottom: 4px;">BMR</div>
+                              <div style="font-size: 9px; letter-spacing: 0.3em; color: #666666; text-transform: uppercase; margin-top: 4px;">BIN MUKHTAR RETAIL</div>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td align="center" style="padding-bottom: 20px;">
+                              <p style="margin: 0 0 8px; font-size: 13px; color: #666666; line-height: 1.6;">
+                                Dearborn, Michigan<br>
+                                <a href="mailto:support@binmukhtarretail.com" style="color: #C8A94E; text-decoration: none;">support@binmukhtarretail.com</a>
+                              </p>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td align="center" style="padding-bottom: 20px;">
+                              <table role="presentation" style="margin: 0 auto; border-collapse: collapse;">
+                                <tr>
+                                  <td style="padding: 0 8px;">
+                                    <a href="https://binmukhtarretail.com" style="color: #666666; text-decoration: none; font-size: 13px;">Website</a>
+                                  </td>
+                                  <td style="padding: 0 8px; color: #E5E5E5;">|</td>
+                                  <td style="padding: 0 8px;">
+                                    <a href="https://www.instagram.com/binmukhtarretail" style="color: #666666; text-decoration: none; font-size: 13px;">Instagram</a>
+                                  </td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td align="center" style="padding-top: 20px; border-top: 1px solid #E5E5E5;">
+                              <p style="margin: 0; font-size: 12px; color: #999999;">
+                                © ${new Date().getFullYear()} Bin Mukhtar Retail. All rights reserved.
+                              </p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
           </body>
         </html>
       `,
