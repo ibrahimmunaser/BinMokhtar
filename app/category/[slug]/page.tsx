@@ -72,16 +72,16 @@ const CATEGORY_STRUCTURE: Record<string, {
   },
 };
 
-// Category-specific hero images
+// Category-specific hero images (using reliable external URLs)
 const CATEGORY_HERO_IMAGES: Record<string, string> = {
-  'men': '/images/men-hero.jpg',
-  'boys': '/images/boys-hero.jpg',
-  'shemaghs': '/images/shawls hero.png',
-  'emirati': '/images/men-hero.jpg',
-  'saudi': '/images/men-hero.jpg',
-  'thobes': '/images/boys-hero.jpg',
-  'traditional': '/images/shawls hero.png',
-  'yemeni': '/images/shawls hero.png',
+  'men': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1600&h=600&fit=crop',
+  'boys': 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=1600&h=600&fit=crop',
+  'shemaghs': 'https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=1600&h=600&fit=crop',
+  'emirati': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1600&h=600&fit=crop',
+  'saudi': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1600&h=600&fit=crop',
+  'thobes': 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=1600&h=600&fit=crop',
+  'traditional': 'https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=1600&h=600&fit=crop',
+  'yemeni': 'https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=1600&h=600&fit=crop',
 };
 
 export default function CategoryPage() {
@@ -300,10 +300,6 @@ export default function CategoryPage() {
             className="object-cover"
             priority
             sizes="100vw"
-            onError={(e) => {
-              // Fallback to a default image if the hero image fails to load
-              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=600&fit=crop';
-            }}
           />
         </div>
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/60" />
