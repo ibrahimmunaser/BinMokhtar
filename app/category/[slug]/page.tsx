@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { Container } from '@/components/layout/Container';
 import { ProductCard } from '@/components/products/ProductCard';
 import { Breadcrumbs } from '@/components/products/Breadcrumbs';
-import { useCategoryBySlug, useProductsByCategory } from '@/hooks/useData';
 import { ChevronDown, X, SlidersHorizontal } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 24;
@@ -19,17 +18,70 @@ const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest' },
 ];
 
-const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
-const COLORS = ['White', 'Black', 'Beige', 'Brown', 'Navy', 'Grey', 'Red', 'Green'];
+const SIZES = ['54', '56', '58', '60', '62'];
+const COLORS = ['White', 'Black', 'Beige', 'Brown', 'Navy', 'Grey', 'Cream', 'Olive'];
+
+// Define our category structure
+const CATEGORY_STRUCTURE: Record<string, {
+  name: string;
+  description: string;
+  parent?: string;
+  subcategories?: string[];
+}> = {
+  // Main categories
+  'men': {
+    name: 'Men',
+    description: 'Traditional Islamic attire for men',
+    subcategories: ['emirati', 'saudi'],
+  },
+  'boys': {
+    name: 'Boys',
+    description: 'Traditional Islamic attire for boys',
+    subcategories: ['thobes'],
+  },
+  'shemaghs': {
+    name: 'Shemaghs',
+    description: 'Traditional head scarves',
+    subcategories: ['traditional', 'yemeni'],
+  },
+  // Subcategories
+  'emirati': {
+    name: 'Emirati',
+    description: 'Emirati style thobes',
+    parent: 'men',
+  },
+  'saudi': {
+    name: 'Saudi',
+    description: 'Saudi style thobes',
+    parent: 'men',
+  },
+  'thobes': {
+    name: 'Thobes',
+    description: 'Boys thobes',
+    parent: 'boys',
+  },
+  'traditional': {
+    name: 'Traditional',
+    description: 'Traditional shemaghs',
+    parent: 'shemaghs',
+  },
+  'yemeni': {
+    name: 'Yemeni',
+    description: 'Yemeni style shemaghs',
+    parent: 'shemaghs',
+  },
+};
 
 // Category-specific hero images
 const CATEGORY_HERO_IMAGES: Record<string, string> = {
+  'men': '/images/men-hero.jpg',
+  'boys': '/images/boys-hero.jpg',
   'shemaghs': '/images/shawls hero.png',
-  'yemeni-shals': 'https://images.unsplash.com/photo-1601513445506-2ab0d4fb4229?w=1600&h=600&fit=crop',
-  'short-sleeves': 'https://images.unsplash.com/photo-1622470953794-aa9c70b0fb9d?w=1600&h=600&fit=crop',
-  'long-sleeves': 'https://images.unsplash.com/photo-1622470953794-aa9c70b0fb9d?w=1600&h=600&fit=crop',
-  'kufis': 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=1600&h=600&fit=crop',
-  'accessories': 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=1600&h=600&fit=crop',
+  'emirati': '/images/men-hero.jpg',
+  'saudi': '/images/men-hero.jpg',
+  'thobes': '/images/boys-hero.jpg',
+  'traditional': '/images/shawls hero.png',
+  'yemeni': '/images/shawls hero.png',
 };
 
 export default function CategoryPage() {
@@ -38,12 +90,14 @@ export default function CategoryPage() {
   const searchParams = useSearchParams();
   const slug = params.slug as string;
   
-  const { category, isLoading: categoryLoading } = useCategoryBySlug(slug);
-  const { products: allProducts, isLoading: productsLoading } = useProductsByCategory(
-    category?.id || null
-  );
-  
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(true);
+  
+  // Get category info from our structure
+  const categoryInfo = CATEGORY_STRUCTURE[slug.toLowerCase()];
+  const isSubcategory = categoryInfo?.parent !== undefined;
+  const parentCategory = isSubcategory ? CATEGORY_STRUCTURE[categoryInfo.parent!] : null;
   
   // Get filter/sort values from URL
   const sortBy = searchParams?.get('sort') || 'featured';
@@ -52,6 +106,52 @@ export default function CategoryPage() {
   const selectedColors = searchParams?.get('colors')?.split(',').filter(Boolean) || [];
   const minPrice = searchParams?.get('minPrice') || '';
   const maxPrice = searchParams?.get('maxPrice') || '';
+
+  // Fetch products based on category/subcategory
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/admin/products?status=ACTIVE');
+        const data = await response.json();
+        
+        if (data.success && data.products) {
+          let filtered = data.products;
+          
+          if (isSubcategory) {
+            // Filter by subcategory (case-insensitive)
+            const subcategoryName = categoryInfo.name;
+            const parentCategoryName = parentCategory?.name;
+            
+            filtered = filtered.filter((p: any) => {
+              const matchesSubcategory = p.subcategory?.toLowerCase() === subcategoryName.toLowerCase();
+              const matchesParentCategory = parentCategoryName ? 
+                p.categoryId?.toLowerCase() === parentCategoryName.toLowerCase() : true;
+              return matchesSubcategory && matchesParentCategory;
+            });
+          } else {
+            // Filter by main category
+            const categoryName = categoryInfo?.name;
+            filtered = filtered.filter((p: any) => 
+              p.categoryId?.toLowerCase() === categoryName?.toLowerCase()
+            );
+          }
+          
+          setProducts(filtered);
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        setProducts([]);
+      }
+      setIsLoading(false);
+    };
+
+    if (categoryInfo) {
+      fetchProducts();
+    } else {
+      setIsLoading(false);
+    }
+  }, [slug, categoryInfo, isSubcategory, parentCategory]);
 
   // Update URL with new params
   const updateFilters = (key: string, value: string | string[]) => {
@@ -92,7 +192,7 @@ export default function CategoryPage() {
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
-    let filtered = [...(allProducts || [])];
+    let filtered = [...products];
 
     // Filter by sizes
     if (selectedSizes.length > 0) {
@@ -128,21 +228,20 @@ export default function CategoryPage() {
         break;
       case 'newest':
         filtered.sort((a, b) => {
-          const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : (a.createdAt as any)?.seconds * 1000 || 0;
-          const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : (b.createdAt as any)?.seconds * 1000 || 0;
+          const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime() || 0;
+          const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime() || 0;
           return bTime - aTime;
         });
         break;
       default: // featured
         filtered.sort((a, b) => {
-          // Sort by featured flag first, then by rating
           if (a.featured !== b.featured) return a.featured ? -1 : 1;
           return (b.counts?.ratingAvg || 0) - (a.counts?.ratingAvg || 0);
         });
     }
 
     return filtered;
-  }, [allProducts, selectedSizes, selectedColors, minPrice, maxPrice, sortBy]);
+  }, [products, selectedSizes, selectedColors, minPrice, maxPrice, sortBy]);
 
   // Pagination
   const totalItems = filteredProducts.length;
@@ -155,21 +254,15 @@ export default function CategoryPage() {
   const activeFiltersCount = selectedSizes.length + selectedColors.length + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0);
 
   // Get hero image for category
-  const heroImage = CATEGORY_HERO_IMAGES[slug] || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=600&fit=crop';
+  const heroImage = CATEGORY_HERO_IMAGES[slug.toLowerCase()] || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=600&fit=crop';
 
-  if (categoryLoading || productsLoading) {
-    return (
-      <Container className="py-12">
-        <div className="text-center text-muted">Loading...</div>
-      </Container>
-    );
-  }
-
-  if (!category) {
+  // Category not found
+  if (!categoryInfo) {
     return (
       <Container className="py-12">
         <div className="text-center">
           <h1 className="text-2xl font-display mb-4">Category not found</h1>
+          <p className="text-muted mb-6">The category "{slug}" doesn't exist.</p>
           <Link href="/shop" className="text-muted hover:text-bmr-ink underline">
             Back to shop
           </Link>
@@ -178,6 +271,23 @@ export default function CategoryPage() {
     );
   }
 
+  // Build breadcrumbs
+  const breadcrumbItems = [
+    { label: 'Shop', href: '/shop' },
+  ];
+  
+  if (isSubcategory && parentCategory) {
+    breadcrumbItems.push({
+      label: parentCategory.name,
+      href: `/category/${categoryInfo.parent}`,
+    });
+  }
+  
+  breadcrumbItems.push({
+    label: categoryInfo.name,
+    href: `/category/${slug}`,
+  });
+
   return (
     <>
       {/* Hero Banner */}
@@ -185,19 +295,23 @@ export default function CategoryPage() {
         <div className="absolute inset-0">
           <Image
             src={heroImage}
-            alt={category.name}
+            alt={categoryInfo.name}
             fill
             className="object-cover"
             priority
             sizes="100vw"
+            onError={(e) => {
+              // Fallback to a default image if the hero image fails to load
+              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=600&fit=crop';
+            }}
           />
         </div>
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/60" />
         <Container className="relative h-full flex items-center justify-center">
           <div className="text-center text-white">
-            <h1 className="font-display text-4xl lg:text-6xl mb-3">{category.name.toUpperCase()}</h1>
-            {category.description && (
-              <p className="text-lg lg:text-xl text-white/90">{category.description}</p>
+            <h1 className="font-display text-4xl lg:text-6xl mb-3">{categoryInfo.name.toUpperCase()}</h1>
+            {categoryInfo.description && (
+              <p className="text-lg lg:text-xl text-white/90">{categoryInfo.description}</p>
             )}
           </div>
         </Container>
@@ -209,18 +323,15 @@ export default function CategoryPage() {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             {/* Left: Breadcrumb */}
             <div className="hidden lg:block">
-              <Breadcrumbs
-                items={[
-                  { label: 'Shop', href: '/shop' },
-                  { label: category.name, href: `/category/${slug}` },
-                ]}
-              />
+              <Breadcrumbs items={breadcrumbItems} />
             </div>
 
             {/* Center/Left: Item count */}
             <div className="text-sm text-muted">
-              {productsLoading ? (
+              {isLoading ? (
                 'Loading...'
+              ) : totalItems === 0 ? (
+                'No products found'
               ) : (
                 `Showing ${startIndex + 1}–${Math.min(endIndex, totalItems)} of ${totalItems}`
               )}
@@ -312,25 +423,27 @@ export default function CategoryPage() {
 
               {/* Filter Controls */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Size */}
-                <div>
-                  <label className="block text-sm font-medium mb-3">Size</label>
-                  <div className="flex flex-wrap gap-2">
-                    {SIZES.map(size => (
-                      <button
-                        key={size}
-                        onClick={() => toggleFilter('sizes', size, selectedSizes)}
-                        className={`px-4 py-2 text-sm border rounded transition-colors ${
-                          selectedSizes.includes(size)
-                            ? 'bg-bmr-ink text-surface-2 border-bmr-ink'
-                            : 'border-line hover:border-bmr-ink'
-                        }`}
-                      >
-                        {size}
-                      </button>
-                    ))}
+                {/* Size - Only show for non-shemagh categories */}
+                {slug.toLowerCase() !== 'shemaghs' && slug.toLowerCase() !== 'traditional' && slug.toLowerCase() !== 'yemeni' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-3">Size</label>
+                    <div className="flex flex-wrap gap-2">
+                      {SIZES.map(size => (
+                        <button
+                          key={size}
+                          onClick={() => toggleFilter('sizes', size, selectedSizes)}
+                          className={`px-4 py-2 text-sm border rounded transition-colors ${
+                            selectedSizes.includes(size)
+                              ? 'bg-bmr-ink text-surface-2 border-bmr-ink'
+                              : 'border-line hover:border-bmr-ink'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Color */}
                 <div>
@@ -382,19 +495,28 @@ export default function CategoryPage() {
       {/* Product Grid */}
       <section className="py-12 lg:py-16 bg-surface-1">
         <Container>
-          {productsLoading ? (
-            <div className="text-center py-20 text-muted">Loading products...</div>
+          {isLoading ? (
+            <div className="text-center py-20">
+              <div className="animate-spin w-8 h-8 border-2 border-bmr-ink border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-muted">Loading products...</p>
+            </div>
           ) : filteredProducts.length === 0 ? (
             // Empty State
             <div className="text-center py-20">
               <h3 className="font-display text-2xl mb-4">No products found</h3>
-              <p className="text-muted mb-6">Try adjusting your filters or browse all products</p>
-              <button
-                onClick={clearAllFilters}
-                className="px-8 py-3 bg-bmr-ink text-surface-2 rounded hover:bg-bmr-fg transition-colors"
-              >
-                Clear filters
-              </button>
+              <p className="text-muted mb-6">
+                {activeFiltersCount > 0 
+                  ? 'Try adjusting your filters or browse all products'
+                  : 'No products have been added to this category yet'}
+              </p>
+              {activeFiltersCount > 0 && (
+                <button
+                  onClick={clearAllFilters}
+                  className="px-8 py-3 bg-bmr-ink text-surface-2 rounded hover:bg-bmr-fg transition-colors"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
           ) : (
             <>
@@ -407,16 +529,16 @@ export default function CategoryPage() {
                       id: product.id,
                       productId: product.id,
                       productSlug: product.slug,
-                      productTitleEn: product.titleEn || '',
+                      productTitleEn: product.name || product.titleEn || '',
                       productTitleAr: product.titleAr || '',
-                      category: product.category || 'THOBE',
+                      category: product.categoryId || 'THOBE',
                       sku: product.id,
                       size: product.sizes?.[0],
                       price: product.price || product.basePrice,
-                      compareAt: undefined,
-                      stock: product.counts?.totalStock ?? 0,
+                      compareAt: product.compareAtPrice || undefined,
+                      stock: product.counts?.totalStock ?? product.stock ?? 0,
                       active: true,
-                      imageUrl: product.defaultImage?.url || '',
+                      imageUrl: product.primaryImageUrl || product.images?.[0] || product.thumbnail || '',
                       createdAt: product.createdAt,
                       updatedAt: product.updatedAt,
                     }}
@@ -440,11 +562,9 @@ export default function CategoryPage() {
                   {/* Page Numbers */}
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter(p => {
-                      // Show first, last, current, and neighbors
                       return p === 1 || p === totalPages || Math.abs(p - page) <= 1;
                     })
                     .map((p, i, arr) => {
-                      // Add ellipsis
                       if (i > 0 && p - arr[i - 1] > 1) {
                         return (
                           <span key={`ellipsis-${p}`} className="px-2">...</span>
