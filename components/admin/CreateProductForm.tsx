@@ -554,8 +554,8 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
             
             <div className="space-y-6">
               {/* Size and Color Selection */}
-              <div className={subcategory === 'Shemaghs' ? 'grid grid-cols-1 gap-6' : 'grid md:grid-cols-2 gap-6'}>
-                {subcategory !== 'Shemaghs' && (
+              <div className={category === 'Shemaghs' ? 'grid grid-cols-1 gap-6' : 'grid md:grid-cols-2 gap-6'}>
+                {category !== 'Shemaghs' && (
                   <Controller
                     name="sizes"
                     control={control}
