@@ -136,10 +136,12 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   console.log('🎉 Checkout session completed:', session.id);
 
   try {
+    console.log('📦 Step 1: Retrieving full session with line items...');
     // Retrieve full session with line items
     const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
       expand: ['line_items', 'line_items.data.price.product'],
     });
+    console.log('✅ Step 1: Session retrieved successfully');
 
     // Parse cart items from metadata
     const cartItemsStr = session.metadata?.cartItems;
@@ -241,9 +243,21 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     };
 
     // Save to Firebase
-    const orderRef = await adminDb().collection('orders').add(orderData);
+    console.log('📦 Step 2: Initializing Firebase...');
+    let db;
+    try {
+      db = adminDb();
+      console.log('✅ Step 2: Firebase initialized');
+    } catch (firebaseError: any) {
+      console.error('❌ Firebase initialization failed:', firebaseError);
+      console.error('❌ Error message:', firebaseError?.message);
+      console.error('❌ Check FIREBASE_SERVICE_ACCOUNT_JSON in Render environment variables');
+      throw new Error(`Firebase initialization failed: ${firebaseError?.message}`);
+    }
     
-    console.log('✅ Order created in Firebase:', orderRef.id);
+    console.log('📦 Step 3: Saving order to Firebase...');
+    const orderRef = await db.collection('orders').add(orderData);
+    console.log('✅ Step 3: Order created in Firebase:', orderRef.id);
 
     // Send order confirmation email
     console.log('📧 ===== EMAIL SENDING STARTED =====');
