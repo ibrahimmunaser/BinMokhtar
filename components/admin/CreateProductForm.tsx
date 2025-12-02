@@ -146,7 +146,7 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
       title: '',
       slug: undefined,
       brand: 'Bin Mukhtar Retail',
-      status: 'DRAFT' as const,
+      status: 'ACTIVE' as const, // Default to ACTIVE so products show on storefront immediately
       price: 0,
       salePrice: undefined,
       images: [],
@@ -287,6 +287,8 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
         name: data.title,
         slug: slug,
         subtitle: '',
+        brand: data.brand || 'Bin Mukhtar Retail',
+        status: data.status || 'ACTIVE', // Default to ACTIVE so products show on storefront
         price: data.salePrice ? data.salePrice.toString() : data.price.toString(), // Use sale price if provided, otherwise regular price
         compareAtPrice: data.salePrice ? data.price.toString() : undefined, // If there's a sale price, the regular price becomes compareAt
         images: data.images,
