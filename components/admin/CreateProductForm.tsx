@@ -23,7 +23,7 @@ const CATEGORY_TREE: Record<string, { subcategories: string[] }> = {
 };
 
 // Available sizes and colors
-const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'];
+const SIZE_OPTIONS = ['54', '56', '58', '60', '62'];
 const COLOR_OPTIONS = ['White', 'Black', 'Beige', 'Brown', 'Navy', 'Grey', 'Cream', 'Olive'];
 
 // Variant interface - Extended with new required fields
