@@ -94,11 +94,28 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        console.log('🎉 Processing checkout.session.completed');
+        console.log('🎉 ===== PROCESSING checkout.session.completed =====');
+        console.log('📧 Session ID:', session.id);
         console.log('📧 Session customer email:', session.customer_email);
-        console.log('📧 Session customer_details:', session.customer_details);
-        console.log('📧 Session metadata:', session.metadata);
-        await handleCheckoutSessionCompleted(session);
+        console.log('📧 Session customer_details:', JSON.stringify(session.customer_details, null, 2));
+        console.log('📧 Session metadata:', JSON.stringify(session.metadata, null, 2));
+        console.log('📧 Session payment_status:', session.payment_status);
+        console.log('📧 Session status:', session.status);
+        console.log('📧 Session amount_total:', session.amount_total);
+        
+        try {
+          await handleCheckoutSessionCompleted(session);
+          console.log('✅ ===== checkout.session.completed HANDLED SUCCESSFULLY =====');
+        } catch (handlerError: any) {
+          console.error('❌ ===== ERROR IN handleCheckoutSessionCompleted =====');
+          console.error('❌ Error type:', handlerError?.constructor?.name);
+          console.error('❌ Error message:', handlerError?.message);
+          console.error('❌ Error stack:', handlerError?.stack);
+          console.error('❌ Full error:', JSON.stringify(handlerError, Object.getOwnPropertyNames(handlerError), 2));
+          // Don't fail the webhook - return 200 so Stripe doesn't retry
+          // But log the error clearly
+          console.error('⚠️ Returning 200 to prevent Stripe retries, but email may not have been sent');
+        }
         break;
       }
 
@@ -115,12 +132,17 @@ export async function POST(request: NextRequest) {
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        console.log(`⚠️ Unhandled event type: ${event.type}`);
     }
 
+    console.log('✅ ===== WEBHOOK PROCESSING COMPLETE =====');
     return NextResponse.json({ received: true });
   } catch (error: any) {
-    console.error('❌ Error handling webhook:', error);
+    console.error('❌ ===== CRITICAL ERROR HANDLING WEBHOOK =====');
+    console.error('❌ Error type:', error?.constructor?.name);
+    console.error('❌ Error message:', error?.message);
+    console.error('❌ Error stack:', error?.stack);
+    console.error('❌ Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     return NextResponse.json(
       { error: 'Webhook handler failed', message: error.message },
       { status: 500 }
@@ -261,74 +283,104 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
     // Send order confirmation email
     console.log('📧 ===== EMAIL SENDING STARTED =====');
+    console.log('📧 Timestamp:', new Date().toISOString());
     console.log('📧 Customer email:', customerEmail);
     console.log('📧 Customer name:', customerName);
     console.log('📧 Order ID:', orderRef.id);
     console.log('📧 Order number:', orderRef.id.slice(-8).toUpperCase());
-    console.log('📧 Resend API key configured:', !!process.env.RESEND_API_KEY);
-    console.log('📧 RESEND_API_KEY length:', process.env.RESEND_API_KEY?.length || 0);
-    console.log('📧 RESEND_API_KEY starts with "re_":', process.env.RESEND_API_KEY?.startsWith('re_') || false);
+    console.log('📧 Environment variables check:');
+    console.log('  - RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
+    console.log('  - RESEND_API_KEY length:', process.env.RESEND_API_KEY?.length || 0);
+    console.log('  - RESEND_API_KEY starts with "re_":', process.env.RESEND_API_KEY?.startsWith('re_') || false);
+    console.log('  - RESEND_API_KEY first 10 chars:', process.env.RESEND_API_KEY?.substring(0, 10) || 'NOT SET');
+    console.log('  - FROM_EMAIL:', process.env.FROM_EMAIL || 'NOT SET');
+    console.log('  - REPLY_TO_EMAIL:', process.env.REPLY_TO_EMAIL || 'NOT SET');
     
-    if (customerEmail) {
+    if (!customerEmail) {
+      console.error('❌ ===== NO CUSTOMER EMAIL - CANNOT SEND EMAIL =====');
+      console.error('❌ Session customer_email:', session.customer_email);
+      console.error('❌ Session customer_details:', JSON.stringify(session.customer_details, null, 2));
+      console.error('❌ Skipping email send - no email address available');
+    } else if (!process.env.RESEND_API_KEY) {
+      console.error('❌ ===== RESEND_API_KEY NOT CONFIGURED =====');
+      console.error('❌ Cannot send email - RESEND_API_KEY missing in environment variables');
+      console.error('❌ Add RESEND_API_KEY to Render environment variables');
+    } else {
       const fulfillmentMethod = (session.metadata?.fulfillmentMethod || 'delivery') as 'delivery' | 'pickup';
       
       console.log('📧 Fulfillment method:', fulfillmentMethod);
       console.log('📧 Order items count:', orderData.items.length);
-      console.log('📧 Items:', JSON.stringify(orderData.items.map(item => ({
+      console.log('📧 Items summary:', JSON.stringify(orderData.items.map(item => ({
         title: item.title,
         qty: item.qty,
         unitPrice: item.unitPrice,
+        hasImage: !!item.imageUrl,
       })), null, 2));
       
+      console.log('📧 Preparing email data...');
+      const emailData = {
+        customerEmail,
+        customerName: customerName || 'Customer',
+        orderId: orderRef.id,
+        orderNumber: orderRef.id.slice(-8).toUpperCase(),
+        items: orderData.items.map(item => ({
+          title: item.title,
+          qty: item.qty,
+          unitPrice: item.unitPrice,
+          imageUrl: item.imageUrl,
+        })),
+        subtotal: orderData.subtotal,
+        shipping: orderData.shipping,
+        tax: orderData.tax,
+        total: orderData.total,
+        currency: orderData.currency,
+        fulfillmentMethod,
+        shippingAddress: orderData.shippingAddress || undefined,
+      };
+      
+      console.log('📧 Email data prepared:', JSON.stringify({
+        ...emailData,
+        items: emailData.items.map(i => ({ ...i, imageUrl: i.imageUrl ? 'SET' : 'NOT SET' })),
+      }, null, 2));
+      
       try {
-        console.log('📧 Calling sendOrderConfirmationEmail...');
-        const emailResult = await sendOrderConfirmationEmail({
-          customerEmail,
-          customerName: customerName || 'Customer',
-          orderId: orderRef.id,
-          orderNumber: orderRef.id.slice(-8).toUpperCase(),
-          items: orderData.items.map(item => ({
-            title: item.title,
-            qty: item.qty,
-            unitPrice: item.unitPrice,
-            imageUrl: item.imageUrl,
-          })),
-          subtotal: orderData.subtotal,
-          shipping: orderData.shipping,
-          tax: orderData.tax,
-          total: orderData.total,
-          currency: orderData.currency,
-          fulfillmentMethod,
-          shippingAddress: orderData.shippingAddress || undefined,
-        });
-
-        console.log('📧 Email result received:', JSON.stringify(emailResult, null, 2));
+        console.log('📧 Calling sendOrderConfirmationEmail function...');
+        const startTime = Date.now();
+        const emailResult = await sendOrderConfirmationEmail(emailData);
+        const duration = Date.now() - startTime;
+        
+        console.log('📧 Email function completed in', duration, 'ms');
+        console.log('📧 Email result:', JSON.stringify(emailResult, null, 2));
         
         if (emailResult.success) {
           console.log('✅ ===== EMAIL SENT SUCCESSFULLY =====');
           console.log('✅ Order confirmation email sent successfully to:', customerEmail);
           console.log('✅ Email ID:', emailResult.emailId);
           console.log('✅ Timestamp:', new Date().toISOString());
+          console.log('✅ Duration:', duration, 'ms');
         } else {
           console.error('❌ ===== EMAIL SEND FAILED =====');
           console.error('❌ Failed to send order confirmation email');
           console.error('❌ Error:', emailResult.error);
-          console.error('❌ Check RESEND_API_KEY in Render environment variables');
-          console.error('❌ Check Resend dashboard for domain verification');
-          console.error('❌ Check spam folder for test emails');
+          console.error('❌ Duration:', duration, 'ms');
+          console.error('❌ Troubleshooting steps:');
+          console.error('  1. Check RESEND_API_KEY in Render environment variables');
+          console.error('  2. Check Resend dashboard for domain verification');
+          console.error('  3. Check Resend dashboard for API key validity');
+          console.error('  4. Check spam folder for test emails');
+          console.error('  5. Verify FROM_EMAIL domain is verified in Resend');
+          // Don't throw - allow webhook to succeed even if email fails
+          // This prevents Stripe from retrying and spamming logs
         }
       } catch (error: any) {
         console.error('❌ ===== EMAIL SEND EXCEPTION =====');
         console.error('❌ Exception type:', error?.constructor?.name);
         console.error('❌ Error message:', error?.message);
         console.error('❌ Error stack:', error?.stack);
-        console.error('❌ Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+        console.error('❌ Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+        // Don't throw - allow webhook to succeed even if email fails
+        console.error('⚠️ Email failed but webhook will return success to prevent Stripe retries');
       }
-    } else {
-      console.warn('⚠️ No customer email found in session');
-      console.warn('⚠️ Session customer_email:', session.customer_email);
-      console.warn('⚠️ Session customer_details:', session.customer_details);
-      console.warn('⚠️ Skipping order confirmation email');
     }
 
     // TODO: Update product inventory
