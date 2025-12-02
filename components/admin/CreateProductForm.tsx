@@ -18,7 +18,7 @@ const CATEGORY_OPTIONS = ['Men', 'Women', 'Boys', 'Girls', 'Shemaghs'] as const;
 const CATEGORY_TREE: Record<string, { subcategories: string[] }> = {
   Men: { subcategories: ['Emirati', 'Saudi'] },
   Women: { subcategories: ['Hijabs', 'Abayas'] },
-  Boys: { subcategories: ['thobes'] },
+  Boys: { subcategories: ['Thobes'] },
   Girls: { subcategories: [] },
   Shemaghs: { subcategories: ['Traditional', 'Yemeni'] },
 };
