@@ -118,9 +118,6 @@ export default function CategoriesPage() {
                 <Link href="/admin" className="text-sm text-bmr-muted hover:text-bmr-ink">
                   Dashboard
                 </Link>
-                <Link href="/admin/products" className="text-sm text-bmr-muted hover:text-bmr-ink">
-                  Products
-                </Link>
                 <Link href="/admin/categories" className="text-sm font-medium text-bmr-ink">
                   Categories
                 </Link>

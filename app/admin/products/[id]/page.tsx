@@ -47,11 +47,8 @@ export default function EditProductPage() {
             <div className="flex items-center gap-8">
               <h1 className="font-display text-2xl">BMR Admin</h1>
               <nav className="hidden md:flex items-center gap-6">
-                <Link href="/admin" className="text-sm text-bmr-muted hover:text-bmr-ink">
+                <Link href="/admin" className="text-sm font-medium text-bmr-ink">
                   Dashboard
-                </Link>
-                <Link href="/admin/products" className="text-sm font-medium text-bmr-ink">
-                  Products
                 </Link>
                 <Link href="/admin/categories" className="text-sm text-bmr-muted hover:text-bmr-ink">
                   Categories
