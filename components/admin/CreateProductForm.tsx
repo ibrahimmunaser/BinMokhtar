@@ -146,7 +146,7 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
       title: '',
       slug: undefined,
       brand: 'Bin Mukhtar Retail',
-      status: 'ACTIVE' as const, // Default to ACTIVE so products show on storefront immediately
+      status: 'DRAFT' as const,
       price: 0,
       salePrice: undefined,
       images: [],
@@ -282,20 +282,25 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
       // Generate slug from title if not provided
       const slug = data.slug || data.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
+      // Map category to valid audience (MEN or BOYS only)
+      const getAudience = (category: string): 'MEN' | 'BOYS' => {
+        const cat = category?.toUpperCase();
+        if (cat === 'BOYS' || cat === 'GIRLS') return 'BOYS';
+        return 'MEN'; // Men, Women, Shemaghs all map to MEN
+      };
+
       // Prepare data for API
       const productData: any = {
         name: data.title,
         slug: slug,
         subtitle: '',
-        brand: data.brand || 'Bin Mukhtar Retail',
-        status: data.status || 'ACTIVE', // Default to ACTIVE so products show on storefront
         price: data.salePrice ? data.salePrice.toString() : data.price.toString(), // Use sale price if provided, otherwise regular price
         compareAtPrice: data.salePrice ? data.price.toString() : undefined, // If there's a sale price, the regular price becomes compareAt
         images: data.images,
         thumbnail: data.images[0],
         categoryId: data.category,
         subcategory: data.subcategory,
-        audience: (data.category || 'Men').toUpperCase(),
+        audience: getAudience(data.category),
         sizes: data.sizes,
         colors: data.colors,
         variants: data.variants.map(v => ({
