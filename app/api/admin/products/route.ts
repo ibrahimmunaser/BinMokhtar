@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
       subtitle: body.subtitle || '',
       brand: body.brand || 'Bin Mukhtar Retail',
       categoryId: body.categoryId,
-      audience: (body.audience || 'MEN').toUpperCase(), // Use the audience field sent from form
+      subcategory: body.subcategory || '', // Save subcategory
       status, // DRAFT, ACTIVE, or ARCHIVED
       price: Math.round(parseFloat(body.price) * 100), // Convert to cents (basePrice)
       compareAtPrice: body.compareAtPrice ? Math.round(parseFloat(body.compareAtPrice) * 100) : null,
@@ -350,7 +350,7 @@ export async function PUT(request: NextRequest) {
       subtitle: body.subtitle || '',
       brand: body.brand || existingData?.brand || 'Bin Mukhtar Retail',
       categoryId: body.categoryId,
-      audience: (body.audience || existingData?.audience || 'MEN').toUpperCase(), // Update audience on edit
+      subcategory: body.subcategory || existingData?.subcategory || '', // Save subcategory
       status, // DRAFT, ACTIVE, or ARCHIVED
       price: Math.round(parseFloat(body.price) * 100), // Convert to cents
       compareAtPrice: body.compareAtPrice ? Math.round(parseFloat(body.compareAtPrice) * 100) : null,
