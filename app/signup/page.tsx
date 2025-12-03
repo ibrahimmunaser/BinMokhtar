@@ -5,22 +5,32 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Container } from '@/components/layout/Container';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
-export default function LoginPage() {
+export default function SignUpPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams?.get('redirect') || '/profile';
   
-  const { signIn, signInGoogle, isAuthenticated, isLoading: authLoading, error: authError, clearError } = useAuth();
+  const { signUp, signInGoogle, isAuthenticated, isLoading: authLoading, error: authError, clearError } = useAuth();
   
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
     password: '',
+    confirmPassword: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Password strength indicators
+  const [passwordStrength, setPasswordStrength] = useState({
+    length: false,
+    hasLetter: false,
+    hasNumber: false,
+  });
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -34,17 +44,45 @@ export default function LoginPage() {
     clearError();
   }, [formData, clearError]);
 
+  // Check password strength
+  useEffect(() => {
+    const { password } = formData;
+    setPasswordStrength({
+      length: password.length >= 8,
+      hasLetter: /[a-zA-Z]/.test(password),
+      hasNumber: /[0-9]/.test(password),
+    });
+  }, [formData.password]);
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     
+    // Name validation (optional but recommended)
+    // No required validation for name
+    
+    // Email validation
     if (!formData.email) {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
     
+    // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    } else if (!/[a-zA-Z]/.test(formData.password)) {
+      newErrors.password = 'Password must contain at least one letter';
+    } else if (!/[0-9]/.test(formData.password)) {
+      newErrors.password = 'Password must contain at least one number';
+    }
+    
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
     }
     
     setErrors(newErrors);
@@ -59,18 +97,18 @@ export default function LoginPage() {
     setLoading(true);
     setErrors({});
     
-    const result = await signIn(formData.email, formData.password);
+    const result = await signUp(formData.email, formData.password, formData.name || undefined);
     
     if (result.success) {
       router.push(redirect);
     } else {
-      setErrors({ form: result.error || 'Failed to sign in' });
+      setErrors({ form: result.error || 'Failed to create account' });
     }
     
     setLoading(false);
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignUp = async () => {
     setLoading(true);
     setErrors({});
     
@@ -109,15 +147,32 @@ export default function LoginPage() {
     <Container className="py-12 lg:py-20">
       <div className="max-w-md mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl lg:text-4xl font-display mb-3">Sign In</h1>
-          <p className="text-muted">Welcome back to Bin Mukhtar Retail</p>
+          <h1 className="text-3xl lg:text-4xl font-display mb-3">Create Account</h1>
+          <p className="text-muted">Join Bin Mukhtar Retail for a personalized shopping experience</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Name */}
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium mb-2">
+              Name <span className="text-muted font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Your name"
+              autoComplete="name"
+              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-night focus:border-transparent transition-shadow"
+            />
+          </div>
+
           {/* Email */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-2">
-              Email
+              Email <span className="text-red-500">*</span>
             </label>
             <input
               type="email"
@@ -142,17 +197,9 @@ export default function LoginPage() {
 
           {/* Password */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label htmlFor="password" className="block text-sm font-medium">
-                Password
-              </label>
-              <Link 
-                href="/reset-password" 
-                className="text-sm text-muted hover:text-bmr-night transition-colors"
-              >
-                Forgot password?
-              </Link>
-            </div>
+            <label htmlFor="password" className="block text-sm font-medium mb-2">
+              Password <span className="text-red-500">*</span>
+            </label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -161,8 +208,8 @@ export default function LoginPage() {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                placeholder="Enter your password"
-                autoComplete="current-password"
+                placeholder="Create a strong password"
+                autoComplete="new-password"
                 className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-night focus:border-transparent transition-shadow ${
                   errors.password ? 'border-red-500' : 'border-border'
                 }`}
@@ -176,10 +223,56 @@ export default function LoginPage() {
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+            
+            {/* Password strength indicators */}
+            {formData.password && (
+              <div className="mt-2 space-y-1">
+                <PasswordCheck passed={passwordStrength.length} label="At least 8 characters" />
+                <PasswordCheck passed={passwordStrength.hasLetter} label="Contains a letter" />
+                <PasswordCheck passed={passwordStrength.hasNumber} label="Contains a number" />
+              </div>
+            )}
+            
             {errors.password && (
               <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
                 <AlertCircle className="w-4 h-4" />
                 {errors.password}
+              </p>
+            )}
+          </div>
+
+          {/* Confirm Password */}
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
+              Confirm Password <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                placeholder="Confirm your password"
+                autoComplete="new-password"
+                className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-night focus:border-transparent transition-shadow ${
+                  errors.confirmPassword ? 'border-red-500' : 'border-border'
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-bmr-black transition-colors"
+                tabIndex={-1}
+              >
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+            {errors.confirmPassword && (
+              <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {errors.confirmPassword}
               </p>
             )}
           </div>
@@ -201,10 +294,10 @@ export default function LoginPage() {
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Signing in...
+                Creating account...
               </>
             ) : (
-              'Sign In'
+              'Create Account'
             )}
           </button>
 
@@ -218,10 +311,10 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Google Sign In */}
+          {/* Google Sign Up */}
           <button
             type="button"
-            onClick={handleGoogleSignIn}
+            onClick={handleGoogleSignUp}
             disabled={loading}
             className="w-full px-8 py-4 border border-border rounded-lg font-medium hover:bg-surface-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
           >
@@ -234,15 +327,15 @@ export default function LoginPage() {
             Continue with Google
           </button>
 
-          {/* Sign Up Link */}
+          {/* Sign In Link */}
           <div className="text-center pt-4">
             <p className="text-sm text-muted">
-              Don't have an account?{' '}
+              Already have an account?{' '}
               <Link 
-                href={`/signup${redirect !== '/profile' ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} 
+                href={`/login${redirect !== '/profile' ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} 
                 className="text-bmr-night font-medium hover:underline"
               >
-                Create one
+                Sign in
               </Link>
             </p>
           </div>
@@ -251,3 +344,17 @@ export default function LoginPage() {
     </Container>
   );
 }
+
+function PasswordCheck({ passed, label }: { passed: boolean; label: string }) {
+  return (
+    <div className={`flex items-center gap-2 text-xs ${passed ? 'text-green-600' : 'text-muted'}`}>
+      {passed ? (
+        <CheckCircle2 className="w-4 h-4" />
+      ) : (
+        <div className="w-4 h-4 rounded-full border border-current" />
+      )}
+      {label}
+    </div>
+  );
+}
+

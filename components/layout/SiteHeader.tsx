@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Menu, Search, User, ShoppingBag } from 'lucide-react';
+import { Menu, Search, ShoppingBag } from 'lucide-react';
 import { MainNav } from './MainNav';
 import { MobileNavDrawer } from './MobileNavDrawer';
 import { SearchDialog } from './SearchDialog';
+import { AccountDropdown } from './AccountDropdown';
 import { useCartStore } from '@/store/cart';
 
 export function SiteHeader() {
@@ -53,13 +54,10 @@ export function SiteHeader() {
               >
                 <Search className="w-5 h-5" />
               </button>
-              <Link
-                href="/account"
-                className="text-bmr-black hover:text-muted"
-                aria-label="Account"
-              >
-                <User className="w-5 h-5" />
-              </Link>
+              
+              {/* Account Dropdown */}
+              <AccountDropdown />
+              
               <Link
                 href="/cart"
                 className="relative text-bmr-black hover:text-muted"

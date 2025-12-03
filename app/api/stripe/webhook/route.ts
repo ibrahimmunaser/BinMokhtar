@@ -216,6 +216,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       stripePaymentIntentId: session.payment_intent as string,
       paymentStatus: session.payment_status, // 'paid', 'unpaid', or 'no_payment_required'
       
+      // User association (for order history)
+      userId: session.metadata?.userId || null,
+      
       // Customer info
       email: customerEmail,
       customerName,

@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { items, customerEmail, metadata } = body;
+    const { items, customerEmail, userId, metadata } = body;
 
     // Validation
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
       },
       metadata: {
         ...metadata,
+        userId: userId || undefined, // Link order to user if authenticated
         cartItems: JSON.stringify(items.map((i: any) => ({
           productId: i.productId,
           variantId: i.variantId,

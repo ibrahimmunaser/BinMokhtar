@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cart';
 import { useLocationStore } from '@/store/location';
+import { useAuth } from '@/contexts/AuthContext';
 import { logBeginCheckout } from '@/lib/analytics';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { ShippingRateSelector } from './ShippingRateSelector';
@@ -25,6 +26,9 @@ export function CheckoutForm() {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
   const total = useCartStore((state) => state.total());
+  
+  // Auth
+  const { user, isAuthenticated } = useAuth();
 
   // Location store
   const locationZone = useLocationStore((state) => state.locationZone);
@@ -43,6 +47,13 @@ export function CheckoutForm() {
   const [formData, setFormData] = useState({
     email: '',
   });
+  
+  // Pre-fill email from authenticated user
+  useEffect(() => {
+    if (isAuthenticated && user?.email && !formData.email) {
+      setFormData(prev => ({ ...prev, email: user.email || '' }));
+    }
+  }, [isAuthenticated, user?.email]);
 
   // Initialize fulfillment method based on location zone
   useEffect(() => {
@@ -147,7 +158,8 @@ export function CheckoutForm() {
             size: item.size,
             color: item.color,
           })),
-          customerEmail: formData.email || undefined,
+          customerEmail: formData.email || user?.email || undefined,
+          userId: isAuthenticated ? user?.uid : undefined, // Link order to user
           metadata: {
             source: 'web_checkout',
             fulfillmentMethod,

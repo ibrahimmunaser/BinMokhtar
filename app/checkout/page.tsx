@@ -1,9 +1,15 @@
+'use client';
+
 import { Container } from '@/components/layout/Container';
 import { Breadcrumbs } from '@/components/products/Breadcrumbs';
 import { CheckoutForm } from '@/components/checkout/CheckoutForm';
 import { OrderSummary } from '@/components/cart/OrderSummary';
+import { CheckoutAuthPrompt } from '@/components/checkout/CheckoutAuthPrompt';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CheckoutPage() {
+  const { isAuthenticated, isLoading } = useAuth();
+  
   return (
     <Container className="py-8 lg:py-12">
       <Breadcrumbs
@@ -17,6 +23,11 @@ export default function CheckoutPage() {
 
       <div className="lg:grid lg:grid-cols-[1fr_400px] lg:gap-12">
         <div>
+          {/* Show auth prompt for guest users */}
+          {!isLoading && !isAuthenticated && (
+            <CheckoutAuthPrompt />
+          )}
+          
           <CheckoutForm />
         </div>
         <aside className="mt-8 lg:mt-0">

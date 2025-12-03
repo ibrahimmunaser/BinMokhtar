@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Playfair_Display, Inter } from 'next/font/google';
 import { LocaleProvider } from '@/contexts/LocaleContext';
 import { ToastProvider } from '@/contexts/ToastContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { TopBar } from '@/components/layout/TopBar';
 import { DeliveryBar } from '@/components/layout/DeliveryBar';
 import { SiteHeader } from '@/components/layout/SiteHeader';
@@ -37,15 +38,17 @@ export default function RootLayout({
       className={`${playfair.variable} ${inter.variable}`}
     >
       <body>
-        <LocaleProvider>
-          <ToastProvider>
-          <DeliveryBar />
-          <TopBar />
-          <SiteHeader />
-          <main className="min-h-screen">{children}</main>
-          <Footer />
-          </ToastProvider>
-        </LocaleProvider>
+        <AuthProvider>
+          <LocaleProvider>
+            <ToastProvider>
+              <DeliveryBar />
+              <TopBar />
+              <SiteHeader />
+              <main className="min-h-screen">{children}</main>
+              <Footer />
+            </ToastProvider>
+          </LocaleProvider>
+        </AuthProvider>
       </body>
     </html>
   );
