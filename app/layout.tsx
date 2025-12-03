@@ -3,6 +3,7 @@ import { Playfair_Display, Inter } from 'next/font/google';
 import { LocaleProvider } from '@/contexts/LocaleContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { TopBar } from '@/components/layout/TopBar';
+import { DeliveryBar } from '@/components/layout/DeliveryBar';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { Footer } from '@/components/layout/Footer';
 import { defaultMetadata } from '@/lib/seo';
@@ -38,6 +39,7 @@ export default function RootLayout({
       <body>
         <LocaleProvider>
           <ToastProvider>
+          <DeliveryBar />
           <TopBar />
           <SiteHeader />
           <main className="min-h-screen">{children}</main>

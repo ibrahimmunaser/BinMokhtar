@@ -1,13 +1,18 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cart';
+import { useLocationStore } from '@/store/location';
 import { logBeginCheckout } from '@/lib/analytics';
 import { AddressAutocomplete } from './AddressAutocomplete';
-import { AlertCircle, Package, Truck } from 'lucide-react';
-
-type FulfillmentMethod = 'delivery' | 'pickup';
+import { ShippingRateSelector } from './ShippingRateSelector';
+import { AlertCircle, Package, Truck, MapPin, Loader2 } from 'lucide-react';
+import {
+  FulfillmentMethod,
+  LOCAL_DELIVERY_FEE_CENTS,
+  ShippingRate,
+} from '@/lib/shipping/config';
 
 interface AddressData {
   formattedAddress: string;
@@ -21,15 +26,36 @@ export function CheckoutForm() {
   const items = useCartStore((state) => state.items);
   const total = useCartStore((state) => state.total());
 
+  // Location store
+  const locationZone = useLocationStore((state) => state.locationZone);
+  const isHydrated = useLocationStore((state) => state.isHydrated);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fulfillmentMethod, setFulfillmentMethod] = useState<FulfillmentMethod>('delivery');
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<FulfillmentMethod>('pickup');
   const [addressData, setAddressData] = useState<AddressData | null>(null);
   const [isDeliverable, setIsDeliverable] = useState<boolean>(true);
+  
+  // Shipping rate selection
+  const [selectedRate, setSelectedRate] = useState<ShippingRate | null>(null);
+  const [isLoadingRates, setIsLoadingRates] = useState(false);
   
   const [formData, setFormData] = useState({
     email: '',
   });
+
+  // Initialize fulfillment method based on location zone
+  useEffect(() => {
+    if (isHydrated && locationZone) {
+      if (locationZone.zone === 'local') {
+        setFulfillmentMethod('local_delivery');
+        setIsDeliverable(true);
+      } else {
+        setFulfillmentMethod('shipping');
+        setIsDeliverable(false);
+      }
+    }
+  }, [isHydrated, locationZone]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -56,27 +82,42 @@ export function CheckoutForm() {
     }
   }, []);
 
+  const handleRateSelect = useCallback((rate: ShippingRate) => {
+    setSelectedRate(rate);
+    setError(null);
+  }, []);
+
+  const calculateTotal = () => {
+    let calculatedTotal = total;
+    
+    if (fulfillmentMethod === 'local_delivery') {
+      calculatedTotal += LOCAL_DELIVERY_FEE_CENTS;
+    } else if (fulfillmentMethod === 'shipping' && selectedRate) {
+      calculatedTotal += selectedRate.amount;
+    }
+    
+    return calculatedTotal;
+  };
+
+  const formatPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+
   const handleStripeCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting || items.length === 0) return;
 
-    // Validation: Check delivery constraints
-    if (fulfillmentMethod === 'delivery' && !addressData) {
-      setError('Please select a delivery address from the dropdown list. Type your address and click one of the suggestions that appears.');
-      // Scroll to address input and focus
-      setTimeout(() => {
-        const addressInput = document.getElementById('address-autocomplete');
-        if (addressInput) {
-          addressInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          addressInput.focus();
-        }
-      }, 100);
-      return;
+    // Validation
+    if (fulfillmentMethod === 'local_delivery') {
+      if (!locationZone || locationZone.zone !== 'local') {
+        setError('Local delivery is not available for your location. Please select pickup or shipping.');
+        return;
+      }
     }
 
-    if (fulfillmentMethod === 'delivery' && !isDeliverable) {
-      setError('This address is outside our delivery area. Please select pickup or choose a different address.');
-      return;
+    if (fulfillmentMethod === 'shipping') {
+      if (!selectedRate) {
+        setError('Please select a shipping option.');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -110,7 +151,21 @@ export function CheckoutForm() {
           metadata: {
             source: 'web_checkout',
             fulfillmentMethod,
-            deliveryAddress: fulfillmentMethod === 'delivery' ? addressData?.formattedAddress : undefined,
+            deliveryAddress: fulfillmentMethod !== 'pickup' && locationZone 
+              ? locationZone.formattedAddress 
+              : undefined,
+            locationZone: locationZone ? JSON.stringify({
+              city: locationZone.city,
+              state: locationZone.state,
+              zip: locationZone.zip,
+              zone: locationZone.zone,
+              distanceMiles: locationZone.distanceMiles,
+            }) : undefined,
+            shippingRateId: selectedRate?.id,
+            shippingAmount: fulfillmentMethod === 'shipping' ? selectedRate?.amount : 
+                           fulfillmentMethod === 'local_delivery' ? LOCAL_DELIVERY_FEE_CENTS : 0,
+            shippingCarrier: selectedRate?.carrier,
+            shippingService: selectedRate?.serviceLevelName,
           },
         }),
       });
@@ -135,6 +190,8 @@ export function CheckoutForm() {
     }
   };
 
+  const isLocalDeliveryAvailable = locationZone?.zone === 'local';
+
   return (
     <form onSubmit={handleStripeCheckout} className="space-y-8">
       {/* Contact Information */}
@@ -151,7 +208,6 @@ export function CheckoutForm() {
             value={formData.email}
             onChange={handleChange}
             onKeyDown={(e) => {
-              // Prevent form submission when Enter is pressed in email field
               if (e.key === 'Enter') {
                 e.preventDefault();
               }
@@ -165,58 +221,37 @@ export function CheckoutForm() {
         </div>
       </div>
 
+      {/* Delivery Location */}
+      {isHydrated && locationZone && (
+        <div className="p-4 bg-surface-3/50 rounded-lg border border-line">
+          <div className="flex items-start gap-3">
+            <MapPin className="w-5 h-5 text-bmr-night flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-medium text-sm">
+                Delivering to: {locationZone.city}, {locationZone.state} {locationZone.zip}
+              </p>
+              <p className="text-xs text-muted mt-1">
+                {locationZone.zone === 'local' 
+                  ? `Within local delivery area (${locationZone.distanceMiles.toFixed(1)} miles from store)`
+                  : `Shipping required (${locationZone.distanceMiles.toFixed(1)} miles from store)`}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Fulfillment Method Selection */}
       <div>
         <h2 className="text-xl font-display mb-4">Fulfillment Method</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Delivery Option */}
-          <button
-            type="button"
-            onClick={() => {
-              if (isDeliverable) {
-                setFulfillmentMethod('delivery');
-              }
-            }}
-            disabled={!isDeliverable}
-            className={`p-6 border-2 rounded-lg text-left transition-all ${
-              fulfillmentMethod === 'delivery'
-                ? 'border-bmr-night bg-bmr-night/5'
-                : 'border-border hover:border-bmr-muted'
-            } ${
-              !isDeliverable ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-            }`}
-          >
-            <div className="flex items-start gap-4">
-              <Truck className={`w-6 h-6 flex-shrink-0 ${
-                fulfillmentMethod === 'delivery' ? 'text-bmr-night' : 'text-bmr-muted'
-              }`} />
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold">Delivery</span>
-                  {!isDeliverable && addressData && (
-                    <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded">
-                      Not Available
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-bmr-muted">
-                  {isDeliverable
-                    ? 'We deliver to your address'
-                    : 'Address is outside delivery area'}
-                </p>
-              </div>
-            </div>
-          </button>
-
+        <div className="grid grid-cols-1 gap-3">
           {/* Pickup Option */}
           <button
             type="button"
             onClick={() => {
               setFulfillmentMethod('pickup');
-              setAddressData(null);
-              setIsDeliverable(true);
+              setSelectedRate(null);
             }}
-            className={`p-6 border-2 rounded-lg text-left transition-all cursor-pointer ${
+            className={`p-4 border-2 rounded-lg text-left transition-all cursor-pointer ${
               fulfillmentMethod === 'pickup'
                 ? 'border-bmr-night bg-bmr-night/5'
                 : 'border-border hover:border-bmr-muted'
@@ -227,37 +262,101 @@ export function CheckoutForm() {
                 fulfillmentMethod === 'pickup' ? 'text-bmr-night' : 'text-bmr-muted'
               }`} />
               <div className="flex-1">
-                <div className="font-semibold mb-1">Pickup</div>
-                <p className="text-sm text-bmr-muted">DM for pick up</p>
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">Pickup</span>
+                  <span className="text-green-600 font-medium">FREE</span>
+                </div>
+                <p className="text-sm text-bmr-muted mt-1">
+                  Collect from our Detroit Metro location
+                </p>
+              </div>
+            </div>
+          </button>
+
+          {/* Local Delivery Option */}
+          <button
+            type="button"
+            onClick={() => {
+              if (isLocalDeliveryAvailable) {
+                setFulfillmentMethod('local_delivery');
+                setSelectedRate(null);
+              }
+            }}
+            disabled={!isLocalDeliveryAvailable}
+            className={`p-4 border-2 rounded-lg text-left transition-all ${
+              !isLocalDeliveryAvailable ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+            } ${
+              fulfillmentMethod === 'local_delivery'
+                ? 'border-bmr-night bg-bmr-night/5'
+                : 'border-border hover:border-bmr-muted'
+            }`}
+          >
+            <div className="flex items-start gap-4">
+              <Truck className={`w-6 h-6 flex-shrink-0 ${
+                fulfillmentMethod === 'local_delivery' ? 'text-bmr-night' : 'text-bmr-muted'
+              }`} />
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">Local Delivery</span>
+                    {!isLocalDeliveryAvailable && (
+                      <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
+                        Not Available
+                      </span>
+                    )}
+                  </div>
+                  <span className="font-medium">{formatPrice(LOCAL_DELIVERY_FEE_CENTS)}</span>
+                </div>
+                <p className="text-sm text-bmr-muted mt-1">
+                  {isLocalDeliveryAvailable 
+                    ? 'Delivered to your address within 1-2 business days'
+                    : 'Available within 15 miles of our store'}
+                </p>
+              </div>
+            </div>
+          </button>
+
+          {/* Shipping Option */}
+          <button
+            type="button"
+            onClick={() => {
+              setFulfillmentMethod('shipping');
+            }}
+            className={`p-4 border-2 rounded-lg text-left transition-all cursor-pointer ${
+              fulfillmentMethod === 'shipping'
+                ? 'border-bmr-night bg-bmr-night/5'
+                : 'border-border hover:border-bmr-muted'
+            }`}
+          >
+            <div className="flex items-start gap-4">
+              <MapPin className={`w-6 h-6 flex-shrink-0 ${
+                fulfillmentMethod === 'shipping' ? 'text-bmr-night' : 'text-bmr-muted'
+              }`} />
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">Shipping</span>
+                  <span className="text-sm text-muted">
+                    {selectedRate ? formatPrice(selectedRate.amount) : 'Select rate below'}
+                  </span>
+                </div>
+                <p className="text-sm text-bmr-muted mt-1">
+                  Ship anywhere in the US via USPS, UPS, or FedEx
+                </p>
               </div>
             </div>
           </button>
         </div>
       </div>
 
-      {/* Address Autocomplete - Only show for delivery */}
-      {fulfillmentMethod === 'delivery' && (
-        <div>
-          <h2 className="text-xl font-display mb-4">
-            Delivery Address
-          </h2>
-          <AddressAutocomplete
-            onAddressSelect={(data) => {
-              handleAddressSelect(data);
-            }}
-            onDeliveryStatusChange={(deliverable) => {
-              handleDeliveryStatusChange(deliverable);
-            }}
-          />
-          {!addressData && (
-            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-900">
-                <strong>💡 Tip:</strong> Type your address and <strong>click a suggestion</strong> from the dropdown list. 
-                Don't just press Enter - you must select an address from the list.
-              </p>
-            </div>
-          )}
-        </div>
+      {/* Shipping Rate Selector - Only show for shipping method */}
+      {fulfillmentMethod === 'shipping' && locationZone && (
+        <ShippingRateSelector
+          destination={locationZone}
+          items={items}
+          selectedRate={selectedRate}
+          onSelectRate={handleRateSelect}
+          onLoadingChange={setIsLoadingRates}
+        />
       )}
 
       {/* Pickup Information */}
@@ -270,20 +369,39 @@ export function CheckoutForm() {
         </div>
       )}
 
-      {/* Not Deliverable Warning */}
-      {!isDeliverable && addressData && fulfillmentMethod === 'delivery' && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-red-900">
-              Cannot proceed with delivery to this address
-            </p>
-            <p className="text-sm text-red-800 mt-1">
-              Please select <strong>Pickup</strong> or choose a different delivery address within our service area.
+      {/* Order Summary */}
+      <div className="p-6 bg-surface-3/50 rounded-lg border border-line">
+        <h3 className="font-semibold mb-4">Order Summary</h3>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted">Subtotal</span>
+            <span>{formatPrice(total)}</span>
+          </div>
+          {fulfillmentMethod === 'local_delivery' && (
+            <div className="flex justify-between">
+              <span className="text-muted">Local Delivery</span>
+              <span>{formatPrice(LOCAL_DELIVERY_FEE_CENTS)}</span>
+            </div>
+          )}
+          {fulfillmentMethod === 'shipping' && selectedRate && (
+            <div className="flex justify-between">
+              <span className="text-muted">
+                Shipping ({selectedRate.carrier} {selectedRate.serviceLevelName})
+              </span>
+              <span>{formatPrice(selectedRate.amount)}</span>
+            </div>
+          )}
+          <div className="border-t border-line pt-2 mt-2">
+            <div className="flex justify-between font-semibold">
+              <span>Total</span>
+              <span>{formatPrice(calculateTotal())}</span>
+            </div>
+            <p className="text-xs text-muted mt-1">
+              Tax calculated at checkout
             </p>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Stripe Information */}
       <div className="bg-surface-3/50 p-6 rounded-lg border border-line/50">
@@ -295,7 +413,6 @@ export function CheckoutForm() {
         </h3>
         <ul className="text-sm text-bmr-muted space-y-1">
           <li>• Industry-leading payment security</li>
-          <li>• {fulfillmentMethod === 'delivery' ? 'Confirm delivery details' : 'Confirm pickup details'} at checkout</li>
           <li>• Multiple payment methods accepted</li>
           <li>• Your payment information is never stored on our servers</li>
         </ul>
@@ -303,9 +420,12 @@ export function CheckoutForm() {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
-          <p className="text-sm font-medium">Error</p>
-          <p className="text-sm">{error}</p>
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium">Error</p>
+            <p className="text-sm">{error}</p>
+          </div>
         </div>
       )}
 
@@ -315,34 +435,25 @@ export function CheckoutForm() {
         disabled={
           isSubmitting || 
           items.length === 0 || 
-          (fulfillmentMethod === 'delivery' && (!addressData || !isDeliverable))
+          isLoadingRates ||
+          (fulfillmentMethod === 'shipping' && !selectedRate)
         }
         className="w-full px-8 py-4 bg-bmr-night text-surface-2 font-medium uppercase tracking-wideish rounded-lg hover:bg-bmr-night/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-sm"
-        title={
-          fulfillmentMethod === 'delivery' && !addressData
-            ? 'Please select a delivery address from the dropdown. Type your address and click a suggestion.'
-            : fulfillmentMethod === 'delivery' && !isDeliverable
-            ? 'This address is outside our delivery area. Please select pickup or choose a different address.'
-            : undefined
-        }
       >
-          {isSubmitting ? (
-            <>
-              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Redirecting to checkout...
-            </>
-          ) : (
-            <>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
-              Proceed to Secure Checkout
-            </>
-          )}
-        </button>
+        {isSubmitting ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            Redirecting to checkout...
+          </>
+        ) : (
+          <>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+            Proceed to Secure Checkout
+          </>
+        )}
+      </button>
 
       {/* Trust Badges */}
       <div className="flex items-center justify-center gap-6 pt-4">

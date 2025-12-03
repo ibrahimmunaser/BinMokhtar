@@ -5,14 +5,16 @@ import Link from 'next/link';
 import { Variant } from '@/types';
 import { formatPrice } from '@/lib/currency';
 import { cn } from '@/lib/utils';
+import { DeliveryInfo } from './DeliveryInfo';
 
 interface ProductCardProps {
   variant: Variant;
   showSoldOut?: boolean;
+  showDeliveryInfo?: boolean;
   className?: string;
 }
 
-export function ProductCard({ variant, showSoldOut = false, className }: ProductCardProps) {
+export function ProductCard({ variant, showSoldOut = false, showDeliveryInfo = true, className }: ProductCardProps) {
   const title = variant.productTitleEn || variant.productTitleAr;
   const price = variant.price || 0;
   const compareAt = variant.compareAt;
@@ -96,6 +98,13 @@ export function ProductCard({ variant, showSoldOut = false, className }: Product
             </span>
           )}
         </div>
+
+        {/* Delivery Info */}
+        {showDeliveryInfo && !isSoldOut && (
+          <div className="pt-1">
+            <DeliveryInfo compact />
+          </div>
+        )}
       </div>
     </Link>
   );
