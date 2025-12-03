@@ -34,6 +34,8 @@ serviceAccount.json
 *firebase-adminsdk*.json
 binmokhtar2-967ad-firebase-adminsdk-fbsvc-a56edc343f.json
 binmokhtar2-967ad-firebase-adminsdk-fbsvc-caad4a2ee6.json
+FIREBASE_SERVICE_ACCOUNT_JSON_base64.txt
+*_base64.txt
 
 # vercel
 .vercel
