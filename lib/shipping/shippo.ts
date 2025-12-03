@@ -14,28 +14,17 @@ import {
 const SHIPPO_API_URL = 'https://api.goshippo.com';
 
 /**
- * Allowed shipping services
- * Only these carrier/service combinations will be shown to customers
+ * Allowed shipping service levels
+ * Only these services will be shown to customers
  */
-const ALLOWED_SHIPPING_SERVICES = [
-  { carrier: 'UPS', serviceToken: 'ups_ground_saver' },
-  { carrier: 'UPS', serviceToken: 'ups_ground' },
-  { carrier: 'USPS', serviceToken: 'usps_ground_advantage' },
+const ALLOWED_SERVICE_LEVELS = [
+  // USPS
+  'usps_priority',           // USPS Priority Mail
+  'usps_ground_advantage',   // USPS Ground Advantage
+  // UPS
+  'ups_ground',              // UPS Ground
+  'ups_3_day_select',        // UPS 3 Day Select
 ];
-
-/**
- * Check if a rate matches our allowed services
- */
-function isAllowedService(rate: any): boolean {
-  const carrier = rate.provider?.toUpperCase() || '';
-  const serviceToken = rate.servicelevel?.token?.toLowerCase() || '';
-  
-  return ALLOWED_SHIPPING_SERVICES.some(
-    allowed => 
-      carrier.includes(allowed.carrier) && 
-      serviceToken.includes(allowed.serviceToken.replace('ups_', '').replace('usps_', ''))
-  );
-}
 
 /**
  * Get Shippo API token from environment
@@ -157,30 +146,15 @@ export async function getShippingRates(
 
   console.log('📦 Shipment created:', shipment.object_id);
 
-  // Log all available rates for debugging
-  console.log('📦 All available rates:', shipment.rates?.map((r: any) => ({
-    carrier: r.provider,
-    service: r.servicelevel?.token,
-    name: r.servicelevel?.name,
-    amount: r.amount,
-  })));
-
-  // Extract and format rates - filter for allowed services only
+  // Extract and format rates, filtering to only allowed services
   const rates: ShippingRate[] = shipment.rates
-    .filter((rate: any) => rate.amount) // Filter out rates without amounts
     .filter((rate: any) => {
-      // Check if this rate matches our allowed services
-      const carrier = rate.provider?.toUpperCase() || '';
-      const serviceToken = rate.servicelevel?.token?.toLowerCase() || '';
+      // Must have an amount
+      if (!rate.amount) return false;
       
-      // UPS Ground Saver
-      if (carrier === 'UPS' && serviceToken === 'ups_ground_saver') return true;
-      // UPS Ground
-      if (carrier === 'UPS' && serviceToken === 'ups_ground') return true;
-      // USPS Ground Advantage
-      if (carrier === 'USPS' && serviceToken === 'usps_ground_advantage') return true;
-      
-      return false;
+      // Must be in our allowed service levels
+      const serviceToken = rate.servicelevel?.token || '';
+      return ALLOWED_SERVICE_LEVELS.includes(serviceToken);
     })
     .map((rate: any) => ({
       id: rate.object_id,
@@ -196,7 +170,7 @@ export async function getShippingRates(
     }))
     .sort((a: ShippingRate, b: ShippingRate) => a.amount - b.amount); // Sort by price
 
-  console.log('📦 Filtered to', rates.length, 'allowed shipping rates:', rates.map(r => `${r.carrier} ${r.serviceLevelName}`));
+  console.log('📦 Got', rates.length, 'shipping rates (filtered from', shipment.rates?.length || 0, 'total)');
 
   return rates;
 }
