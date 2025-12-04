@@ -134,7 +134,7 @@ function SuccessContent() {
             Your payment was successful and your order is confirmed.
           </p>
           <p className="text-sm text-bmr-muted">
-            Order Reference: <code className="px-2 py-1 bg-surface-3 rounded text-bmr-ink font-mono text-xs">{sessionId.slice(-12)}</code>
+            Order Reference: <code className="px-2 py-1 bg-surface-3 rounded text-bmr-ink font-mono text-xs">{sessionId?.slice(-12) || ''}</code>
           </p>
         </div>
 
