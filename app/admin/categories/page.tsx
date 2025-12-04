@@ -73,7 +73,7 @@ export default function CategoriesPage() {
           // Count by subcategory
           if (subcategory) {
             counts[`${categoryId}-${subcategory}`] = (counts[`${categoryId}-${subcategory}`] || 0) + 1;
-          }
+    }
         });
         setProductCounts(counts);
       }
@@ -145,10 +145,10 @@ export default function CategoriesPage() {
 
       <div className="container-wide py-12">
         <div className="mb-8">
-          <Link href="/admin" className="flex items-center gap-2 text-bmr-muted hover:text-bmr-ink mb-4">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </Link>
+            <Link href="/admin" className="flex items-center gap-2 text-bmr-muted hover:text-bmr-ink mb-4">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Link>
           <h1 className="font-display text-3xl lg:text-4xl mb-2">Categories</h1>
           <p className="text-bmr-muted">Product categories and subcategories for your store</p>
         </div>
@@ -178,9 +178,9 @@ export default function CategoriesPage() {
                       ) : (
                         <ChevronRight className="w-5 h-5 text-bmr-muted" />
                       )}
-                      <div>
+                    <div>
                         <p className="font-semibold text-lg">{category.name}</p>
-                        <p className="text-sm text-bmr-muted">/{category.slug}</p>
+                      <p className="text-sm text-bmr-muted">/{category.slug}</p>
                       </div>
                     </div>
                     <div className="col-span-4">
@@ -194,10 +194,10 @@ export default function CategoriesPage() {
                     <div className="col-span-2">
                       <span className="px-3 py-1 bg-bmr-acc-green/10 text-bmr-acc-green rounded-full text-sm">
                         Active
-                      </span>
+                    </span>
                     </div>
-                  </div>
-                </div>
+        </div>
+      </div>
 
                 {/* Subcategories */}
                 {expandedCategories.includes(category.id) && category.subcategories.length > 0 && (
@@ -211,7 +211,7 @@ export default function CategoriesPage() {
                           <div className="col-span-4">
                             <div className="flex items-center gap-2">
                               <span className="text-bmr-muted">↳</span>
-                              <div>
+              <div>
                                 <p className="font-medium">{sub.name}</p>
                                 <p className="text-sm text-bmr-muted">/{category.slug}/{sub.slug}</p>
                               </div>
@@ -231,9 +231,9 @@ export default function CategoriesPage() {
                             </span>
                           </div>
                         </div>
-                      </div>
+              </div>
                     ))}
-                  </div>
+              </div>
                 )}
               </div>
             ))}

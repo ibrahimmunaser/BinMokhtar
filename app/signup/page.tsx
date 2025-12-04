@@ -10,9 +10,19 @@ import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 export default function SignUpPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams?.get('redirect') || '/profile';
+  const finalRedirect = searchParams?.get('redirect') || '/profile';
   
-  const { signUp, signInGoogle, isAuthenticated, isLoading: authLoading, error: authError, clearError } = useAuth();
+  const { signUp, signInGoogle, profile, isAuthenticated, isLoading: authLoading, error: authError, clearError } = useAuth();
+  
+  // New users go to complete-profile, returning users go to their destination
+  const getRedirectPath = () => {
+    // If profile is not complete, go to complete-profile
+    // After completing profile, they'll be redirected to finalRedirect
+    if (!profile?.isProfileComplete) {
+      return `/complete-profile${finalRedirect !== '/profile' ? `?redirect=${encodeURIComponent(finalRedirect)}` : ''}`;
+    }
+    return finalRedirect;
+  };
   
   const [formData, setFormData] = useState({
     name: '',
@@ -35,9 +45,9 @@ export default function SignUpPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      router.push(redirect);
+      router.push(getRedirectPath());
     }
-  }, [isAuthenticated, authLoading, router, redirect]);
+  }, [isAuthenticated, authLoading, profile, router]);
 
   // Clear errors when form changes
   useEffect(() => {
@@ -100,7 +110,8 @@ export default function SignUpPage() {
     const result = await signUp(formData.email, formData.password, formData.name || undefined);
     
     if (result.success) {
-      router.push(redirect);
+      // New users always go to complete-profile
+      router.push(`/complete-profile${finalRedirect !== '/profile' ? `?redirect=${encodeURIComponent(finalRedirect)}` : ''}`);
     } else {
       setErrors({ form: result.error || 'Failed to create account' });
     }
@@ -109,18 +120,34 @@ export default function SignUpPage() {
   };
 
   const handleGoogleSignUp = async () => {
+    console.log('🔵 [SIGNUP PAGE] Google sign-up button clicked');
     setLoading(true);
     setErrors({});
     
-    const result = await signInGoogle();
-    
-    if (result.success) {
-      router.push(redirect);
-    } else {
-      setErrors({ form: result.error || 'Failed to sign in with Google' });
+    try {
+      const result = await signInGoogle();
+      console.log('🔵 [SIGNUP PAGE] signInGoogle result:', result);
+      
+      if (result.success) {
+        // New users go to complete-profile, existing users go to their destination
+        if (result.isNewUser) {
+          const completeProfileUrl = `/complete-profile${finalRedirect !== '/profile' ? `?redirect=${encodeURIComponent(finalRedirect)}` : ''}`;
+          console.log('🔵 [SIGNUP PAGE] New user, redirecting to:', completeProfileUrl);
+          router.push(completeProfileUrl);
+        } else {
+          console.log('🔵 [SIGNUP PAGE] Existing user, redirecting to:', finalRedirect);
+          router.push(finalRedirect);
+        }
+      } else {
+        console.error('🔵 [SIGNUP PAGE] Sign-in failed:', result.error);
+        setErrors({ form: result.error || 'Failed to sign in with Google' });
+      }
+    } catch (error: any) {
+      console.error('🔵 [SIGNUP PAGE] Exception:', error);
+      setErrors({ form: error.message || 'An unexpected error occurred' });
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -332,7 +359,7 @@ export default function SignUpPage() {
             <p className="text-sm text-muted">
               Already have an account?{' '}
               <Link 
-                href={`/login${redirect !== '/profile' ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} 
+                href={`/login${finalRedirect !== '/profile' ? `?redirect=${encodeURIComponent(finalRedirect)}` : ''}`} 
                 className="text-bmr-night font-medium hover:underline"
               >
                 Sign in

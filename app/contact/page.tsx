@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Container } from '@/components/layout/Container';
-import { createLead } from '@/lib/data';
+import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -12,6 +12,7 @@ export default function ContactPage() {
     message: '',
   });
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -20,22 +21,37 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('sending');
+    setErrorMessage(null);
 
     try {
-      // Save to leads collection
-      await createLead(formData.email, 'contact');
-      
-      // In a real app, you'd also send an email here
-      console.log('Contact form submission:', formData);
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send message');
+      }
       
       setStatus('success');
       setFormData({ name: '', email: '', phone: '', message: '' });
       
-      setTimeout(() => setStatus('idle'), 3000);
-    } catch (error) {
+      // Show warning if email not configured
+      if (data.warning) {
+        setErrorMessage(data.warning);
+      }
+      
+      setTimeout(() => setStatus('idle'), 5000);
+    } catch (error: any) {
       console.error('Contact form error:', error);
+      setErrorMessage(error.message || 'Something went wrong. Please try again.');
       setStatus('error');
-      setTimeout(() => setStatus('idle'), 3000);
+      setTimeout(() => setStatus('idle'), 5000);
     }
   };
 
@@ -60,7 +76,7 @@ export default function ContactPage() {
               value={formData.name}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 border border-border focus:outline-none focus:border-bmr-black"
+              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-night focus:border-transparent"
             />
           </div>
 
@@ -75,7 +91,7 @@ export default function ContactPage() {
               value={formData.email}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 border border-border focus:outline-none focus:border-bmr-black"
+              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-night focus:border-transparent"
             />
           </div>
 
@@ -89,7 +105,7 @@ export default function ContactPage() {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-border focus:outline-none focus:border-bmr-black"
+              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-night focus:border-transparent"
             />
           </div>
 
@@ -104,24 +120,42 @@ export default function ContactPage() {
               onChange={handleChange}
               required
               rows={6}
-              className="w-full px-4 py-3 border border-border focus:outline-none focus:border-bmr-black resize-none"
+              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-night focus:border-transparent resize-none"
             />
           </div>
 
           <button
             type="submit"
             disabled={status === 'sending'}
-            className="w-full px-8 py-4 bg-bmr-black text-bmr-white text-sm uppercase tracking-wider hover:bg-muted transition-colors disabled:opacity-50"
+            className="w-full px-8 py-4 bg-bmr-night text-surface-2 text-sm uppercase tracking-wider rounded-lg hover:bg-bmr-night/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {status === 'sending' ? 'Sending...' : 'Send Message'}
+            {status === 'sending' ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              'Send Message'
+            )}
           </button>
 
           {status === 'success' && (
-            <p className="text-center text-sm font-medium">✓ Message sent successfully!</p>
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-green-700">Message received!</p>
+                <p className="text-xs text-green-600 mt-0.5">
+                  {errorMessage || "We'll get back to you within 24-48 hours."}
+                </p>
+              </div>
+            </div>
           )}
 
           {status === 'error' && (
-            <p className="text-center text-sm font-medium">✕ Something went wrong. Please try again.</p>
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <p className="text-sm text-red-700">{errorMessage || 'Something went wrong. Please try again.'}</p>
+            </div>
           )}
         </form>
 

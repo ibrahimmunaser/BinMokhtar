@@ -276,13 +276,33 @@ export interface OrderItem {
 export interface Review {
   id: string;
   productId: string;
+  productSlug: string;
+  productTitle: string;
+  orderId: string;
+  orderItemId: string;
+  userId: string;
+  userDisplayName: string;
+  userPhotoURL?: string;
   rating: number; // 1-5
   title?: string;
   body?: string;
-  name?: string;
+  size?: string; // Product size at time of purchase
+  color?: string; // Product color at time of purchase
   approved: boolean;
   pinnedHome?: boolean; // show on homepage carousel
   createdAt: Timestamp | Date;
+  updatedAt?: Timestamp | Date;
+}
+
+export interface ReviewFormData {
+  productId: string;
+  productSlug: string;
+  productTitle: string;
+  orderId: string;
+  orderItemId: string;
+  rating: number;
+  title?: string;
+  body?: string;
 }
 
 // ============================================================================

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe, STRIPE_WEBHOOK_SECRET } from '@/lib/stripe/config';
-import { adminDb } from '@/lib/firebase/server';
+import { adminDb, FieldValue } from '@/lib/firebase/server';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 import Stripe from 'stripe';
 
@@ -289,10 +289,10 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       // Metadata
       metadata: session.metadata || {},
       
-      // Timestamps
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      paidAt: new Date(),
+      // Timestamps - use FieldValue.serverTimestamp() for proper Firestore storage
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      paidAt: FieldValue.serverTimestamp(),
     };
 
     // Remove all undefined values before saving to Firestore

@@ -35,6 +35,9 @@ export interface UserProfile {
   defaultLocationZone: LocationZone | null;
   defaultFulfillmentMethod: FulfillmentMethod | null;
   
+  // Profile completion status
+  isProfileComplete?: boolean;
+  
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -51,6 +54,7 @@ export interface UserProfileUpdate {
   phoneNumber?: string | null;
   defaultLocationZone?: LocationZone | null;
   defaultFulfillmentMethod?: FulfillmentMethod | null;
+  isProfileComplete?: boolean;
 }
 
 /**
@@ -63,6 +67,10 @@ export interface AuthUser {
   displayName: string | null;
   photoURL: string | null;
   profile: UserProfile | null;
+  metadata?: {
+    creationTime?: string;
+    lastSignInTime?: string;
+  };
 }
 
 /**

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, LogOut, Package, ChevronDown, Settings } from 'lucide-react';
+import { User, LogOut, Package, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function AccountDropdown() {
@@ -72,9 +72,8 @@ export function AccountDropdown() {
   }
   
   // Logged in state
-  const displayName = user?.displayName || user?.profile?.firstName || user?.email?.split('@')[0] || 'Account';
-  const initials = getInitials(displayName);
-  const hasAvatar = user?.photoURL || user?.profile?.photoURL;
+  const displayName = user?.profile?.displayName || user?.profile?.firstName || user?.displayName || user?.email?.split('@')[0] || 'Account';
+  const firstName = displayName.split(' ')[0];
   
   return (
     <div className="relative" ref={dropdownRef}>
@@ -84,20 +83,12 @@ export function AccountDropdown() {
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        {hasAvatar ? (
-          <img
-            src={user?.photoURL || user?.profile?.photoURL || ''}
-            alt={displayName}
-            className="w-7 h-7 rounded-full object-cover border border-border"
-          />
-        ) : (
-          <div className="w-7 h-7 rounded-full bg-bmr-night text-surface-2 flex items-center justify-center text-xs font-medium">
-            {initials}
-          </div>
-        )}
+        <div className="w-7 h-7 rounded-full bg-surface-3 border border-border flex items-center justify-center">
+          <User className="w-4 h-4 text-bmr-night" />
+        </div>
         <span className="hidden lg:flex items-center gap-1">
           <span className="text-sm font-medium max-w-[100px] truncate">
-            Hi, {displayName.split(' ')[0]}
+            Hi, {firstName}
           </span>
           <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </span>
@@ -148,12 +139,3 @@ export function AccountDropdown() {
     </div>
   );
 }
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(' ');
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
-  return name.substring(0, 2).toUpperCase();
-}
-

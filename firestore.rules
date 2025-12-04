@@ -139,6 +139,18 @@ service cloud.firestore {
     }
 
     // ========================================================================
+    // User Profiles (Own profile only)
+    // ========================================================================
+
+    match /users/{userId} {
+      // Users can read and write their own profile
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isAdmin();
+    }
+
+    // ========================================================================
     // Stripe Events (Admin only, for idempotency tracking)
     // ========================================================================
 

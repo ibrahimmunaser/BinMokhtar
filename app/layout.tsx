@@ -39,15 +39,15 @@ export default function RootLayout({
     >
       <body>
         <AuthProvider>
-          <LocaleProvider>
-            <ToastProvider>
+        <LocaleProvider>
+          <ToastProvider>
               <DeliveryBar />
-              <TopBar />
-              <SiteHeader />
-              <main className="min-h-screen">{children}</main>
-              <Footer />
-            </ToastProvider>
-          </LocaleProvider>
+          <TopBar />
+          <SiteHeader />
+          <main className="min-h-screen">{children}</main>
+          <Footer />
+          </ToastProvider>
+        </LocaleProvider>
         </AuthProvider>
       </body>
     </html>

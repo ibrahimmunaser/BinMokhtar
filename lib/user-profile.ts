@@ -7,7 +7,6 @@ import {
   doc, 
   getDoc, 
   setDoc, 
-  updateDoc, 
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
@@ -43,6 +42,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
       phoneNumber: data.phoneNumber || null,
       defaultLocationZone: data.defaultLocationZone || null,
       defaultFulfillmentMethod: data.defaultFulfillmentMethod || null,
+      isProfileComplete: data.isProfileComplete || false,
       createdAt: data.createdAt instanceof Timestamp 
         ? data.createdAt.toDate() 
         : new Date(data.createdAt),
@@ -70,8 +70,18 @@ export async function createOrUpdateUserProfile(
   provider: AuthProvider = 'credentials',
   additionalData?: { displayName?: string }
 ): Promise<UserProfile> {
+  console.log('🔴 [USER PROFILE] createOrUpdateUserProfile() called');
+  console.log('🔴 [USER PROFILE] User ID:', firebaseUser.uid);
+  console.log('🔴 [USER PROFILE] Provider:', provider);
+  console.log('🔴 [USER PROFILE] User email:', firebaseUser.email);
+  console.log('🔴 [USER PROFILE] User displayName:', firebaseUser.displayName);
+  
+  const startTime = Date.now();
   const userRef = doc(db, USERS_COLLECTION, firebaseUser.uid);
+  
+  console.log('🔴 [USER PROFILE] Checking for existing profile...');
   const existingProfile = await getUserProfile(firebaseUser.uid);
+  console.log('🔴 [USER PROFILE] Existing profile:', existingProfile ? 'found' : 'not found');
   
   // Parse display name into first/last
   const fullName = additionalData?.displayName || firebaseUser.displayName || '';
@@ -80,6 +90,7 @@ export async function createOrUpdateUserProfile(
   const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null;
   
   if (existingProfile) {
+    console.log('🔴 [USER PROFILE] Updating existing profile');
     // Update existing profile - merge providers if new
     const providers = existingProfile.authProviders.includes(provider)
       ? existingProfile.authProviders
@@ -104,17 +115,24 @@ export async function createOrUpdateUserProfile(
       updateData.lastName = lastName;
     }
     
-    await updateDoc(userRef, updateData);
+    console.log('🔴 [USER PROFILE] Update data:', JSON.stringify(updateData, null, 2));
+    console.log('🔴 [USER PROFILE] Writing to Firestore...');
+    await setDoc(userRef, updateData, { merge: true });
+    console.log('🔴 [USER PROFILE] Profile updated successfully');
     
-    return {
+    const result = {
       ...existingProfile,
       ...updateData,
       lastLoginAt: new Date(),
       updatedAt: new Date(),
     };
+    const duration = Date.now() - startTime;
+    console.log('🔴 [USER PROFILE] createOrUpdateUserProfile() completed in', duration, 'ms');
+    return result;
   }
   
   // Create new profile
+  console.log('🔴 [USER PROFILE] Creating new profile');
   const newProfile: Omit<UserProfile, 'createdAt' | 'updatedAt' | 'lastLoginAt'> & {
     createdAt: ReturnType<typeof serverTimestamp>;
     updatedAt: ReturnType<typeof serverTimestamp>;
@@ -131,23 +149,36 @@ export async function createOrUpdateUserProfile(
     phoneNumber: firebaseUser.phoneNumber || null,
     defaultLocationZone: null,
     defaultFulfillmentMethod: null,
+    isProfileComplete: false, // New users need to complete profile
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     lastLoginAt: serverTimestamp(),
   };
   
+  console.log('🔴 [USER PROFILE] New profile data:', JSON.stringify({
+    ...newProfile,
+    createdAt: '[serverTimestamp]',
+    updatedAt: '[serverTimestamp]',
+    lastLoginAt: '[serverTimestamp]',
+  }, null, 2));
+  console.log('🔴 [USER PROFILE] Writing to Firestore...');
   await setDoc(userRef, newProfile);
+  console.log('🔴 [USER PROFILE] Profile created successfully');
   
-  return {
+  const result = {
     ...newProfile,
     createdAt: new Date(),
     updatedAt: new Date(),
     lastLoginAt: new Date(),
   } as UserProfile;
+  const duration = Date.now() - startTime;
+  console.log('🔴 [USER PROFILE] createOrUpdateUserProfile() completed in', duration, 'ms');
+  return result;
 }
 
 /**
  * Update user profile fields
+ * Uses setDoc with merge to handle both new and existing documents
  */
 export async function updateUserProfileData(
   uid: string,
@@ -155,9 +186,18 @@ export async function updateUserProfileData(
 ): Promise<void> {
   const userRef = doc(db, USERS_COLLECTION, uid);
   
+  // Check if document exists to set createdAt for new documents
+  const existingDoc = await getDoc(userRef);
+  
   const updateData: Record<string, any> = {
+    uid, // Ensure uid is always set
     updatedAt: serverTimestamp(),
   };
+  
+  // If document doesn't exist, set createdAt
+  if (!existingDoc.exists()) {
+    updateData.createdAt = serverTimestamp();
+  }
   
   if (updates.displayName !== undefined) {
     updateData.displayName = updates.displayName;
@@ -189,7 +229,12 @@ export async function updateUserProfileData(
     updateData.defaultFulfillmentMethod = updates.defaultFulfillmentMethod;
   }
   
-  await updateDoc(userRef, updateData);
+  if (updates.isProfileComplete !== undefined) {
+    updateData.isProfileComplete = updates.isProfileComplete;
+  }
+  
+  // Use setDoc with merge to create or update the document
+  await setDoc(userRef, updateData, { merge: true });
 }
 
 /**

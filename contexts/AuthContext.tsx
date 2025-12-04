@@ -11,7 +11,7 @@ import { auth } from '@/lib/firebase';
 import { 
   signInWithEmail, 
   signUpWithEmail, 
-  signInWithGoogle, 
+  signInWithGoogle,
   signOutUser 
 } from '@/lib/auth';
 import { 
@@ -30,11 +30,12 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
+  isNewGoogleUser: boolean; // True if user just signed up via Google redirect
   
   // Auth methods
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signUp: (email: string, password: string, name?: string) => Promise<{ success: boolean; error?: string }>;
-  signInGoogle: () => Promise<{ success: boolean; error?: string }>;
+  signInGoogle: () => Promise<{ success: boolean; error?: string; isNewUser?: boolean }>;
   signOut: () => Promise<void>;
   
   // Profile methods
@@ -43,6 +44,7 @@ interface AuthContextType {
   
   // Clear error
   clearError: () => void;
+  clearNewGoogleUser: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,6 +54,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  
+  // State to track if we're processing a Google redirect
+  const [googleRedirectProcessed, setGoogleRedirectProcessed] = useState(false);
+  const [isNewGoogleUser, setIsNewGoogleUser] = useState(false);
+  
+  // Handle client-side hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  // Note: We now use popup-based Google sign-in, so no redirect handling needed
   
   // Location store for syncing default address
   const setLocationZone = useLocationStore((state) => state.setLocationZone);
@@ -65,10 +79,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     displayName: firebaseUser.displayName || profile?.displayName || null,
     photoURL: firebaseUser.photoURL || profile?.photoURL || null,
     profile,
+    metadata: {
+      creationTime: firebaseUser.metadata?.creationTime || undefined,
+      lastSignInTime: firebaseUser.metadata?.lastSignInTime || undefined,
+    },
   } : null;
   
-  const isLoading = firebaseLoading || isLoadingProfile;
-  const isAuthenticated = !!firebaseUser && !firebaseLoading;
+  // Include mounted state in loading to prevent hydration mismatches
+  const isLoading = !mounted || firebaseLoading || isLoadingProfile;
+  const isAuthenticated = mounted && !!firebaseUser && !firebaseLoading;
   
   // Load user profile when Firebase user changes
   useEffect(() => {
@@ -96,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     
     loadProfile();
-  }, [firebaseUser?.uid]);
+  }, [firebaseUser?.uid, firebaseLoading, locationZone, setLocationZone]);
   
   // Sign in with email/password
   const signIn = useCallback(async (email: string, password: string) => {
@@ -151,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
   
-  // Sign in with Google
+  // Sign in with Google (popup-based)
   const signInGoogle = useCallback(async () => {
     setError(null);
     
@@ -163,13 +182,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: result.error };
       }
       
+      // Handle the authenticated user
+      let isNewUser = false;
       if (result.user) {
-        // Create or update profile (handles account linking)
-        await createOrUpdateUserProfile(result.user, 'google');
+        try {
+          const existingProfile = await getUserProfile(result.user.uid);
+          isNewUser = !existingProfile;
+          
+          if (isNewUser) {
+            setIsNewGoogleUser(true);
+          }
+          
+          await createOrUpdateUserProfile(result.user, 'google');
+        } catch {
+          // Don't fail the sign-in if profile update fails
+        }
       }
       
-      return { success: true };
+      return { success: true, isNewUser };
     } catch (err: any) {
+      console.error('Sign in with Google error:', err);
       const errorMessage = err.message || 'Failed to sign in with Google';
       setError(errorMessage);
       return { success: false, error: errorMessage };
@@ -182,6 +214,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await signOutUser();
       setProfile(null);
+      setIsNewGoogleUser(false);
+      setGoogleRedirectProcessed(false); // Reset so next sign-in can process redirect
     } catch (err: any) {
       console.error('Sign out error:', err);
     }
@@ -231,12 +265,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
   }, []);
   
+  // Clear new Google user flag (after redirect to complete-profile)
+  const clearNewGoogleUser = useCallback(() => {
+    setIsNewGoogleUser(false);
+  }, []);
+  
   const value: AuthContextType = {
     user,
     profile,
     isLoading,
     isAuthenticated,
     error: error || (firebaseError?.message || null),
+    isNewGoogleUser,
     signIn,
     signUp,
     signInGoogle,
@@ -244,6 +284,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updateProfile,
     refreshProfile,
     clearError,
+    clearNewGoogleUser,
   };
   
   return (

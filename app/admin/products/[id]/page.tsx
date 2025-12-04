@@ -78,9 +78,9 @@ export default function EditProductPage() {
       <div className="container-wide py-12">
         <div className="mb-8">
           <Link href="/admin/products" className="flex items-center gap-2 text-bmr-muted hover:text-bmr-ink mb-4">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Products
-          </Link>
+          <ArrowLeft className="w-4 h-4" />
+          Back to Products
+        </Link>
           <h1 className="font-display text-3xl lg:text-4xl">Edit Product</h1>
           <p className="text-bmr-muted mt-2">Update product information</p>
         </div>

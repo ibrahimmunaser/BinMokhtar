@@ -4,11 +4,13 @@ import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cart';
 import { useLocationStore } from '@/store/location';
+import { useCheckoutStore } from '@/store/checkout';
 import { useAuth } from '@/contexts/AuthContext';
 import { logBeginCheckout } from '@/lib/analytics';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { ShippingRateSelector } from './ShippingRateSelector';
-import { AlertCircle, Package, Truck, MapPin, Loader2 } from 'lucide-react';
+import { AddressModal } from '@/components/layout/AddressModal';
+import { AlertCircle, Package, Truck, MapPin, Loader2, Navigation } from 'lucide-react';
 import {
   FulfillmentMethod,
   LOCAL_DELIVERY_FEE_CENTS,
@@ -33,6 +35,11 @@ export function CheckoutForm() {
   // Location store
   const locationZone = useLocationStore((state) => state.locationZone);
   const isHydrated = useLocationStore((state) => state.isHydrated);
+  
+  // Checkout store - for sharing state with OrderSummary
+  const setCheckoutFulfillment = useCheckoutStore((state) => state.setFulfillmentMethod);
+  const setCheckoutShippingCost = useCheckoutStore((state) => state.setShippingCost);
+  const setCheckoutSelectedRate = useCheckoutStore((state) => state.setSelectedRate);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +54,15 @@ export function CheckoutForm() {
   const [formData, setFormData] = useState({
     email: '',
   });
+  
+  // Address modal state
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  
+  // Handle hydration - wait for client to mount
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Pre-fill email from authenticated user
   useEffect(() => {
@@ -67,6 +83,21 @@ export function CheckoutForm() {
       }
     }
   }, [isHydrated, locationZone]);
+  
+  // Sync local state to checkout store for OrderSummary
+  useEffect(() => {
+    setCheckoutFulfillment(fulfillmentMethod);
+    
+    // Calculate shipping cost based on method
+    let shippingCost = 0;
+    if (fulfillmentMethod === 'local_delivery') {
+      shippingCost = LOCAL_DELIVERY_FEE_CENTS;
+    } else if (fulfillmentMethod === 'shipping' && selectedRate) {
+      shippingCost = selectedRate.amount;
+    }
+    setCheckoutShippingCost(shippingCost);
+    setCheckoutSelectedRate(selectedRate);
+  }, [fulfillmentMethod, selectedRate, setCheckoutFulfillment, setCheckoutShippingCost, setCheckoutSelectedRate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -205,6 +236,7 @@ export function CheckoutForm() {
   const isLocalDeliveryAvailable = locationZone?.zone === 'local';
 
   return (
+    <>
     <form onSubmit={handleStripeCheckout} className="space-y-8">
       {/* Contact Information */}
       <div>
@@ -292,12 +324,12 @@ export function CheckoutForm() {
               if (isLocalDeliveryAvailable) {
                 setFulfillmentMethod('local_delivery');
                 setSelectedRate(null);
+              } else {
+                // Open address modal to let user set their location
+                setShowAddressModal(true);
               }
             }}
-            disabled={!isLocalDeliveryAvailable}
-            className={`p-4 border-2 rounded-lg text-left transition-all ${
-              !isLocalDeliveryAvailable ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-            } ${
+            className={`p-4 border-2 rounded-lg text-left transition-all cursor-pointer ${
               fulfillmentMethod === 'local_delivery'
                 ? 'border-bmr-night bg-bmr-night/5'
                 : 'border-border hover:border-bmr-muted'
@@ -312,8 +344,9 @@ export function CheckoutForm() {
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">Local Delivery</span>
                     {!isLocalDeliveryAvailable && (
-                      <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
-                        Not Available
+                      <span className="text-xs px-2 py-0.5 bg-bmr-night/10 text-bmr-night rounded flex items-center gap-1">
+                        <Navigation className="w-3 h-3" />
+                        Set Address
                       </span>
                     )}
                   </div>
@@ -322,7 +355,7 @@ export function CheckoutForm() {
                 <p className="text-sm text-bmr-muted mt-1">
                   {isLocalDeliveryAvailable 
                     ? 'Delivered to your address within 1-2 business days'
-                    : 'Available within 15 miles of our store'}
+                    : 'Click to set your delivery address'}
                 </p>
               </div>
             </div>
@@ -381,39 +414,41 @@ export function CheckoutForm() {
         </div>
       )}
 
-      {/* Order Summary */}
-      <div className="p-6 bg-surface-3/50 rounded-lg border border-line">
-        <h3 className="font-semibold mb-4">Order Summary</h3>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted">Subtotal</span>
-            <span>{formatPrice(total)}</span>
-          </div>
-          {fulfillmentMethod === 'local_delivery' && (
+      {/* Order Summary - only show after hydration to avoid mismatch */}
+      {mounted && (
+        <div className="p-6 bg-surface-3/50 rounded-lg border border-line">
+          <h3 className="font-semibold mb-4">Order Summary</h3>
+          <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted">Local Delivery</span>
-              <span>{formatPrice(LOCAL_DELIVERY_FEE_CENTS)}</span>
+              <span className="text-muted">Subtotal</span>
+              <span>{formatPrice(total)}</span>
             </div>
-          )}
-          {fulfillmentMethod === 'shipping' && selectedRate && (
-            <div className="flex justify-between">
-              <span className="text-muted">
-                Shipping ({selectedRate.carrier} {selectedRate.serviceLevelName})
-              </span>
-              <span>{formatPrice(selectedRate.amount)}</span>
+            {fulfillmentMethod === 'local_delivery' && (
+              <div className="flex justify-between">
+                <span className="text-muted">Local Delivery</span>
+                <span>{formatPrice(LOCAL_DELIVERY_FEE_CENTS)}</span>
+              </div>
+            )}
+            {fulfillmentMethod === 'shipping' && selectedRate && (
+              <div className="flex justify-between">
+                <span className="text-muted">
+                  Shipping ({selectedRate.carrier} {selectedRate.serviceLevelName})
+                </span>
+                <span>{formatPrice(selectedRate.amount)}</span>
+              </div>
+            )}
+            <div className="border-t border-line pt-2 mt-2">
+              <div className="flex justify-between font-semibold">
+                <span>Total</span>
+                <span>{formatPrice(calculateTotal())}</span>
+              </div>
+              <p className="text-xs text-muted mt-1">
+                Tax calculated at checkout
+              </p>
             </div>
-          )}
-          <div className="border-t border-line pt-2 mt-2">
-            <div className="flex justify-between font-semibold">
-              <span>Total</span>
-              <span>{formatPrice(calculateTotal())}</span>
-            </div>
-            <p className="text-xs text-muted mt-1">
-              Tax calculated at checkout
-            </p>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Stripe Information */}
       <div className="bg-surface-3/50 p-6 rounded-lg border border-line/50">
@@ -477,5 +512,12 @@ export function CheckoutForm() {
         </div>
       </div>
     </form>
+    
+    {/* Address Modal */}
+    <AddressModal 
+      isOpen={showAddressModal} 
+      onClose={() => setShowAddressModal(false)} 
+    />
+    </>
   );
 }

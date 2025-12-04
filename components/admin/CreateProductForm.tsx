@@ -353,7 +353,7 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
       // Reset form and redirect after 2 seconds
       setTimeout(() => {
         if (!isEditMode) {
-          reset();
+        reset();
         }
         setSubmitStatus('idle');
         router.push('/admin');

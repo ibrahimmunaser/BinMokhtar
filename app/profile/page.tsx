@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Container } from '@/components/layout/Container';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocationStore, resolveLocation } from '@/store/location';
 import { formatPrice } from '@/lib/utils';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { 
   Loader2, 
@@ -22,9 +22,12 @@ import {
   ExternalLink,
   FileText,
   ChevronRight,
-  LocateFixed
+  LocateFixed,
+  Star,
+  MessageSquare
 } from 'lucide-react';
-import type { Order } from '@/types';
+import { ReviewModal } from '@/components/reviews/ReviewModal';
+import type { Order, OrderItem, Review } from '@/types';
 import type { FulfillmentMethod, LocationZone } from '@/lib/shipping/config';
 import { LOCAL_DELIVERY_RADIUS_MILES, LOCAL_DELIVERY_FEE_CENTS } from '@/lib/shipping/config';
 
@@ -79,61 +82,191 @@ export default function ProfilePage() {
     }
   }, [profile]);
   
-  // Fetch orders - query by userId first, then by email as fallback
+  // Fetch orders - query by userId and email
   useEffect(() => {
     async function fetchOrders() {
       if (!user) return;
 
+      setLoadingOrders(true);
+      
       try {
         const ordersRef = collection(db, 'orders');
         let ordersData: Order[] = [];
         
-        // First, try to fetch by userId
+        // Try to fetch by userId (without orderBy to avoid index requirement)
         if (user.uid) {
           try {
             const userIdQuery = query(
               ordersRef,
-              where('userId', '==', user.uid),
-              orderBy('createdAt', 'desc')
+              where('userId', '==', user.uid)
             );
             const userIdSnapshot = await getDocs(userIdQuery);
-            ordersData = userIdSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            })) as Order[];
-          } catch (e) {
-            console.log('No orders found by userId, trying email...');
+            ordersData = userIdSnapshot.docs.map((doc) => {
+              const data = doc.data();
+              
+              // Convert Firestore Timestamps to Date objects
+              let createdAt = data.createdAt;
+              let updatedAt = data.updatedAt;
+              
+              // Helper function to convert timestamp
+              const convertTimestamp = (ts: any): Date | null => {
+                if (!ts) return null;
+                
+                // Already a Date
+                if (ts instanceof Date) {
+                  return isNaN(ts.getTime()) ? null : ts;
+                }
+                
+                // Firestore Timestamp instance
+                if (ts instanceof Timestamp) {
+                  return ts.toDate();
+                }
+                
+                // Has toDate method (check this before checking properties)
+                if (ts && typeof ts.toDate === 'function') {
+                  try {
+                    return ts.toDate();
+                  } catch (e) {
+                    console.error('Error calling toDate():', e);
+                  }
+                }
+                
+                // Check for seconds property (most common Firestore Timestamp format)
+                // This handles serialized Timestamps that lost their prototype
+                if (typeof ts === 'object' && ts.seconds !== undefined && typeof ts.seconds === 'number') {
+                  const milliseconds = ts.seconds * 1000;
+                  if (ts.nanoseconds !== undefined && typeof ts.nanoseconds === 'number') {
+                    return new Date(milliseconds + ts.nanoseconds / 1000000);
+                  }
+                  return new Date(milliseconds);
+                }
+                
+                // Has _seconds property (alternative format)
+                if (ts._seconds !== undefined && typeof ts._seconds === 'number') {
+                  return new Date(ts._seconds * 1000);
+                }
+                
+                // Try to reconstruct Timestamp if it looks like one
+                // Sometimes Firestore Timestamps get serialized as {seconds: X, nanoseconds: Y}
+                const keys = ts ? Object.keys(ts) : [];
+                if (keys.includes('seconds') || keys.includes('_seconds')) {
+                  const sec = ts.seconds || ts._seconds;
+                  const nano = ts.nanoseconds || ts._nanoseconds || 0;
+                  if (typeof sec === 'number') {
+                    return new Date(sec * 1000 + (nano / 1000000));
+                  }
+                }
+                
+                // Timestamp could not be converted - return null
+                return null;
+              };
+              
+              createdAt = convertTimestamp(createdAt) || createdAt;
+              updatedAt = convertTimestamp(updatedAt) || updatedAt;
+              
+              
+              return {
+                id: doc.id,
+                ...data,
+                createdAt,
+                updatedAt,
+              };
+            }) as Order[];
+          } catch (e: any) {
+            console.error('Error fetching orders by userId:', e.message);
           }
         }
         
-        // Also fetch by email to catch orders placed before login
+        // Also fetch by email to catch orders placed before login or as guest
         if (user.email) {
-          const emailQuery = query(
-            ordersRef,
-            where('email', '==', user.email),
-            orderBy('createdAt', 'desc')
-          );
-          const emailSnapshot = await getDocs(emailQuery);
-          const emailOrders = emailSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as Order[];
-          
-          // Merge and deduplicate
-          const existingIds = new Set(ordersData.map(o => o.id));
-          for (const order of emailOrders) {
-            if (!existingIds.has(order.id)) {
-              ordersData.push(order);
+          try {
+            const emailQuery = query(
+              ordersRef,
+              where('email', '==', user.email)
+            );
+            const emailSnapshot = await getDocs(emailQuery);
+            const emailOrders = emailSnapshot.docs.map((doc) => {
+              const data = doc.data();
+              
+              // Convert Firestore Timestamps to Date objects
+              let createdAt = data.createdAt;
+              let updatedAt = data.updatedAt;
+              
+              // Helper function to convert timestamp
+              const convertTimestamp = (ts: any): Date | null => {
+                if (!ts) return null;
+                
+                // Already a Date
+                if (ts instanceof Date) {
+                  return isNaN(ts.getTime()) ? null : ts;
+                }
+                
+                // Firestore Timestamp instance
+                if (ts instanceof Timestamp) {
+                  return ts.toDate();
+                }
+                
+                // Has toDate method
+                if (ts && typeof ts.toDate === 'function') {
+                  try {
+                    return ts.toDate();
+                  } catch (e) {
+                    console.error('Error calling toDate():', e);
+                  }
+                }
+                
+                // Has seconds property
+                if (ts.seconds !== undefined) {
+                  const milliseconds = ts.seconds * 1000;
+                  if (ts.nanoseconds) {
+                    return new Date(milliseconds + ts.nanoseconds / 1000000);
+                  }
+                  return new Date(milliseconds);
+                }
+                
+                // Has _seconds property
+                if (ts._seconds !== undefined) {
+                  return new Date(ts._seconds * 1000);
+                }
+                
+                return null;
+              };
+              
+              createdAt = convertTimestamp(createdAt) || createdAt;
+              updatedAt = convertTimestamp(updatedAt) || updatedAt;
+              
+              return {
+                id: doc.id,
+                ...data,
+                createdAt,
+                updatedAt,
+              };
+            }) as Order[];
+            
+            // Merge and deduplicate
+            const existingIds = new Set(ordersData.map(o => o.id));
+            for (const order of emailOrders) {
+              if (!existingIds.has(order.id)) {
+                ordersData.push(order);
+              }
             }
+          } catch {
+            // Email-based query may fail due to Firestore rules - this is expected
+            // The userId query above is the primary method
           }
-          
-          // Sort by date
-          ordersData.sort((a, b) => {
-            const aDate = toDate(a.createdAt).getTime();
-            const bDate = toDate(b.createdAt).getTime();
-            return bDate - aDate;
-          });
         }
+        
+        // Sort by date client-side
+        ordersData.sort((a, b) => {
+          const getTime = (ts: any): number => {
+            if (!ts) return 0;
+            if (ts instanceof Date) return ts.getTime() || 0;
+            if (ts?.seconds) return ts.seconds * 1000;
+            if (typeof ts === 'string') return new Date(ts).getTime() || 0;
+            return 0;
+          };
+          return getTime(b.createdAt) - getTime(a.createdAt);
+        });
         
         setOrders(ordersData);
       } catch (error) {
@@ -149,14 +282,65 @@ export default function ProfilePage() {
   }, [user]);
   
   // Helper to convert Firestore Timestamp or Date to Date object
-  const toDate = (timestamp: any): Date => {
-    if (timestamp instanceof Date) {
-      return timestamp;
+  const toDate = (timestamp: any): Date | null => {
+    if (!timestamp) return null;
+    
+    // Firestore Timestamp instance (from firebase/firestore)
+    if (timestamp instanceof Timestamp) {
+      try {
+        return timestamp.toDate();
+      } catch {
+        return null;
+      }
     }
-    if (timestamp?.seconds) {
+    
+    // Firestore Timestamp with toDate() method (from Admin SDK or other formats)
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      try {
+        const date = timestamp.toDate();
+        return isNaN(date.getTime()) ? null : date;
+      } catch {
+        return null;
+      }
+    }
+    
+    // Already a Date object
+    if (timestamp instanceof Date) {
+      return isNaN(timestamp.getTime()) ? null : timestamp;
+    }
+    
+    // Firestore Timestamp with seconds property
+    if (timestamp?.seconds !== undefined) {
       return new Date(timestamp.seconds * 1000);
     }
-    return new Date();
+    
+    // Firestore Timestamp with _seconds property (alternative format)
+    if (timestamp?._seconds !== undefined) {
+      return new Date(timestamp._seconds * 1000);
+    }
+    
+    // String date
+    if (typeof timestamp === 'string') {
+      const date = new Date(timestamp);
+      return isNaN(date.getTime()) ? null : date;
+    }
+    
+    // Number (milliseconds)
+    if (typeof timestamp === 'number') {
+      const date = new Date(timestamp);
+      return isNaN(date.getTime()) ? null : date;
+    }
+    
+    return null;
+  };
+  
+  // Format date safely
+  const formatDate = (timestamp: any, fallback: string = 'Recently'): string => {
+    const date = toDate(timestamp);
+    if (date) {
+      return date.toLocaleDateString();
+    }
+    return fallback;
   };
   
   // Handle profile save
@@ -409,7 +593,11 @@ export default function ProfilePage() {
                   <div>
                     <p className="text-sm text-muted mb-1">Account Created</p>
                     <p className="font-medium">
-                      {profile?.createdAt ? toDate(profile.createdAt).toLocaleDateString() : 'Unknown'}
+                      {formatDate(profile?.createdAt) !== 'Recently'
+                        ? formatDate(profile?.createdAt)
+                        : user?.metadata?.creationTime 
+                          ? formatDate(user.metadata.creationTime)
+                          : 'Recently'}
                     </p>
                   </div>
                 </div>
@@ -512,48 +700,6 @@ export default function ProfilePage() {
                         )}
                       </div>
                       
-                      {/* Default Fulfillment Preference */}
-                      <div className="pt-4 border-t border-border">
-                        <p className="text-sm font-medium mb-3">Default Fulfillment Preference</p>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() => handleFulfillmentChange('pickup')}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                              defaultFulfillment === 'pickup'
-                                ? 'border-bmr-night bg-bmr-night/5 text-bmr-night'
-                                : 'border-border hover:border-bmr-muted'
-                            }`}
-                          >
-                            <Store className="w-4 h-4" />
-                            Pickup
-                          </button>
-                          
-                          <button
-                            onClick={() => handleFulfillmentChange('local_delivery')}
-                            disabled={!isLocalDelivery}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                              defaultFulfillment === 'local_delivery'
-                                ? 'border-bmr-night bg-bmr-night/5 text-bmr-night'
-                                : 'border-border hover:border-bmr-muted'
-                            }`}
-                          >
-                            <Truck className="w-4 h-4" />
-                            Local Delivery
-                          </button>
-                          
-                          <button
-                            onClick={() => handleFulfillmentChange('shipping')}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                              defaultFulfillment === 'shipping'
-                                ? 'border-bmr-night bg-bmr-night/5 text-bmr-night'
-                                : 'border-border hover:border-bmr-muted'
-                            }`}
-                          >
-                            <Package className="w-4 h-4" />
-                            Shipping
-                          </button>
-                        </div>
-                      </div>
                     </div>
                   ) : (
                     <div className="text-center py-6">
@@ -603,7 +749,14 @@ export default function ProfilePage() {
               ) : (
                 <div className="space-y-4">
                   {orders.map((order) => (
-                    <OrderCard key={order.id} order={order} toDate={toDate} />
+                    <OrderCard 
+                      key={order.id} 
+                      order={order} 
+                      toDate={toDate}
+                      userId={user?.uid || ''}
+                      userDisplayName={profile?.displayName || user?.displayName || 'Customer'}
+                      userPhotoURL={profile?.photoURL || user?.photoURL || undefined}
+                    />
                   ))}
                 </div>
               )}
@@ -615,14 +768,131 @@ export default function ProfilePage() {
   );
 }
 
-function OrderCard({ order, toDate }: { order: Order & { fulfillmentMethod?: string; labelUrl?: string; trackingNumber?: string; trackingUrl?: string; packingSlipUrl?: string }; toDate: (ts: any) => Date }) {
+interface OrderCardProps {
+  order: Order & { fulfillmentMethod?: string; labelUrl?: string; trackingNumber?: string; trackingUrl?: string; packingSlipUrl?: string };
+  toDate: (ts: any) => Date | null;
+  userId: string;
+  userDisplayName: string;
+  userPhotoURL?: string;
+}
+
+function OrderCard({ order, toDate, userId, userDisplayName, userPhotoURL }: OrderCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [reviewModalItem, setReviewModalItem] = useState<OrderItem | null>(null);
+  const [existingReviews, setExistingReviews] = useState<Map<string, Review>>(new Map());
+  const [loadingReviews, setLoadingReviews] = useState(false);
   
   const fulfillmentLabel = order.fulfillmentMethod === 'pickup' 
     ? 'Pickup' 
     : order.fulfillmentMethod === 'local_delivery' 
       ? 'Local Delivery' 
       : 'Shipping';
+
+  // Fetch existing reviews for this order when expanded
+  useEffect(() => {
+    if (isExpanded && userId && existingReviews.size === 0 && !loadingReviews) {
+      setLoadingReviews(true);
+      fetch(`/api/reviews?userId=${userId}&orderId=${order.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.reviews) {
+            const reviewMap = new Map<string, Review>();
+            data.reviews.forEach((review: Review) => {
+              reviewMap.set(review.orderItemId, review);
+            });
+            setExistingReviews(reviewMap);
+          }
+        })
+        .catch(console.error)
+        .finally(() => setLoadingReviews(false));
+    }
+  }, [isExpanded, userId, order.id, existingReviews.size, loadingReviews]);
+
+  const handleSubmitReview = async (item: OrderItem, data: { rating: number; title: string; body: string }) => {
+    const response = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productId: item.productId,
+        productSlug: '', // Will be filled by backend if needed
+        productTitle: item.title,
+        orderId: order.id,
+        orderItemId: item.id || `${order.id}-${item.variantId}`,
+        userId,
+        userDisplayName,
+        userPhotoURL,
+        rating: data.rating,
+        title: data.title,
+        body: data.body,
+        size: item.size || null,
+        color: item.color || null,
+      }),
+    });
+
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to submit review');
+    }
+
+    // Update local state
+    setExistingReviews(prev => {
+      const newMap = new Map(prev);
+      newMap.set(item.id || `${order.id}-${item.variantId}`, {
+        id: result.reviewId,
+        productId: item.productId,
+        productSlug: '',
+        productTitle: item.title,
+        orderId: order.id,
+        orderItemId: item.id || `${order.id}-${item.variantId}`,
+        userId,
+        userDisplayName,
+        rating: data.rating,
+        title: data.title,
+        body: data.body,
+        approved: true,
+        createdAt: new Date(),
+      });
+      return newMap;
+    });
+  };
+  
+  // Format order date with better error handling
+  const formatOrderDate = (): string => {
+    // Try direct conversion first (if already a Date)
+    if (order.createdAt instanceof Date && !isNaN(order.createdAt.getTime())) {
+      return order.createdAt.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+    
+    // Use toDate function
+    const date = toDate(order.createdAt);
+    if (date && !isNaN(date.getTime())) {
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+    
+    // Check paidAt as fallback (Stripe webhook orders may have this)
+    if ((order as any).paidAt) {
+      const paidDate = toDate((order as any).paidAt);
+      if (paidDate && !isNaN(paidDate.getTime())) {
+        return paidDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+    }
+    
+    // Fallback: Return "Recently" for orders with missing dates
+    // This is better UX than showing "Unknown date"
+    return 'Recently';
+  };
   
   return (
     <div className="border border-border rounded-lg overflow-hidden">
@@ -634,7 +904,7 @@ function OrderCard({ order, toDate }: { order: Order & { fulfillmentMethod?: str
         <div className="flex items-center gap-4">
           <div className="text-left">
             <p className="font-medium">Order #{order.id.slice(-8).toUpperCase()}</p>
-            <p className="text-sm text-muted">{toDate(order.createdAt).toLocaleDateString()}</p>
+            <p className="text-sm text-muted">{formatOrderDate()}</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -664,29 +934,73 @@ function OrderCard({ order, toDate }: { order: Order & { fulfillmentMethod?: str
           {/* Items */}
           <div className="space-y-3 mb-4">
             <p className="text-sm font-medium">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</p>
-            {order.items.map((item, idx) => (
-              <div key={idx} className="flex items-center gap-3">
-                {item.imageUrl && (
-                  <img 
-                    src={item.imageUrl} 
-                    alt={item.title} 
-                    className="w-12 h-12 object-cover rounded border border-border"
-                  />
-                )}
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{item.title}</p>
-                  <p className="text-xs text-muted">
-                    {item.size && `Size: ${item.size}`}
-                    {item.size && item.color && ' • '}
-                    {item.color && `Color: ${item.color}`}
-                    {(item.size || item.color) && ' • '}
-                    Qty: {item.qty}
-                  </p>
+            {order.items.map((item, idx) => {
+              const itemKey = item.id || `${order.id}-${item.variantId}`;
+              const existingReview = existingReviews.get(itemKey);
+              
+              return (
+                <div key={idx} className="flex items-start gap-3 py-2">
+                  {item.imageUrl && (
+                    <img 
+                      src={item.imageUrl} 
+                      alt={item.title} 
+                      className="w-14 h-14 object-cover rounded border border-border"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{item.title}</p>
+                    <p className="text-xs text-muted">
+                      {item.size && `Size: ${item.size}`}
+                      {item.size && item.color && ' • '}
+                      {item.color && `Color: ${item.color}`}
+                      {(item.size || item.color) && ' • '}
+                      Qty: {item.qty}
+                    </p>
+                    <p className="text-sm font-medium mt-1">{formatPrice(item.unitPrice * item.qty, 'USD')}</p>
+                    
+                    {/* Review Button */}
+                    {order.status === 'PAID' || order.status === 'FULFILLED' ? (
+                      existingReview ? (
+                        <div className="flex items-center gap-1 mt-2">
+                          <div className="flex text-yellow-400">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`w-3 h-3 ${star <= existingReview.rating ? 'fill-current' : 'text-gray-300'}`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs text-muted ml-1">Reviewed</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReviewModalItem(item);
+                          }}
+                          className="mt-2 flex items-center gap-1.5 text-xs text-bmr-night hover:underline"
+                        >
+                          <MessageSquare className="w-3 h-3" />
+                          Write a Review
+                        </button>
+                      )
+                    ) : null}
+                  </div>
                 </div>
-                <p className="text-sm font-medium">{formatPrice(item.unitPrice * item.qty, 'USD')}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
+          
+          {/* Review Modal */}
+          {reviewModalItem && (
+            <ReviewModal
+              isOpen={!!reviewModalItem}
+              onClose={() => setReviewModalItem(null)}
+              onSubmit={(data) => handleSubmitReview(reviewModalItem, data)}
+              productTitle={reviewModalItem.title}
+              productImage={reviewModalItem.imageUrl}
+            />
+          )}
           
           {/* Shipping Address */}
           {order.shippingAddress && order.fulfillmentMethod !== 'pickup' && (

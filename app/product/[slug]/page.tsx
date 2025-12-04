@@ -10,13 +10,14 @@ import { ColorSelect } from '@/components/products/ColorSelect';
 import { QtyStepper } from '@/components/products/QtyStepper';
 import { AddToCartButton } from '@/components/products/AddToCartButton';
 import { ProductGrid } from '@/components/products/ProductGrid';
+import { ProductReviews } from '@/components/reviews/ProductReviews';
 import { useProductBySlug, useProductsByCategory } from '@/hooks/useData';
 import { useCartStore } from '@/store/cart';
 import { formatPrice } from '@/lib/utils';
 import { useLocale } from '@/contexts/LocaleContext';
 import { useToast } from '@/contexts/ToastContext';
 import { logProductView, logAddToCart } from '@/lib/analytics';
-import { Check, Truck, Shield } from 'lucide-react';
+import { Check, Truck, Shield, Star } from 'lucide-react';
 
 export default function ProductPage() {
   const params = useParams();
@@ -196,17 +197,28 @@ export default function ProductPage() {
                 </span>
               </div>
 
-              {/* Reviews (if available) */}
-              {reviewCount > 0 && (
-                <div className="flex items-center gap-2 text-sm mb-6">
-                  <div className="flex text-bmr-ink">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <span key={i}>{ratingAvg >= i + 1 ? '★' : '☆'}</span>
-                    ))}
-                  </div>
-                  <span className="text-muted">({reviewCount})</span>
+              {/* Reviews Summary (clickable to scroll to reviews) */}
+              <button
+                onClick={() => {
+                  const reviewsSection = document.getElementById('reviews-section');
+                  if (reviewsSection) {
+                    reviewsSection.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
+                className="flex items-center gap-2 text-sm mb-6 hover:opacity-80 transition-opacity"
+              >
+                <div className="flex text-yellow-400">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-4 h-4 ${ratingAvg >= i + 1 ? 'fill-current' : 'text-gray-300'}`}
+                    />
+                  ))}
                 </div>
-              )}
+                <span className="text-muted">
+                  {reviewCount > 0 ? `(${reviewCount} review${reviewCount !== 1 ? 's' : ''})` : 'No reviews yet'}
+                </span>
+              </button>
 
               {/* Stock Warning */}
               {totalStock > 0 && totalStock <= 5 && (
@@ -312,9 +324,20 @@ export default function ProductPage() {
           </div>
         </Container>
 
+        {/* Reviews Section */}
+        <div id="reviews-section" className="border-t border-line bg-surface-2">
+          <Container className="py-8 lg:py-12">
+            <ProductReviews
+              productId={product.id}
+              reviewCount={reviewCount}
+              ratingAvg={ratingAvg}
+            />
+          </Container>
+        </div>
+
         {/* Related Products */}
         {recommendations.length > 0 && (
-          <div className="border-t border-line bg-surface-2 py-12 lg:py-16">
+          <div className="border-t border-line bg-surface-1 py-12 lg:py-16">
             <Container>
               <h2 className="font-display text-2xl mb-8">Complete the look</h2>
               <ProductGrid products={recommendations} />

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
+import { FieldValue } from '@/lib/firebase/server';
 import { createFulfillmentLabel } from '@/lib/shipping/fulfillment';
 import {
   LOCAL_DELIVERY_FEE_CENTS,
@@ -192,9 +193,9 @@ export async function POST(request: NextRequest) {
       // Optional
       giftMessage: body.giftMessage || null,
       
-      // Timestamps
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      // Timestamps - use FieldValue.serverTimestamp() for proper Firestore storage
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     };
 
     // Save order to Firebase

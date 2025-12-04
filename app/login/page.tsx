@@ -22,12 +22,14 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (for users who visit login page while logged in)
+  // Note: Google sign-in redirects are handled in handleGoogleSignIn
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
+    // Only redirect if user is already authenticated and we're not currently processing a Google sign-in
+    if (isAuthenticated && !authLoading && !loading) {
       router.push(redirect);
     }
-  }, [isAuthenticated, authLoading, router, redirect]);
+  }, [isAuthenticated, authLoading, loading, router, redirect]);
 
   // Clear errors when form changes
   useEffect(() => {
@@ -67,22 +69,32 @@ export default function LoginPage() {
       setErrors({ form: result.error || 'Failed to sign in' });
     }
     
-    setLoading(false);
+      setLoading(false);
   };
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setErrors({});
     
-    const result = await signInGoogle();
-    
-    if (result.success) {
-      router.push(redirect);
-    } else {
-      setErrors({ form: result.error || 'Failed to sign in with Google' });
+    try {
+      const result = await signInGoogle();
+      
+      if (result.success) {
+        // Redirect new users to complete their profile
+        if (result.isNewUser) {
+          router.push(`/complete-profile?redirect=${encodeURIComponent(redirect)}`);
+        } else {
+          router.push(redirect);
+        }
+      } else {
+        setErrors({ form: result.error || 'Failed to sign in with Google' });
+        setLoading(false);
+      }
+    } catch (error: any) {
+      console.error('Google sign-in error:', error);
+      setErrors({ form: error.message || 'An unexpected error occurred' });
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,8 +156,8 @@ export default function LoginPage() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label htmlFor="password" className="block text-sm font-medium">
-                Password
-              </label>
+              Password
+            </label>
               <Link 
                 href="/reset-password" 
                 className="text-sm text-muted hover:text-bmr-night transition-colors"
@@ -154,13 +166,13 @@ export default function LoginPage() {
               </Link>
             </div>
             <div className="relative">
-              <input
+            <input
                 type={showPassword ? 'text' : 'password'}
-                id="password"
+              id="password"
                 name="password"
-                value={formData.password}
+              value={formData.password}
                 onChange={handleChange}
-                required
+              required
                 placeholder="Enter your password"
                 autoComplete="current-password"
                 className={`w-full px-4 py-3 pr-12 border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-night focus:border-transparent transition-shadow ${

@@ -15,12 +15,21 @@ function SuccessContent() {
   const [fulfillmentMethod, setFulfillmentMethod] = useState<string | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasCheckedParams, setHasCheckedParams] = useState(false);
 
   useEffect(() => {
-    const session_id = searchParams.get('session_id');
+    // Get session_id from URL - try searchParams first, then fallback to window.location
+    let session_id = searchParams?.get('session_id');
+    
+    // Fallback: parse from window.location if searchParams doesn't have it yet
+    if (!session_id && typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      session_id = urlParams.get('session_id');
+    }
     
     if (session_id) {
       setSessionId(session_id);
+      setHasCheckedParams(true);
       // Clear cart on successful payment
       clear();
       
@@ -50,13 +59,34 @@ function SuccessContent() {
           setError('Unable to load order details, but your payment was successful.');
           setIsLoadingSession(false);
         });
+    } else if (!hasCheckedParams) {
+      // First check - wait a moment for searchParams to populate
+      const checkTimeout = setTimeout(() => {
+        setHasCheckedParams(true);
+      }, 500);
+      return () => clearTimeout(checkTimeout);
     } else {
-      // Redirect to homepage if no session ID
+      // Already checked and no session_id found - redirect to homepage
+      setIsLoadingSession(false);
       setTimeout(() => router.push('/'), 3000);
     }
-  }, [searchParams, clear, router]);
+  }, [searchParams, clear, router, hasCheckedParams]);
 
-  if (!sessionId) {
+  // Show loading while we're still checking for session_id
+  if (!sessionId && !hasCheckedParams) {
+    return (
+      <Container className="py-12 lg:py-16">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 border-4 border-bmr-ink border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <p className="text-lg text-bmr-muted">Loading order details...</p>
+        </div>
+      </Container>
+    );
+  }
+
+  if (!sessionId && hasCheckedParams) {
     return (
       <Container className="py-12 lg:py-16">
         <div className="max-w-2xl mx-auto text-center">

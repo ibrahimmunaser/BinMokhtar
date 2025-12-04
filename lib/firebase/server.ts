@@ -1,7 +1,10 @@
 import { initializeApp, getApps, cert, App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
+
+// Export Firestore utilities for timestamp handling
+export { FieldValue, Timestamp };
 
 let adminApp: App | null = null;
 

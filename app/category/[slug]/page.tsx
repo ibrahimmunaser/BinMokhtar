@@ -72,16 +72,16 @@ const CATEGORY_STRUCTURE: Record<string, {
   },
 };
 
-// Category-specific hero images (using reliable external URLs)
-const CATEGORY_HERO_IMAGES: Record<string, string> = {
-  'men': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1600&h=600&fit=crop',
-  'boys': 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=1600&h=600&fit=crop',
-  'shemaghs': 'https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=1600&h=600&fit=crop',
-  'emirati': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1600&h=600&fit=crop',
-  'saudi': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1600&h=600&fit=crop',
-  'thobes': 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=1600&h=600&fit=crop',
-  'traditional': 'https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=1600&h=600&fit=crop',
-  'yemeni': 'https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=1600&h=600&fit=crop',
+// Category-specific hero images with positioning
+const CATEGORY_HERO_CONFIG: Record<string, { image: string; position: string }> = {
+  'men': { image: '/images/home-page-mens-thobe.png', position: 'center 20%' },
+  'boys': { image: '/images/Boys thobe hero.jpg', position: 'center 30%' },
+  'shemaghs': { image: '/images/home page Shemaghs image.png', position: 'center center' },
+  'emirati': { image: '/images/hero-emirati.jpg', position: 'center 30%' },
+  'saudi': { image: '/images/hero-saudi.webp', position: 'center 30%' },
+  'thobes': { image: '/images/Boys thobe hero.jpg', position: 'center 30%' },
+  'traditional': { image: '/images/hero-traditional.webp', position: 'center 25%' },
+  'yemeni': { image: '/images/hero-yemeni.webp', position: 'right 25%' },
 };
 
 export default function CategoryPage() {
@@ -253,8 +253,10 @@ export default function CategoryPage() {
   // Active filters count
   const activeFiltersCount = selectedSizes.length + selectedColors.length + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0);
 
-  // Get hero image for category
-  const heroImage = CATEGORY_HERO_IMAGES[slug.toLowerCase()] || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600&h=600&fit=crop';
+  // Get hero image and position for category
+  const heroConfig = CATEGORY_HERO_CONFIG[slug.toLowerCase()] || { image: '/images/home-page-mens-thobe.png', position: 'center 30%' };
+  const heroImage = heroConfig.image;
+  const heroPosition = heroConfig.position;
 
   // Category not found
   if (!categoryInfo) {
@@ -291,13 +293,14 @@ export default function CategoryPage() {
   return (
     <>
       {/* Hero Banner */}
-      <section className="relative h-[40vh] min-h-[300px] max-h-[500px] bg-surface-3">
+      <section className="relative h-[55vh] min-h-[400px] max-h-[650px] bg-surface-3">
         <div className="absolute inset-0">
           <Image
             src={heroImage}
             alt={categoryInfo.name}
             fill
             className="object-cover"
+            style={{ objectPosition: heroPosition }}
             priority
             sizes="100vw"
           />
@@ -421,24 +424,24 @@ export default function CategoryPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Size - Only show for non-shemagh categories */}
                 {slug.toLowerCase() !== 'shemaghs' && slug.toLowerCase() !== 'traditional' && slug.toLowerCase() !== 'yemeni' && (
-                  <div>
-                    <label className="block text-sm font-medium mb-3">Size</label>
-                    <div className="flex flex-wrap gap-2">
-                      {SIZES.map(size => (
-                        <button
-                          key={size}
-                          onClick={() => toggleFilter('sizes', size, selectedSizes)}
-                          className={`px-4 py-2 text-sm border rounded transition-colors ${
-                            selectedSizes.includes(size)
-                              ? 'bg-bmr-ink text-surface-2 border-bmr-ink'
-                              : 'border-line hover:border-bmr-ink'
-                          }`}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
+                <div>
+                  <label className="block text-sm font-medium mb-3">Size</label>
+                  <div className="flex flex-wrap gap-2">
+                    {SIZES.map(size => (
+                      <button
+                        key={size}
+                        onClick={() => toggleFilter('sizes', size, selectedSizes)}
+                        className={`px-4 py-2 text-sm border rounded transition-colors ${
+                          selectedSizes.includes(size)
+                            ? 'bg-bmr-ink text-surface-2 border-bmr-ink'
+                            : 'border-line hover:border-bmr-ink'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
                   </div>
+                </div>
                 )}
 
                 {/* Color */}
@@ -506,12 +509,12 @@ export default function CategoryPage() {
                   : 'No products have been added to this category yet'}
               </p>
               {activeFiltersCount > 0 && (
-                <button
-                  onClick={clearAllFilters}
-                  className="px-8 py-3 bg-bmr-ink text-surface-2 rounded hover:bg-bmr-fg transition-colors"
-                >
-                  Clear filters
-                </button>
+              <button
+                onClick={clearAllFilters}
+                className="px-8 py-3 bg-bmr-ink text-surface-2 rounded hover:bg-bmr-fg transition-colors"
+              >
+                Clear filters
+              </button>
               )}
             </div>
           ) : (
