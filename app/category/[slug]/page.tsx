@@ -120,22 +120,43 @@ export default function CategoryPage() {
           let filtered = data.products;
           
           if (isSubcategory) {
-            // Filter by subcategory (case-insensitive)
-            const subcategoryName = categoryInfo.name;
-            const parentCategoryName = parentCategory?.name;
+            // Filter by subcategory slug (case-insensitive)
+            // slug is 'emirati', 'saudi', 'thobes', 'traditional', 'yemeni'
+            const subcategorySlug = slug.toLowerCase();
+            const parentSlug = categoryInfo.parent?.toLowerCase();
             
             filtered = filtered.filter((p: any) => {
-              const matchesSubcategory = p.subcategory?.toLowerCase() === subcategoryName.toLowerCase();
-              const matchesParentCategory = parentCategoryName ? 
-                p.categoryId?.toLowerCase() === parentCategoryName.toLowerCase() : true;
-              return matchesSubcategory && matchesParentCategory;
+              // Match subcategory field against slug
+              const productSubcat = p.subcategory?.toLowerCase();
+              const matchesSubcategory = productSubcat === subcategorySlug || 
+                productSubcat === subcategorySlug.replace(' thobes', '') ||
+                productSubcat === subcategorySlug.replace('-', ' ');
+              
+              // Also check parent category for men/boys
+              let matchesParent = true;
+              if (parentSlug === 'men') {
+                matchesParent = p.audience === 'MEN' || p.categoryId?.toLowerCase() === 'men';
+              } else if (parentSlug === 'boys') {
+                matchesParent = p.audience === 'BOYS' || p.categoryId?.toLowerCase() === 'boys';
+              } else if (parentSlug === 'shemaghs') {
+                matchesParent = p.category === 'SHAAL' || p.categoryId?.toLowerCase() === 'shemaghs';
+              }
+              
+              return matchesSubcategory && matchesParent;
             });
           } else {
-            // Filter by main category
-            const categoryName = categoryInfo?.name;
-            filtered = filtered.filter((p: any) => 
-              p.categoryId?.toLowerCase() === categoryName?.toLowerCase()
-            );
+            // Filter by main category slug
+            const categorySlug = slug.toLowerCase();
+            filtered = filtered.filter((p: any) => {
+              if (categorySlug === 'men') {
+                return p.audience === 'MEN' || p.categoryId?.toLowerCase() === 'men';
+              } else if (categorySlug === 'boys') {
+                return p.audience === 'BOYS' || p.categoryId?.toLowerCase() === 'boys';
+              } else if (categorySlug === 'shemaghs') {
+                return p.category === 'SHAAL' || p.categoryId?.toLowerCase() === 'shemaghs';
+              }
+              return p.categoryId?.toLowerCase() === categorySlug;
+            });
           }
           
           setProducts(filtered);

@@ -14,13 +14,25 @@ import { ColorImageMapper } from './ColorImageMapper';
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
 // Category options and subcategories (per your spec)
+// Subcategory values should match URL slugs for filtering
 const CATEGORY_OPTIONS = ['Men', 'Women', 'Boys', 'Girls', 'Shemaghs'] as const;
-const CATEGORY_TREE: Record<string, { subcategories: string[] }> = {
-  Men: { subcategories: ['Emirati Thobes', 'Saudi Thobes'] },
-  Women: { subcategories: ['Hijabs', 'Abayas'] },
-  Boys: { subcategories: ['Emirati Thobes'] },
+const CATEGORY_TREE: Record<string, { subcategories: { value: string; label: string }[] }> = {
+  Men: { subcategories: [
+    { value: 'emirati', label: 'Emirati Thobes' },
+    { value: 'saudi', label: 'Saudi Thobes' },
+  ]},
+  Women: { subcategories: [
+    { value: 'hijabs', label: 'Hijabs' },
+    { value: 'abayas', label: 'Abayas' },
+  ]},
+  Boys: { subcategories: [
+    { value: 'thobes', label: 'Emirati Thobes' },
+  ]},
   Girls: { subcategories: [] },
-  Shemaghs: { subcategories: ['Traditional', 'Yemeni'] },
+  Shemaghs: { subcategories: [
+    { value: 'traditional', label: 'Traditional' },
+    { value: 'yemeni', label: 'Yemeni' },
+  ]},
 };
 
 // Available sizes and colors
@@ -489,8 +501,8 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
               >
                 <option value="">Select subcategory</option>
                 {CATEGORY_TREE[category].subcategories.map((sub) => (
-                  <option key={sub} value={sub}>
-                    {sub}
+                  <option key={sub.value} value={sub.value}>
+                    {sub.label}
                   </option>
                 ))}
               </select>

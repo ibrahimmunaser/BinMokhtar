@@ -91,11 +91,19 @@ export default function ShopPage() {
         });
       });
     }
-    // Apply subcategory filters (Emirati, Saudi, Traditional, etc.)
+    // Apply subcategory filters (emirati, saudi, thobes, traditional, yemeni)
     if (filters.subcategories && filters.subcategories.length > 0) {
-      filtered = filtered.filter((p) => 
-        p.subcategory && filters.subcategories!.includes(p.subcategory.toLowerCase())
-      );
+      filtered = filtered.filter((p) => {
+        if (!p.subcategory) return false;
+        const productSubcat = p.subcategory.toLowerCase();
+        // Match against filter values (slugs like 'emirati', 'saudi', etc.)
+        return filters.subcategories!.some(filterSub => {
+          const filterLower = filterSub.toLowerCase();
+          return productSubcat === filterLower || 
+                 productSubcat === filterLower.replace(' thobes', '') ||
+                 productSubcat.includes(filterLower);
+        });
+      });
     }
     if (filters.sizes.length > 0) {
       filtered = filtered.filter((p) =>
