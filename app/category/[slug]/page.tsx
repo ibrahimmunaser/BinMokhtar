@@ -77,7 +77,7 @@ const CATEGORY_HERO_CONFIG: Record<string, { image: string; position: string }> 
   'men': { image: '/images/home-page-mens-thobe.png', position: 'center 20%' },
   'boys': { image: '/images/Boys thobe hero.jpg', position: 'center 30%' },
   'shemaghs': { image: '/images/home page Shemaghs image.png', position: 'center center' },
-  'emirati': { image: '/images/hero-emirati.jpg', position: 'center 30%' },
+  'emirati': { image: '/images/hero-emirati.png', position: 'center 30%' },
   'saudi': { image: '/images/hero-saudi.webp', position: 'center 30%' },
   'thobes': { image: '/images/Boys thobe hero.jpg', position: 'center 30%' },
   'traditional': { image: '/images/hero-traditional.webp', position: 'center 25%' },

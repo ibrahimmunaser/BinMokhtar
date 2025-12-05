@@ -125,6 +125,13 @@ export function Footer() {
               &copy; {currentYear} Bin Mukhtar Retail. All rights reserved.
             </div>
           </div>
+
+          {/* Powered By */}
+          <div className="mt-6 text-center">
+            <span className="text-xs opacity-30">
+              Powered by HikmaCoding
+            </span>
+          </div>
         </div>
       </Container>
     </footer>

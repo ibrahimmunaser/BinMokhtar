@@ -15,21 +15,15 @@ export function CategoryMosaic({ tiles }: CategoryMosaicProps) {
   return (
     <section className="py-16 lg:py-24 bg-surface-1">
       <div className="container-wide">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 auto-rows-[250px] md:auto-rows-[300px]">
+        <div className="flex flex-wrap justify-center gap-4">
           {tiles.map((tile, index) => {
             const title = tile.titleEn;
-            const colSpan = tile.span?.cols || 1;
-            const rowSpan = tile.span?.rows || 1;
 
             return (
               <Link
                 key={index}
                 href={tile.href}
-                className={cn(
-                  "group relative overflow-hidden bg-bmr-stone rounded-lg",
-                  colSpan === 2 && "col-span-2",
-                  rowSpan === 2 && "row-span-2"
-                )}
+                className="group relative overflow-hidden bg-bmr-stone rounded-lg w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.75rem)] h-[250px] md:h-[300px]"
               >
                 {/* Image */}
                 <Image
@@ -37,7 +31,7 @@ export function CategoryMosaic({ tiles }: CategoryMosaicProps) {
                   alt={title}
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  sizes={colSpan === 2 ? "66vw" : "33vw"}
+                  sizes="(max-width: 768px) 50vw, 33vw"
                   style={{ objectPosition: tile.objectPosition || 'center' }}
                 />
 

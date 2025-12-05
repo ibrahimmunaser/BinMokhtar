@@ -4,10 +4,9 @@ import { useEffect, useState } from 'react';
 import { CategoryMosaic } from '@/components/home/CategoryMosaic';
 import { BestSellers } from '@/components/home/BestSellers';
 import { ReviewsCarousel } from '@/components/home/ReviewsCarousel';
-import { ShemaghTabs } from '@/components/home/ShemaghTabs';
 import { BrandStory } from '@/components/home/BrandStory';
 import { IconRow } from '@/components/home/IconRow';
-import type { HeroSlide, MosaicTile, ShemaghTab, Review, StoryBlock, IconItem } from '@/types';
+import type { HeroSlide, MosaicTile, Review, StoryBlock, IconItem } from '@/types';
 
 export default function HomePage() {
   // Build hero slides dynamically from /public/images (hero*.{png,jpg,jpeg,webp}) and /public/videos (hero*.{mp4,webm,ogg})
@@ -78,7 +77,7 @@ export default function HomePage() {
       titleEn: "Emirati Thobes",
       titleAr: 'ثوب إماراتي',
       href: '/category/emirati',
-      image: '/images/hero-emirati.jpg',
+      image: '/images/hero-emirati.png',
       objectPosition: 'center 30%',
     },
     {
@@ -110,30 +109,6 @@ export default function HomePage() {
       href: '/category/yemeni',
       image: '/images/hero-yemeni.webp',
       objectPosition: 'right 25%',
-    },
-    // Main Shemaghs category
-    {
-      titleEn: 'All Shemaghs',
-      titleAr: 'جميع الشماغات',
-      href: '/category/shemaghs',
-      image: '/images/home page Shemaghs image.png',
-      objectPosition: 'center center',
-    },
-  ];
-
-  const shemaghTabs: ShemaghTab[] = [
-    {
-      slug: 'saudi',
-      labelEn: 'Saudi Shemagh Scarves',
-      labelAr: 'شماغ سعودي',
-      categoryFilter: 'SHAAL',
-      tagFilter: 'saudi',
-    },
-    {
-      slug: 'kufis',
-      labelEn: 'Egyptian Kufis',
-      labelAr: 'كوفي مصري',
-      categoryFilter: 'KUFI',
     },
   ];
 
@@ -182,11 +157,6 @@ export default function HomePage() {
       <BestSellers products={[]} />
 
       <ReviewsCarousel reviews={reviews} />
-
-      <ShemaghTabs
-        tabs={shemaghTabs}
-        productsByTab={{}}
-      />
 
       <BrandStory storyBlocks={storyBlocks} />
 
