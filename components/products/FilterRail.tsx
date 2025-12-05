@@ -3,6 +3,28 @@
 import { useState } from 'react';
 import type { FilterState } from '@/types';
 
+// Main categories (collections)
+const MAIN_CATEGORIES = [
+  { id: 'men', name: 'Men' },
+  { id: 'boys', name: 'Boys' },
+  { id: 'shemaghs', name: 'Shemaghs' },
+];
+
+// Subcategories grouped by main category
+const SUBCATEGORIES = {
+  men: [
+    { id: 'emirati', name: 'Emirati Thobes' },
+    { id: 'saudi', name: 'Saudi Thobes' },
+  ],
+  boys: [
+    { id: 'thobes', name: 'Emirati Thobes' },
+  ],
+  shemaghs: [
+    { id: 'traditional', name: 'Traditional' },
+    { id: 'yemeni', name: 'Yemeni' },
+  ],
+};
+
 interface FilterRailProps {
   filters: FilterState;
   onChange: (filters: FilterState) => void;
@@ -22,13 +44,24 @@ export function FilterRail({
 }: FilterRailProps) {
   const [priceMin, setPriceMin] = useState(filters.priceRange[0]);
   const [priceMax, setPriceMax] = useState(filters.priceRange[1]);
+  const [selectedMainCategories, setSelectedMainCategories] = useState<string[]>([]);
 
-  const toggleCategory = (id: string) => {
-    const categoryId = id as any; // Type assertion for category ID
-    const newCategories = filters.categories.includes(categoryId)
-      ? filters.categories.filter((c) => c !== categoryId)
-      : [...filters.categories, categoryId];
-    onChange({ ...filters, categories: newCategories });
+  const toggleMainCategory = (id: string) => {
+    const newSelected = selectedMainCategories.includes(id)
+      ? selectedMainCategories.filter((c) => c !== id)
+      : [...selectedMainCategories, id];
+    setSelectedMainCategories(newSelected);
+    
+    // Update the filter with the category ID for filtering
+    onChange({ ...filters, categories: newSelected as any });
+  };
+
+  const toggleSubcategory = (subcategory: string) => {
+    const currentSubcategories = filters.subcategories || [];
+    const newSubcategories = currentSubcategories.includes(subcategory)
+      ? currentSubcategories.filter((s) => s !== subcategory)
+      : [...currentSubcategories, subcategory];
+    onChange({ ...filters, subcategories: newSubcategories });
   };
 
   const toggleSize = (size: string) => {
@@ -57,18 +90,23 @@ export function FilterRail({
     onChange({ ...filters, priceRange: [priceMin, priceMax] });
   };
 
+  // Get subcategories only for selected main categories (empty if none selected)
+  const availableSubcategories = selectedMainCategories.length > 0
+    ? selectedMainCategories.flatMap(cat => SUBCATEGORIES[cat as keyof typeof SUBCATEGORIES] || [])
+    : [];
+
   return (
     <div className="space-y-8">
-      {/* Categories */}
+      {/* Main Categories */}
       <div>
         <h3 className="text-sm font-medium uppercase tracking-wideish mb-4">Category</h3>
         <div className="space-y-2">
-          {categories.map((cat) => (
+          {MAIN_CATEGORIES.map((cat) => (
             <label key={cat.id} className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                checked={filters.categories.includes(cat.id as any)}
-                onChange={() => toggleCategory(cat.id)}
+                checked={selectedMainCategories.includes(cat.id)}
+                onChange={() => toggleMainCategory(cat.id)}
                 className="w-4 h-4 border-border"
               />
               <span className="text-sm">{cat.name}</span>
@@ -76,6 +114,26 @@ export function FilterRail({
           ))}
         </div>
       </div>
+
+      {/* Subcategories / Style */}
+      {availableSubcategories.length > 0 && (
+        <div>
+          <h3 className="text-sm font-medium uppercase tracking-wideish mb-4">Style</h3>
+          <div className="space-y-2">
+            {availableSubcategories.map((sub) => (
+              <label key={sub.id} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.subcategories?.includes(sub.id) || false}
+                  onChange={() => toggleSubcategory(sub.id)}
+                  className="w-4 h-4 border-border"
+                />
+                <span className="text-sm">{sub.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Sizes */}
       {availableSizes.length > 0 && (
@@ -86,11 +144,11 @@ export function FilterRail({
               <button
                 key={size}
                 onClick={() => toggleSize(size)}
-                className={`px-4 py-2 border text-sm ${
+                className={`px-4 py-2 border text-sm rounded transition-colors ${
                   filters.sizes.includes(size)
-                    ? 'border-bmr-black bg-bmr-black text-bmr-white'
-                    : 'border-border hover:border-bmr-black'
-                } transition-colors`}
+                    ? 'border-bmr-ink bg-bmr-ink text-white'
+                    : 'border-line hover:border-bmr-ink'
+                }`}
               >
                 {size}
               </button>
@@ -128,11 +186,11 @@ export function FilterRail({
               <button
                 key={sleeve}
                 onClick={() => toggleSleeve(sleeve)}
-                className={`px-4 py-2 border text-sm capitalize ${
+                className={`px-4 py-2 border text-sm capitalize rounded transition-colors ${
                   filters.sleeves?.includes(sleeve)
-                    ? 'border-bmr-black bg-bmr-black text-bmr-white'
-                    : 'border-border hover:border-bmr-black'
-                } transition-colors`}
+                    ? 'border-bmr-ink bg-bmr-ink text-white'
+                    : 'border-line hover:border-bmr-ink'
+                }`}
               >
                 {sleeve}
               </button>
@@ -175,6 +233,7 @@ export function FilterRail({
         onClick={() =>
           onChange({
             categories: [],
+            subcategories: [],
             sizes: [],
             colors: [],
             sleeves: [],

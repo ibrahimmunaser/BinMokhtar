@@ -16,9 +16,9 @@ import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 // Category options and subcategories (per your spec)
 const CATEGORY_OPTIONS = ['Men', 'Women', 'Boys', 'Girls', 'Shemaghs'] as const;
 const CATEGORY_TREE: Record<string, { subcategories: string[] }> = {
-  Men: { subcategories: ['Emirati', 'Saudi'] },
+  Men: { subcategories: ['Emirati Thobes', 'Saudi Thobes'] },
   Women: { subcategories: ['Hijabs', 'Abayas'] },
-  Boys: { subcategories: ['Thobes'] },
+  Boys: { subcategories: ['Emirati Thobes'] },
   Girls: { subcategories: [] },
   Shemaghs: { subcategories: ['Traditional', 'Yemeni'] },
 };

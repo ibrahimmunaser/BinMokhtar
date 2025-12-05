@@ -14,8 +14,8 @@ const defaultNavigation: NavItem[] = [
     href: '/category/men',
     sort: 1,
     children: [
-      { id: 'emirati', labelEn: 'Emirati', labelAr: 'إماراتي', href: '/category/emirati', sort: 1 },
-      { id: 'saudi', labelEn: 'Saudi', labelAr: 'سعودي', href: '/category/saudi', sort: 2 },
+      { id: 'emirati', labelEn: 'Emirati Thobes', labelAr: 'ثوب إماراتي', href: '/category/emirati', sort: 1 },
+      { id: 'saudi', labelEn: 'Saudi Thobes', labelAr: 'ثوب سعودي', href: '/category/saudi', sort: 2 },
     ],
   },
   {
@@ -25,7 +25,7 @@ const defaultNavigation: NavItem[] = [
     href: '/category/boys',
     sort: 2,
     children: [
-      { id: 'thobes', labelEn: 'Thobes', labelAr: 'ثياب', href: '/category/thobes', sort: 1 },
+      { id: 'thobes', labelEn: 'Emirati Thobes', labelAr: 'ثوب إماراتي', href: '/category/thobes', sort: 1 },
     ],
   },
   {

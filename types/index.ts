@@ -2,7 +2,7 @@
 
 import { Timestamp } from 'firebase/firestore';
 
-export type Currency = 'USD' | 'EUR' | 'GBP' | 'AED';
+export type Currency = 'USD';
 export type Language = 'en' | 'ar';
 export type Locale = 'en' | 'ar';
 
@@ -276,13 +276,14 @@ export interface OrderItem {
 export interface Review {
   id: string;
   productId: string;
-  productSlug: string;
-  productTitle: string;
-  orderId: string;
-  orderItemId: string;
-  userId: string;
-  userDisplayName: string;
+  productSlug?: string;
+  productTitle?: string;
+  orderId?: string;
+  orderItemId?: string;
+  userId?: string;
+  userDisplayName?: string;
   userPhotoURL?: string;
+  name?: string; // Display name for homepage reviews
   rating: number; // 1-5
   title?: string;
   body?: string;
@@ -421,6 +422,7 @@ export interface StripeEvent {
 
 export interface FilterState {
   categories: ProductCategory[];
+  subcategories?: string[]; // subcategory filter (e.g., 'emirati', 'saudi', 'traditional')
   sizes: string[];
   colors: string[];
   lengths?: string[]; // optional length filter

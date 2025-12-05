@@ -3,7 +3,6 @@ import { HeroCarousel } from '@/components/home/HeroCarousel';
 import { useEffect, useState } from 'react';
 import { CategoryMosaic } from '@/components/home/CategoryMosaic';
 import { BestSellers } from '@/components/home/BestSellers';
-import { PromoBand } from '@/components/home/PromoBand';
 import { ReviewsCarousel } from '@/components/home/ReviewsCarousel';
 import { ShemaghTabs } from '@/components/home/ShemaghTabs';
 import { BrandStory } from '@/components/home/BrandStory';
@@ -24,10 +23,13 @@ export default function HomePage() {
     ctaTextAr: 'تسوق الآن',
     href: '/shop'
   }]);
+
+  // Load 5-star reviews with comments for homepage
+  const [reviews, setReviews] = useState<Review[]>([]);
   
   useEffect(() => {
     let mounted = true;
-    async function load() {
+    async function loadHeroMedia() {
       try {
         const res = await fetch('/api/hero-media', { cache: 'no-store' });
         const json = await res.json();
@@ -52,30 +54,70 @@ export default function HomePage() {
         // Keep the initial placeholder slide on error
       }
     }
-    load();
+
+    async function loadReviews() {
+      try {
+        const res = await fetch('/api/reviews?homepage=true&limit=10', { cache: 'no-store' });
+        const json = await res.json();
+        if (mounted && json.success && json.reviews?.length > 0) {
+          setReviews(json.reviews);
+        }
+      } catch (error) {
+        console.error('Error loading reviews:', error);
+      }
+    }
+
+    loadHeroMedia();
+    loadReviews();
     return () => { mounted = false; };
   }, []);
 
   const mosaicTiles: MosaicTile[] = [
+    // Men's Categories
     {
-      titleEn: "Men's Collection",
-      titleAr: 'مجموعة الرجال',
-      href: '/shop/mens',
-      image: "/images/home-page-mens-thobe.png",
-      span: { cols: 2, rows: 1 },
-      objectPosition: 'center 20%', // Position to show face better
+      titleEn: "Emirati Thobes",
+      titleAr: 'ثوب إماراتي',
+      href: '/category/emirati',
+      image: '/images/hero-emirati.jpg',
+      objectPosition: 'center 30%',
     },
     {
-      titleEn: 'Shemaghs',
-      titleAr: 'شماغ',
+      titleEn: "Saudi Thobes",
+      titleAr: 'ثوب سعودي',
+      href: '/category/saudi',
+      image: '/images/hero-saudi.webp',
+      objectPosition: 'center 30%',
+    },
+    // Boys Categories
+    {
+      titleEn: "Boys' Emirati Thobes",
+      titleAr: 'ثوب إماراتي للأولاد',
+      href: '/category/thobes',
+      image: '/images/Boys thobe hero.jpg',
+      objectPosition: 'center 30%',
+    },
+    // Shemagh Categories
+    {
+      titleEn: 'Traditional Shemaghs',
+      titleAr: 'شماغ تقليدي',
+      href: '/category/traditional',
+      image: '/images/hero-traditional.webp',
+      objectPosition: 'center 25%',
+    },
+    {
+      titleEn: 'Yemeni Shemaghs',
+      titleAr: 'شماغ يمني',
+      href: '/category/yemeni',
+      image: '/images/hero-yemeni.webp',
+      objectPosition: 'right 25%',
+    },
+    // Main Shemaghs category
+    {
+      titleEn: 'All Shemaghs',
+      titleAr: 'جميع الشماغات',
       href: '/category/shemaghs',
       image: '/images/home page Shemaghs image.png',
-    },
-    {
-      titleEn: "Kids' Collection",
-      titleAr: 'مجموعة الأطفال',
-      href: '/shop/children',
-      image: '/images/kids 2.png',
+      objectPosition: 'center center',
     },
   ];
 
@@ -92,42 +134,6 @@ export default function HomePage() {
       labelEn: 'Egyptian Kufis',
       labelAr: 'كوفي مصري',
       categoryFilter: 'KUFI',
-    },
-  ];
-
-  const reviews: Review[] = [
-    {
-      id: '1',
-      productId: 'test',
-      rating: 5,
-      title: 'Excellent Quality',
-      body: 'The fabric is superb and the fit is perfect. Highly recommend!',
-      name: 'Ahmed K.',
-      approved: true,
-      pinnedHome: true,
-      createdAt: new Date(),
-    },
-    {
-      id: '2',
-      productId: 'test',
-      rating: 5,
-      title: 'Beautiful Design',
-      body: 'Elegant and comfortable. Will definitely purchase again.',
-      name: 'Mohammed A.',
-      approved: true,
-      pinnedHome: true,
-      createdAt: new Date(),
-    },
-    {
-      id: '3',
-      productId: 'test',
-      rating: 5,
-      title: 'Perfect for Weddings',
-      body: 'Wore it to a wedding and received many compliments. Thank you BMR!',
-      name: 'Omar S.',
-      approved: true,
-      pinnedHome: true,
-      createdAt: new Date(),
     },
   ];
 
@@ -174,13 +180,6 @@ export default function HomePage() {
 
       {/* Best Sellers - will be empty until products are added to Firebase */}
       <BestSellers products={[]} />
-
-      <PromoBand
-        title="Men's & Kids Collection"
-        subtitle="Match your loved one"
-        imageLeft="/images/kids 2.png"
-        imageRight="/images/home page placeholder.png"
-      />
 
       <ReviewsCarousel reviews={reviews} />
 

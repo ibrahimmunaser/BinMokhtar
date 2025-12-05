@@ -126,7 +126,7 @@ export default function AdminDashboard() {
           <h2 className="font-display text-xl mb-6">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link
-              href="/admin/products/new"
+              href="/admin/products/create"
               className="flex items-center gap-3 p-4 bg-bmr-ink text-surface-2 rounded-lg hover:bg-bmr-fg transition-colors"
             >
               <Plus className="w-5 h-5" />
@@ -153,7 +153,7 @@ export default function AdminDashboard() {
         <div className="bg-surface-2 rounded-lg border border-line overflow-hidden">
           <div className="p-6 border-b border-line flex items-center justify-between">
             <h2 className="font-display text-xl">Products</h2>
-            <Link href="/admin/products/new" className="btn-primary text-sm">
+            <Link href="/admin/products/create" className="btn-primary text-sm">
               <Plus className="w-4 h-4 inline mr-2" />
               Add Product
             </Link>

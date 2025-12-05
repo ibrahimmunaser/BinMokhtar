@@ -139,23 +139,16 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Pricing & Currency */}
+          {/* Pricing */}
           <div className="bg-surface-2 rounded-lg border border-line p-6 lg:p-8">
-            <h2 className="font-display text-xl mb-6">Pricing & Currency</h2>
+            <h2 className="font-display text-xl mb-6">Pricing</h2>
 
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-2">Currency</label>
-                <select
-                  value={settings.currency}
-                  onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
-                  className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
-                >
-                  <option value="USD">USD - US Dollar</option>
-                  <option value="EUR">EUR - Euro</option>
-                  <option value="GBP">GBP - British Pound</option>
-                  <option value="CAD">CAD - Canadian Dollar</option>
-                </select>
+                <div className="w-full px-4 py-3 border border-line rounded-lg bg-surface-3 text-bmr-muted">
+                  USD - US Dollar
+                </div>
               </div>
 
               <div>

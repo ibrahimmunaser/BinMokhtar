@@ -1,21 +1,26 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { Review } from '@/types';
 import { cn } from '@/lib/utils';
 
+// Extended review type with product image
+interface ReviewWithProduct extends Review {
+  productImage?: string;
+}
+
 interface ReviewsCarouselProps {
   eyebrow?: string;
   rating?: number;
-  reviewCount?: number;
-  reviews: Review[];
+  reviews: ReviewWithProduct[];
 }
 
 export function ReviewsCarousel({
   eyebrow = 'Let our customers speak for us',
   rating = 5,
-  reviewCount = 1000,
   reviews,
 }: ReviewsCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -52,7 +57,7 @@ export function ReviewsCarousel({
               />
             ))}
             <span className="ml-2 text-sm text-bmr-muted">
-              from {reviewCount.toLocaleString()}+ reviews
+              {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
             </span>
           </div>
         </div>
@@ -69,7 +74,7 @@ export function ReviewsCarousel({
               {reviews.map((review) => (
                 <div
                   key={review.id}
-                  className="flex-shrink-0 w-full md:w-[calc(33.333%-1rem)] bg-surface-1 rounded-lg p-8"
+                  className="flex-shrink-0 w-full md:w-[calc(33.333%-1rem)] bg-surface-1 rounded-lg p-8 flex flex-col"
                 >
                   {/* Rating */}
                   <div className="flex gap-1 mb-4">
@@ -102,9 +107,33 @@ export function ReviewsCarousel({
 
                   {/* Name */}
                   {review.name && (
-                    <p className="text-sm font-medium text-bmr-stone">
+                    <p className="text-sm font-medium text-bmr-stone mb-3">
                       — {review.name}
                     </p>
+                  )}
+
+                  {/* Product Link with Thumbnail */}
+                  {review.productSlug && review.productTitle && (
+                    <Link 
+                      href={`/product/${review.productSlug}`}
+                      className="flex items-center gap-3 border-t border-line pt-4 mt-auto hover:bg-surface-2 -mx-2 px-2 py-2 rounded-md transition-colors"
+                    >
+                      {review.productImage && (
+                        <div className="relative w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-surface-2">
+                          <Image
+                            src={review.productImage}
+                            alt={review.productTitle}
+                            fill
+                            className="object-cover"
+                            sizes="48px"
+                          />
+                        </div>
+                      )}
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs text-bmr-muted">Review for</span>
+                        <span className="text-sm font-medium text-bmr-stone truncate">{review.productTitle}</span>
+                      </div>
+                    </Link>
                   )}
                 </div>
               ))}

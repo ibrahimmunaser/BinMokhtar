@@ -41,6 +41,7 @@ export default function ShopPage() {
 
   const [filters, setFilters] = useState<FilterState>({
     categories: [],
+    subcategories: [],
     sizes: [],
     colors: [],
     sleeves: [],
@@ -73,9 +74,28 @@ export default function ShopPage() {
   const filteredAndSortedProducts = useMemo(() => {
     let filtered = products || [];
 
-    // Apply filters
+    // Apply main category filters (Men, Boys, Shemaghs)
     if (filters.categories.length > 0) {
-      filtered = filtered.filter((p) => filters.categories.includes(p.category));
+      filtered = filtered.filter((p) => {
+        const categoryId = p.categoryId?.toLowerCase();
+        return filters.categories.some((cat: any) => {
+          const catLower = cat.toLowerCase();
+          // Match by categoryId field
+          if (categoryId === catLower) return true;
+          // Match Men/Boys by audience
+          if (catLower === 'men' && p.audience === 'MEN') return true;
+          if (catLower === 'boys' && p.audience === 'BOYS') return true;
+          // Match Shemaghs by category
+          if (catLower === 'shemaghs' && p.category === 'SHAAL') return true;
+          return false;
+        });
+      });
+    }
+    // Apply subcategory filters (Emirati, Saudi, Traditional, etc.)
+    if (filters.subcategories && filters.subcategories.length > 0) {
+      filtered = filtered.filter((p) => 
+        p.subcategory && filters.subcategories!.includes(p.subcategory.toLowerCase())
+      );
     }
     if (filters.sizes.length > 0) {
       filtered = filtered.filter((p) =>
@@ -181,6 +201,7 @@ export default function ShopPage() {
                   <button
                     onClick={() => setFilters({
                       categories: [],
+                      subcategories: [],
                       sizes: [],
                       colors: [],
                       sleeves: [],

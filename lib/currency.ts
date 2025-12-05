@@ -37,9 +37,6 @@ export function dollarsToCents(dollars: number): number {
  */
 export const CURRENCY_SYMBOLS: Record<Currency, string> = {
   USD: '$',
-  EUR: '€',
-  GBP: '£',
-  AED: 'د.إ',
 };
 
 /**

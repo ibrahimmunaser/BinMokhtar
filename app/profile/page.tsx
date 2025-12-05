@@ -798,7 +798,9 @@ function OrderCard({ order, toDate, userId, userDisplayName, userPhotoURL }: Ord
           if (data.success && data.reviews) {
             const reviewMap = new Map<string, Review>();
             data.reviews.forEach((review: Review) => {
-              reviewMap.set(review.orderItemId, review);
+              if (review.orderItemId) {
+                reviewMap.set(review.orderItemId, review);
+              }
             });
             setExistingReviews(reviewMap);
           }

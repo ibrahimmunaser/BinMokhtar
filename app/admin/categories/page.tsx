@@ -14,8 +14,8 @@ const CATEGORY_STRUCTURE = [
     slug: 'men',
     description: 'Traditional Islamic attire for men',
     subcategories: [
-      { id: 'emirati', name: 'Emirati', slug: 'emirati', description: 'Emirati style thobes' },
-      { id: 'saudi', name: 'Saudi', slug: 'saudi', description: 'Saudi style thobes' },
+      { id: 'emirati', name: 'Emirati Thobes', slug: 'emirati', description: 'Emirati style thobes' },
+      { id: 'saudi', name: 'Saudi Thobes', slug: 'saudi', description: 'Saudi style thobes' },
     ],
   },
   {
@@ -24,7 +24,7 @@ const CATEGORY_STRUCTURE = [
     slug: 'boys',
     description: 'Traditional Islamic attire for boys',
     subcategories: [
-      { id: 'thobes', name: 'Thobes', slug: 'thobes', description: 'Boys thobes' },
+      { id: 'thobes', name: 'Emirati Thobes', slug: 'thobes', description: 'Boys Emirati thobes' },
     ],
   },
   {

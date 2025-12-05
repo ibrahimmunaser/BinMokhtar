@@ -46,18 +46,18 @@ const CATEGORY_STRUCTURE: Record<string, {
   },
   // Subcategories
   'emirati': {
-    name: 'Emirati',
+    name: 'Emirati Thobes',
     description: 'Emirati style thobes',
     parent: 'men',
   },
   'saudi': {
-    name: 'Saudi',
+    name: 'Saudi Thobes',
     description: 'Saudi style thobes',
     parent: 'men',
   },
   'thobes': {
-    name: 'Thobes',
-    description: 'Boys thobes',
+    name: 'Emirati Thobes',
+    description: 'Boys Emirati thobes',
     parent: 'boys',
   },
   'traditional': {
@@ -104,6 +104,7 @@ export default function CategoryPage() {
   const page = parseInt(searchParams?.get('page') || '1');
   const selectedSizes = searchParams?.get('sizes')?.split(',').filter(Boolean) || [];
   const selectedColors = searchParams?.get('colors')?.split(',').filter(Boolean) || [];
+  const selectedSubcategory = searchParams?.get('subcategory') || '';
   const minPrice = searchParams?.get('minPrice') || '';
   const maxPrice = searchParams?.get('maxPrice') || '';
 
@@ -194,6 +195,13 @@ export default function CategoryPage() {
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
 
+    // Filter by subcategory (for main category pages like 'men')
+    if (selectedSubcategory) {
+      filtered = filtered.filter(p => 
+        p.subcategory?.toLowerCase() === selectedSubcategory.toLowerCase()
+      );
+    }
+
     // Filter by sizes
     if (selectedSizes.length > 0) {
       filtered = filtered.filter(p => 
@@ -241,7 +249,7 @@ export default function CategoryPage() {
     }
 
     return filtered;
-  }, [products, selectedSizes, selectedColors, minPrice, maxPrice, sortBy]);
+  }, [products, selectedSubcategory, selectedSizes, selectedColors, minPrice, maxPrice, sortBy]);
 
   // Pagination
   const totalItems = filteredProducts.length;
@@ -251,7 +259,7 @@ export default function CategoryPage() {
   const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
 
   // Active filters count
-  const activeFiltersCount = selectedSizes.length + selectedColors.length + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0);
+  const activeFiltersCount = selectedSizes.length + selectedColors.length + (selectedSubcategory ? 1 : 0) + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0);
 
   // Get hero image and position for category
   const heroConfig = CATEGORY_HERO_CONFIG[slug.toLowerCase()] || { image: '/images/home-page-mens-thobe.png', position: 'center 30%' };
@@ -379,6 +387,15 @@ export default function CategoryPage() {
               {activeFiltersCount > 0 && (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium">Active filters:</span>
+                  {selectedSubcategory && (
+                    <button
+                      onClick={() => updateFilters('subcategory', '')}
+                      className="flex items-center gap-1 px-3 py-1 bg-bmr-ink text-surface-2 text-sm rounded-full hover:bg-bmr-fg transition-colors"
+                    >
+                      {CATEGORY_STRUCTURE[selectedSubcategory]?.name || selectedSubcategory}
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
                   {selectedSizes.map(size => (
                     <button
                       key={size}
@@ -421,7 +438,42 @@ export default function CategoryPage() {
               )}
 
               {/* Filter Controls */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Subcategory - Only show for main categories with subcategories */}
+                {!isSubcategory && categoryInfo?.subcategories && categoryInfo.subcategories.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium mb-3">Style</label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => updateFilters('subcategory', '')}
+                      className={`px-4 py-2 text-sm border rounded transition-colors ${
+                        !selectedSubcategory
+                          ? 'bg-bmr-ink text-surface-2 border-bmr-ink'
+                          : 'border-line hover:border-bmr-ink'
+                      }`}
+                    >
+                      All
+                    </button>
+                    {categoryInfo.subcategories.map(subSlug => {
+                      const subInfo = CATEGORY_STRUCTURE[subSlug];
+                      return (
+                        <button
+                          key={subSlug}
+                          onClick={() => updateFilters('subcategory', subSlug)}
+                          className={`px-4 py-2 text-sm border rounded transition-colors ${
+                            selectedSubcategory === subSlug
+                              ? 'bg-bmr-ink text-surface-2 border-bmr-ink'
+                              : 'border-line hover:border-bmr-ink'
+                          }`}
+                        >
+                          {subInfo?.name || subSlug}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                )}
+
                 {/* Size - Only show for non-shemagh categories */}
                 {slug.toLowerCase() !== 'shemaghs' && slug.toLowerCase() !== 'traditional' && slug.toLowerCase() !== 'yemeni' && (
                 <div>
