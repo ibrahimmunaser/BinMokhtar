@@ -122,6 +122,8 @@ export interface Product {
   sizes?: string[]; // available sizes across variants
   colors?: string[]; // available colors across variants
   sleeve?: string; // sleeve type if applicable
+  // Weight in grams (default weight for variants if not specified)
+  weight_grams?: number;
   // Image fields
   primaryImageUrl?: string; // Main product image URL
   galleryImageUrls?: string[]; // Additional product images
@@ -178,6 +180,8 @@ export interface Variant {
   compareAt?: number; // DEPRECATED: use salePrice instead, kept for backward compatibility
   stock: number; // Stock quantity, must be >= 0
   active: boolean; // Derived from stock > 0 or explicit flag
+  // Weight in grams (if not specified, uses product weight_grams)
+  weight_grams?: number;
   imageUrl?: string;
   createdAt: Timestamp | Date;
   updatedAt: Timestamp | Date;
@@ -237,10 +241,38 @@ export interface Order {
   items: OrderItem[]; // order items
   stripeSessionId?: string;
   stripePaymentIntent?: string;
-  shippingAddress: ShippingAddress;
+  stripePaymentIntentId?: string; // Alternative field name
+  paymentStatus?: string; // 'paid', 'unpaid', etc.
+  shippingAddress: ShippingAddress | null;
+  billingAddress?: any; // Billing address if different
   giftMessage?: string;
+  // Fulfillment method (pickup, local_delivery, shipping)
+  fulfillmentMethod?: 'pickup' | 'local_delivery' | 'shipping';
+  // Order weight (sum of all items' weights in grams)
+  total_weight_grams?: number;
+  // Shippo integration fields
+  shippo_shipment_id?: string | null;
+  shippo_transaction_id?: string | null;
+  shippo_label_url?: string | null;
+  shippo_tracking_number?: string | null;
+  shippo_label_status?: 'none' | 'pending' | 'success' | 'failed';
+  shippo_error_message?: string | null;
+  // Internal label for pickup/local_delivery
+  internal_label_url?: string | null;
+  // Legacy Shippo fields (for backward compatibility)
+  labelUrl?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  packingSlipUrl?: string | null;
+  shippoTransactionId?: string | null;
   createdAt: Timestamp | Date;
   updatedAt: Timestamp | Date;
+  paidAt?: Timestamp | Date;
+  fulfillmentStatus?: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED';
+  orderNumber?: string;
+  customerName?: string;
+  phone?: string;
+  metadata?: any;
 }
 
 export interface ShippingAddress {
@@ -267,6 +299,8 @@ export interface OrderItem {
   size?: string;
   length?: string;
   color?: string;
+  // Weight in grams for this item (variant weight * qty)
+  weight_grams?: number;
 }
 
 // ============================================================================

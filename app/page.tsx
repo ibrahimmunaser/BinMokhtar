@@ -13,7 +13,7 @@ export default function HomePage() {
   // Initialize with placeholder to prevent empty hero on first render
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([{
     type: 'image',
-    src: '/images/home page Men\'s Thobe.png',
+    src: '/images/home-page-mens-thobe.png',
     titleEn: 'Luxury Thobes & Modest Fashion',
     titleAr: 'ثوب فاخر وأزياء محتشمة',
     subEn: 'Timeless elegance for every occasion',

@@ -126,12 +126,12 @@ export default function OrderConfirmationPage() {
         <div className="border border-border p-6 lg:p-8 mb-8">
           <h2 className="text-xl font-display mb-4">Shipping Address</h2>
           <address className="not-italic text-sm text-muted">
-            {order.shippingAddress.fullName}<br />
-            {order.shippingAddress.address}<br />
-            {order.shippingAddress.address2 && <>{order.shippingAddress.address2}<br /></>}
-            {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip}<br />
-            {order.shippingAddress.country}
-            {order.shippingAddress.phone && (
+            {order.shippingAddress?.fullName}<br />
+            {order.shippingAddress?.address}<br />
+            {order.shippingAddress?.address2 && <>{order.shippingAddress.address2}<br /></>}
+            {order.shippingAddress?.city}, {order.shippingAddress?.state} {order.shippingAddress?.zip}<br />
+            {order.shippingAddress?.country}
+            {order.shippingAddress?.phone && (
               <><br />Phone: {order.shippingAddress.phone}</>
             )}
           </address>

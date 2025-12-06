@@ -4,22 +4,47 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { validateAdminCredentials, setAdminSession } from '@/lib/adminAuth';
 
+// For testing - these match lib/adminAuth.ts
+const ADMIN_USERNAME = 'username';
+const ADMIN_PASSWORD = 'password';
+
 export default function AdminLoginPage() {
+  console.log('🔐 ===== AdminLoginPage COMPONENT RENDERED =====');
+  console.log('🔐 AdminLoginPage: Component loaded at:', new Date().toISOString());
+  console.log('🔐 AdminLoginPage: Current URL:', typeof window !== 'undefined' ? window.location.href : 'SSR');
+  
   const router = useRouter();
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  console.log('🔐 AdminLoginPage: Credentials - Username:', ADMIN_USERNAME, 'Password:', ADMIN_PASSWORD);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🔐 AdminLoginPage: Form submitted');
+    console.log('🔐 AdminLoginPage: Username entered:', formData.username);
+    console.log('🔐 AdminLoginPage: Password entered:', formData.password ? '***' : 'empty');
+    
     setError('');
     setLoading(true);
 
+    console.log('🔐 AdminLoginPage: Validating credentials...');
     // Validate credentials
-    if (validateAdminCredentials(formData.username, formData.password)) {
+    const isValid = validateAdminCredentials(formData.username, formData.password);
+    console.log('🔐 AdminLoginPage: Validation result:', isValid);
+    
+    if (isValid) {
+      console.log('✅ AdminLoginPage: Credentials valid, setting session...');
       setAdminSession();
+      console.log('✅ AdminLoginPage: Session set, checking sessionStorage...');
+      console.log('✅ AdminLoginPage: SessionStorage value:', typeof window !== 'undefined' ? sessionStorage.getItem('bmr_admin_session') : 'N/A');
+      console.log('✅ AdminLoginPage: Redirecting to /admin...');
       router.push('/admin');
     } else {
+      console.error('❌ AdminLoginPage: Invalid credentials');
+      console.error('❌ AdminLoginPage: Expected username:', ADMIN_USERNAME);
+      console.error('❌ AdminLoginPage: Expected password:', ADMIN_PASSWORD);
       setError('Invalid username or password');
       setLoading(false);
     }

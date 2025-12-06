@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe, STRIPE_WEBHOOK_SECRET } from '@/lib/stripe/config';
 import { adminDb, FieldValue } from '@/lib/firebase/server';
 import { sendOrderConfirmationEmail } from '@/lib/email';
+import { createShippingArtifactsForOrder } from '@/lib/shipping/createShippingArtifacts';
+import { calculateOrderWeight } from '@/lib/shipping/calculateOrderWeight';
 import Stripe from 'stripe';
 
 // Mark as dynamic route (webhooks are always dynamic)
@@ -85,9 +87,12 @@ export async function POST(request: NextRequest) {
     }, { status: 400 });
   }
 
-  console.log('✅ Received Stripe webhook event:', event.type);
-  console.log('📋 Event ID:', event.id);
-  console.log('📋 Event created:', new Date(event.created * 1000).toISOString());
+    console.log('✅ Received Stripe webhook event:', event.type);
+    console.log('📋 Event ID:', event.id);
+    console.log('📋 Event created:', new Date(event.created * 1000).toISOString());
+    console.log('📋 Event livemode:', event.livemode);
+    const eventObject = event.data?.object as any;
+    console.log('📋 Event object type:', eventObject?.object);
 
   // Handle the event
   try {
@@ -102,6 +107,18 @@ export async function POST(request: NextRequest) {
         console.log('📧 Session payment_status:', session.payment_status);
         console.log('📧 Session status:', session.status);
         console.log('📧 Session amount_total:', session.amount_total);
+        console.log('📧 Session mode:', session.mode);
+        console.log('📧 Session livemode:', session.livemode);
+        
+        // Only process paid sessions
+        if (session.payment_status !== 'paid') {
+          console.warn('⚠️ Session payment_status is not "paid":', session.payment_status);
+          console.warn('⚠️ Skipping order creation - payment not completed');
+          return NextResponse.json({ 
+            received: true, 
+            message: 'Session not paid, skipping order creation' 
+          });
+        }
         
         try {
           await handleCheckoutSessionCompleted(session);
@@ -180,7 +197,53 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     // Extract customer details
     const customerEmail = session.customer_details?.email || session.customer_email || '';
     const customerName = session.customer_details?.name || '';
-    const shippingAddress = session.shipping_details?.address;
+    
+    // Try to get shipping address from multiple sources (priority order):
+    // 1. From checkout form metadata (locationZone) - this is what customer entered
+    // 2. From Stripe's shipping_details (if customer filled it in Stripe checkout)
+    let shippingAddress: any = null;
+    let locationZoneFromMetadata: any = null;
+    
+    // Parse locationZone from metadata (sent from checkout form)
+    if (session.metadata?.locationZone) {
+      try {
+        locationZoneFromMetadata = JSON.parse(session.metadata.locationZone);
+        console.log('📦 LocationZone from metadata:', locationZoneFromMetadata);
+      } catch (e) {
+        console.error('Failed to parse locationZone from metadata');
+      }
+    }
+    
+    // Get delivery address from metadata (formatted address from checkout form)
+    const deliveryAddressFromMetadata = session.metadata?.deliveryAddress;
+    
+    // Build shipping address from checkout form data (preferred source)
+    // The checkout form sends locationZone in metadata with the address the customer entered
+    if (locationZoneFromMetadata && session.metadata?.fulfillmentMethod !== 'pickup') {
+      // Use the address from the checkout form (what customer actually entered in your form)
+      // This is the PRIMARY source - the address from your checkout form, not Stripe's form
+      const street = locationZoneFromMetadata.street || 
+                     (deliveryAddressFromMetadata ? deliveryAddressFromMetadata.split(',')[0].trim() : '') ||
+                     locationZoneFromMetadata.formattedAddress?.split(',')[0].trim() || '';
+      
+      shippingAddress = {
+        line1: street,
+        line2: '',
+        city: locationZoneFromMetadata.city || '',
+        state: locationZoneFromMetadata.state || '',
+        postal_code: locationZoneFromMetadata.zip || '',
+        country: locationZoneFromMetadata.country || 'US',
+      };
+      console.log('✅ Using shipping address from checkout form (customer entered in your form):', shippingAddress);
+    } else if (session.shipping_details?.address) {
+      // Fallback to Stripe's shipping_details if metadata not available
+      // This happens if customer filled address in Stripe's checkout page instead
+      shippingAddress = session.shipping_details.address;
+      console.log('⚠️ Using shipping address from Stripe checkout page (fallback - customer may have entered different address)');
+    } else {
+      console.warn('⚠️ No shipping address found in checkout form metadata or Stripe shipping_details');
+    }
+    
     const billingAddress = session.customer_details?.address;
 
     // Calculate totals (amounts are in cents)
@@ -286,6 +349,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       status: 'PAID',
       fulfillmentStatus: 'PENDING', // 'PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED'
       
+      // Fulfillment method (from metadata)
+      fulfillmentMethod: (session.metadata?.fulfillmentMethod || 'shipping') as 'pickup' | 'local_delivery' | 'shipping',
+      
       // Metadata
       metadata: session.metadata || {},
       
@@ -311,9 +377,58 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       throw new Error(`Firebase initialization failed: ${firebaseError?.message}`);
     }
     
-    console.log('📦 Step 3: Saving order to Firebase...');
-    const orderRef = await db.collection('orders').add(cleanedOrderData);
-    console.log('✅ Step 3: Order created in Firebase:', orderRef.id);
+    console.log('📦 Step 3: Calculating order weight...');
+    try {
+      // Calculate order weight (this requires the order items to be structured)
+      const tempOrder = cleanedOrderData as any;
+      const orderWeight = await calculateOrderWeight(tempOrder);
+      cleanedOrderData.total_weight_grams = orderWeight;
+      console.log('✅ Order weight calculated:', orderWeight, 'grams');
+    } catch (weightError: any) {
+      console.warn('⚠️ Failed to calculate order weight:', weightError?.message);
+      // Don't fail the order if weight calculation fails - use default in label creation
+    }
+    
+    console.log('📦 Step 4: Saving order to Firebase...');
+    console.log('📦 Step 4: Order data to save:', JSON.stringify({
+      ...cleanedOrderData,
+      items: cleanedOrderData.items?.map((item: any) => ({
+        title: item.title,
+        qty: item.qty,
+        unitPrice: item.unitPrice,
+      })),
+      createdAt: 'FieldValue.serverTimestamp()',
+      updatedAt: 'FieldValue.serverTimestamp()',
+      paidAt: 'FieldValue.serverTimestamp()',
+    }, null, 2));
+    
+    let orderRef;
+    try {
+      orderRef = await db.collection('orders').add(cleanedOrderData);
+      console.log('✅ Step 4: Order created in Firebase');
+      console.log('✅ Step 4: Order ID:', orderRef.id);
+      console.log('✅ Step 4: Order document path:', orderRef.path);
+      
+      // Verify the order was actually saved
+      const verifyDoc = await orderRef.get();
+      if (verifyDoc.exists) {
+        const savedData = verifyDoc.data();
+        console.log('✅ Step 4: Order verification - Document exists');
+        console.log('✅ Step 4: Order verification - Document ID:', verifyDoc.id);
+        console.log('✅ Step 4: Order verification - Created at:', savedData?.createdAt);
+        console.log('✅ Step 4: Order verification - Status:', savedData?.status);
+        console.log('✅ Step 4: Order verification - Items count:', savedData?.items?.length);
+      } else {
+        console.error('❌ Step 4: Order verification FAILED - Document does not exist!');
+      }
+    } catch (saveError: any) {
+      console.error('❌ Step 4: FAILED to save order to Firebase');
+      console.error('❌ Step 4: Error type:', saveError?.constructor?.name);
+      console.error('❌ Step 4: Error message:', saveError?.message);
+      console.error('❌ Step 4: Error stack:', saveError?.stack);
+      console.error('❌ Step 4: Full error:', JSON.stringify(saveError, Object.getOwnPropertyNames(saveError), 2));
+      throw saveError;
+    }
 
     // Send order confirmation email
     console.log('📧 ===== EMAIL SENDING STARTED =====');
@@ -340,9 +455,13 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       console.error('❌ Cannot send email - RESEND_API_KEY missing in environment variables');
       console.error('❌ Add RESEND_API_KEY to Render environment variables');
     } else {
-      const fulfillmentMethod = (session.metadata?.fulfillmentMethod || 'delivery') as 'delivery' | 'pickup';
+      // Map fulfillment method for email (email expects 'delivery' or 'pickup')
+      const orderFulfillmentMethod = cleanedOrderData.fulfillmentMethod || 'shipping';
+      const emailFulfillmentMethod = 
+        orderFulfillmentMethod === 'pickup' ? 'pickup' : 'delivery'; // 'shipping' and 'local_delivery' both map to 'delivery'
       
-      console.log('📧 Fulfillment method:', fulfillmentMethod);
+      console.log('📧 Order fulfillment method:', orderFulfillmentMethod);
+      console.log('📧 Email fulfillment method:', emailFulfillmentMethod);
       console.log('📧 Order items count:', cleanedOrderData.items.length);
       console.log('📧 Items summary:', JSON.stringify(cleanedOrderData.items.map((item: any) => ({
         title: item.title,
@@ -368,7 +487,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         tax: cleanedOrderData.tax,
         total: cleanedOrderData.total,
         currency: cleanedOrderData.currency,
-        fulfillmentMethod,
+        fulfillmentMethod: emailFulfillmentMethod as 'pickup' | 'delivery',
         shippingAddress: cleanedOrderData.shippingAddress || undefined,
       };
       
@@ -417,8 +536,64 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       }
     }
 
+    // Create shipping artifacts (labels) for the order
+    console.log('📦 ===== CREATING SHIPPING ARTIFACTS =====');
+    try {
+      const artifactsResult = await createShippingArtifactsForOrder(orderRef.id);
+      
+      if (artifactsResult.success && artifactsResult.labelCreated) {
+        console.log('✅ Shipping artifacts created successfully');
+        if (artifactsResult.labelUrl) {
+          console.log('✅ Label URL:', artifactsResult.labelUrl);
+        }
+        if (artifactsResult.trackingNumber) {
+          console.log('✅ Tracking number:', artifactsResult.trackingNumber);
+        }
+        if (artifactsResult.internalLabelUrl) {
+          console.log('✅ Internal label URL:', artifactsResult.internalLabelUrl);
+        }
+      } else if (artifactsResult.success && !artifactsResult.labelCreated) {
+        console.log('ℹ️ Label already exists for this order (idempotency check passed)');
+      } else {
+        console.error('❌ Failed to create shipping artifacts:', artifactsResult.error);
+        // Don't throw - allow webhook to succeed even if label creation fails
+        // The label can be created manually later via admin UI
+      }
+    } catch (labelError: any) {
+      console.error('❌ Error creating shipping artifacts:', labelError);
+      console.error('❌ Error message:', labelError?.message);
+      console.error('❌ Error stack:', labelError?.stack);
+      // Don't throw - allow webhook to succeed even if label creation fails
+      // The label can be created manually later via admin UI
+    }
+
     // TODO: Update product inventory
     // TODO: Notify admin of new order
+
+    console.log('✅ ===== ORDER CREATION COMPLETE =====');
+    console.log('✅ Order ID:', orderRef.id);
+    console.log('✅ Order Status:', cleanedOrderData.status);
+    console.log('✅ Customer Email:', customerEmail);
+    console.log('✅ Fulfillment Method:', cleanedOrderData.fulfillmentMethod);
+    console.log('✅ Total Amount:', cleanedOrderData.total, 'cents');
+    console.log('✅ Items Count:', cleanedOrderData.items.length);
+    console.log('✅ Timestamp:', new Date().toISOString());
+    
+    // Verify order is queryable
+    try {
+      const verifyQuery = await db.collection('orders').where('stripeSessionId', '==', session.id).limit(1).get();
+      if (verifyQuery.empty) {
+        console.error('❌ WARNING: Order not found when querying by stripeSessionId!');
+        console.error('❌ This might indicate a Firestore write issue');
+      } else {
+        console.log('✅ Order verification: Found order when querying by stripeSessionId');
+        const foundDoc = verifyQuery.docs[0];
+        console.log('✅ Order verification: Found order ID:', foundDoc.id);
+        console.log('✅ Order verification: Matches created order?', foundDoc.id === orderRef.id);
+      }
+    } catch (verifyError: any) {
+      console.error('❌ Order verification query failed:', verifyError?.message);
+    }
 
     return orderRef.id;
 

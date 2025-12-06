@@ -20,7 +20,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { address, lat, lng } = body;
 
-    console.log('📍 Resolve location request:', { address, lat, lng });
+    console.log('📍 Resolve location request:');
+    console.log('📍   address:', address);
+    console.log('📍   lat:', lat);
+    console.log('📍   lng:', lng);
+    console.log('📍   Will use:', address ? 'ADDRESS (geocode)' : 'COORDINATES (reverse geocode)');
 
     let resolvedAddress: {
       formattedAddress: string;
@@ -34,8 +38,32 @@ export async function POST(request: NextRequest) {
     };
     let source: LocationSource;
 
-    // Case 1: Coordinates provided (geolocation)
-    if (typeof lat === 'number' && typeof lng === 'number') {
+    // PRIORITY: If address is provided, use it (even if lat/lng are also provided)
+    // This preserves the exact address the user entered/selected
+    // Case 1: Address string provided (from address input or Google Places selection)
+    if (address && typeof address === 'string') {
+      source = 'manual';
+      
+      // Geocode the address to get coordinates
+      const result = await geocodeAddress(address);
+      
+      if (!result.success) {
+        console.error('❌ Geocoding failed:', result.error);
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: result.error.message 
+          },
+          { status: 400 }
+        );
+      }
+      
+      resolvedAddress = result.data;
+      console.log('✅ Geocoded address:', resolvedAddress.formattedAddress);
+      console.log('✅ Using address from user input, NOT reverse geocoding from coordinates');
+    }
+    // Case 2: Only coordinates provided (geolocation button)
+    else if (typeof lat === 'number' && typeof lng === 'number') {
       source = 'geolocation';
       
       // Reverse geocode to get address details
@@ -53,28 +81,7 @@ export async function POST(request: NextRequest) {
       }
       
       resolvedAddress = result.data;
-      console.log('✅ Reverse geocoded:', resolvedAddress);
-    }
-    // Case 2: Address string provided (manual entry)
-    else if (address && typeof address === 'string') {
-      source = 'manual';
-      
-      // Geocode the address
-      const result = await geocodeAddress(address);
-      
-      if (!result.success) {
-        console.error('❌ Geocoding failed:', result.error);
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: result.error.message 
-          },
-          { status: 400 }
-        );
-      }
-      
-      resolvedAddress = result.data;
-      console.log('✅ Geocoded:', resolvedAddress);
+      console.log('✅ Reverse geocoded from coordinates:', resolvedAddress.formattedAddress);
     }
     // Case 3: Neither provided
     else {
@@ -113,7 +120,14 @@ export async function POST(request: NextRequest) {
       source,
     };
 
-    console.log('✅ Location resolved:', locationZone);
+    console.log('✅ Location resolved:');
+    console.log('✅   formattedAddress:', locationZone.formattedAddress);
+    console.log('✅   street:', locationZone.street);
+    console.log('✅   city:', locationZone.city);
+    console.log('✅   state:', locationZone.state);
+    console.log('✅   zip:', locationZone.zip);
+    console.log('✅   zone:', locationZone.zone);
+    console.log('✅   distanceMiles:', locationZone.distanceMiles);
 
     return NextResponse.json({
       success: true,

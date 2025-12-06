@@ -205,11 +205,11 @@ export default function TrackOrderPage() {
             <div className="border border-border p-6 lg:p-8">
               <h3 className="font-medium mb-4">Shipping Address</h3>
               <address className="not-italic text-sm text-muted">
-                {order.shippingAddress.fullName}<br />
-                {order.shippingAddress.address}<br />
-                {order.shippingAddress.address2 && <>{order.shippingAddress.address2}<br /></>}
-                {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip}<br />
-                {order.shippingAddress.country}
+                {order.shippingAddress?.fullName}<br />
+                {order.shippingAddress?.address}<br />
+                {order.shippingAddress?.address2 && <>{order.shippingAddress.address2}<br /></>}
+                {order.shippingAddress?.city}, {order.shippingAddress?.state} {order.shippingAddress?.zip}<br />
+                {order.shippingAddress?.country}
               </address>
             </div>
           </div>

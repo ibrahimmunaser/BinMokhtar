@@ -1,6 +1,9 @@
 /**
  * Shippo API Integration
  * Handles shipping rate retrieval and label creation
+ * 
+ * NOTE: For post-payment label creation, use lib/shipping/shippoOrderLabel.ts
+ * This file is kept for backward compatibility with checkout flow.
  */
 
 import {
@@ -10,8 +13,7 @@ import {
   ShippingCartItem,
   LocationZone,
 } from './config';
-
-const SHIPPO_API_URL = 'https://api.goshippo.com';
+import { shippoRequest } from './shippoApi';
 
 /**
  * Allowed shipping service levels
@@ -25,45 +27,6 @@ const ALLOWED_SERVICE_LEVELS = [
   'ups_ground',              // UPS Ground
   'ups_3_day_select',        // UPS 3 Day Select
 ];
-
-/**
- * Get Shippo API token from environment
- */
-function getShippoToken(): string {
-  const token = process.env.SHIPPO_API_TOKEN;
-  if (!token) {
-    throw new Error('SHIPPO_API_TOKEN is not configured');
-  }
-  return token;
-}
-
-/**
- * Make authenticated request to Shippo API
- */
-async function shippoRequest(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<any> {
-  const token = getShippoToken();
-  
-  const response = await fetch(`${SHIPPO_API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Authorization': `ShippoToken ${token}`,
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    console.error('Shippo API error:', data);
-    throw new Error(data.detail || data.message || 'Shippo API request failed');
-  }
-
-  return data;
-}
 
 /**
  * Calculate parcel dimensions from cart items

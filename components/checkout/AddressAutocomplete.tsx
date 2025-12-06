@@ -151,6 +151,7 @@ export function AddressAutocomplete({
 
     try {
       console.log('📍 Checking delivery for:', addressResult);
+      console.log('📍 Address formatted:', addressResult.formattedAddress);
       
       const response = await fetch('/api/check-delivery', {
         method: 'POST',
@@ -179,7 +180,7 @@ export function AddressAutocomplete({
       
       setDeliveryStatus(result);
 
-      // Notify parent component
+      // Notify parent component - ALWAYS call this even if address seems similar
       console.log('📦 AddressAutocomplete: Calling onAddressSelect with:', {
         ...addressResult,
         isDeliverable: result.isDeliverable,
@@ -357,7 +358,7 @@ export function AddressAutocomplete({
       {/* Address Input */}
       <div>
         <label htmlFor="address-autocomplete" className="block text-sm font-medium mb-2">
-          Delivery Address
+          Street Address <span className="text-bmr-muted font-normal">(required for shipping)</span>
         </label>
         <div className="relative">
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-bmr-muted" />
@@ -370,7 +371,7 @@ export function AddressAutocomplete({
                 ? "API key required"
                 : !isScriptLoaded
                 ? "Loading..."
-                : "Start typing your address..."
+                : "Start typing your street address (e.g., 123 Main St, Dearborn, MI)..."
             }
             className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-ink disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={!isScriptLoaded || !hasApiKey}

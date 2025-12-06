@@ -7,8 +7,24 @@ export const dynamic = 'force-dynamic';
  * Comprehensive diagnostic endpoint for webhook configuration
  */
 export async function GET() {
+  // Determine Stripe mode
+  let stripeMode = 'unknown';
+  if (process.env.STRIPE_SECRET_KEY) {
+    if (process.env.STRIPE_SECRET_KEY.startsWith('sk_test_')) {
+      stripeMode = 'test';
+    } else if (process.env.STRIPE_SECRET_KEY.startsWith('sk_live_')) {
+      stripeMode = 'live';
+    }
+  }
+  
   const status: any = {
     timestamp: new Date().toISOString(),
+    // Simplified fields for quick checks
+    stripeConfigured: !!process.env.STRIPE_SECRET_KEY,
+    stripeMode,
+    webhookSecretConfigured: !!process.env.STRIPE_WEBHOOK_SECRET,
+    firebaseConfigured: !!process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
+    // Detailed environment info
     environment: {
       nodeEnv: process.env.NODE_ENV,
       isProduction: process.env.NODE_ENV === 'production',

@@ -769,7 +769,7 @@ export default function ProfilePage() {
 }
 
 interface OrderCardProps {
-  order: Order & { fulfillmentMethod?: string; labelUrl?: string; trackingNumber?: string; trackingUrl?: string; packingSlipUrl?: string };
+  order: Order & { fulfillmentMethod?: string; labelUrl?: string | null; trackingNumber?: string | null; trackingUrl?: string | null; packingSlipUrl?: string | null };
   toDate: (ts: any) => Date | null;
   userId: string;
   userDisplayName: string;

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAdminAuthenticated, clearAdminSession } from '@/lib/adminAuth';
 import Link from 'next/link';
-import { Package, Tag, ShoppingCart, FileText, LogOut, Plus, Edit, Trash2 } from 'lucide-react';
+import { Package, Tag, ShoppingCart, FileText, LogOut, Plus, Edit, Trash2, Receipt } from 'lucide-react';
 import { getAllProducts, deleteProduct, updateCategoryProductCounts } from '@/lib/firebaseAdminStore';
 
 export default function AdminDashboard() {
@@ -60,6 +60,9 @@ export default function AdminDashboard() {
                 <Link href="/admin" className="text-sm font-medium text-bmr-ink">
                   Dashboard
                 </Link>
+                <Link href="/admin/orders" className="text-sm text-bmr-muted hover:text-bmr-ink">
+                  Orders
+                </Link>
                 <Link href="/admin/categories" className="text-sm text-bmr-muted hover:text-bmr-ink">
                   Categories
                 </Link>
@@ -112,19 +115,26 @@ export default function AdminDashboard() {
             <p className="text-sm text-bmr-muted">In Stock</p>
           </div>
 
-          <div className="bg-surface-2 rounded-lg border border-line p-6">
+          <Link href="/admin/orders" className="bg-surface-2 rounded-lg border border-line p-6 hover:bg-surface-3 transition-colors cursor-pointer">
             <div className="flex items-center justify-between mb-4">
-              <FileText className="w-8 h-8 text-bmr-muted" />
+              <Receipt className="w-8 h-8 text-bmr-night" />
             </div>
-            <p className="text-3xl font-display mb-2">0</p>
-            <p className="text-sm text-bmr-muted">On Sale</p>
-          </div>
+            <p className="text-3xl font-display mb-2">Orders</p>
+            <p className="text-sm text-bmr-muted">View all orders</p>
+          </Link>
         </div>
 
         {/* Quick Actions */}
         <div className="bg-surface-2 rounded-lg border border-line p-6 mb-12">
           <h2 className="font-display text-xl mb-6">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link
+              href="/admin/orders"
+              className="flex items-center gap-3 p-4 bg-bmr-night text-white rounded-lg hover:bg-opacity-90 transition-colors"
+            >
+              <Receipt className="w-5 h-5" />
+              <span className="font-medium">View Orders</span>
+            </Link>
             <Link
               href="/admin/products/create"
               className="flex items-center gap-3 p-4 bg-bmr-ink text-surface-2 rounded-lg hover:bg-bmr-fg transition-colors"

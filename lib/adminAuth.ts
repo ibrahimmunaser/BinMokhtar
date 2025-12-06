@@ -22,9 +22,23 @@ export function clearAdminSession(): void {
 }
 
 export function isAdminAuthenticated(): boolean {
+  console.log('🔐 isAdminAuthenticated() called');
+  console.log('🔐 Window available:', typeof window !== 'undefined');
+  
   if (typeof window !== 'undefined') {
-    return sessionStorage.getItem(ADMIN_SESSION_KEY) === 'true';
+    const sessionValue = sessionStorage.getItem(ADMIN_SESSION_KEY);
+    console.log('🔐 SessionStorage key:', ADMIN_SESSION_KEY);
+    console.log('🔐 SessionStorage value:', sessionValue);
+    console.log('🔐 SessionStorage value type:', typeof sessionValue);
+    console.log('🔐 Comparison result:', sessionValue === 'true');
+    console.log('🔐 All sessionStorage items:', Object.fromEntries(Object.entries(sessionStorage)));
+    
+    const result = sessionValue === 'true';
+    console.log('🔐 isAdminAuthenticated() returning:', result);
+    return result;
   }
+  
+  console.log('🔐 isAdminAuthenticated() returning false (SSR)');
   return false;
 }
 

@@ -4,7 +4,6 @@ import { LocaleProvider } from '@/contexts/LocaleContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { TopBar } from '@/components/layout/TopBar';
-import { DeliveryBar } from '@/components/layout/DeliveryBar';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { Footer } from '@/components/layout/Footer';
 import { defaultMetadata } from '@/lib/seo';
@@ -41,7 +40,6 @@ export default function RootLayout({
         <AuthProvider>
         <LocaleProvider>
           <ToastProvider>
-              <DeliveryBar />
           <TopBar />
           <SiteHeader />
           <main className="min-h-screen">{children}</main>

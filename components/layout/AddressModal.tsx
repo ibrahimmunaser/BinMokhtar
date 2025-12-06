@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { X, MapPin, Navigation, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, MapPin, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useLocationStore, resolveLocation } from '@/store/location';
 import { LOCAL_DELIVERY_RADIUS_MILES, LOCAL_DELIVERY_FEE_CENTS } from '@/lib/shipping/config';
+import { AddressAutocomplete } from '@/components/checkout/AddressAutocomplete';
 
 interface AddressModalProps {
   isOpen: boolean;
@@ -12,23 +13,20 @@ interface AddressModalProps {
 
 export function AddressModal({ isOpen, onClose }: AddressModalProps) {
   const [addressInput, setAddressInput] = useState('');
-  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
-  const inputRef = useRef<HTMLInputElement>(null);
   
   const locationZone = useLocationStore((state) => state.locationZone);
   const setLocationZone = useLocationStore((state) => state.setLocationZone);
   const clearLocationZone = useLocationStore((state) => state.clearLocationZone);
 
-  // Focus input when modal opens
+  // Debug: Log locationZone changes to help diagnose update issues
   useEffect(() => {
-    if (isOpen && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
-  }, [isOpen]);
+    console.log('📍 AddressModal: locationZone changed:', locationZone);
+  }, [locationZone]);
+
+  // Note: AddressAutocomplete component handles its own focus
 
   // Clear states when modal closes
   useEffect(() => {
@@ -51,68 +49,14 @@ export function AddressModal({ isOpen, onClose }: AddressModalProps) {
     };
   }, [isOpen]);
 
-  const handleUseMyLocation = async () => {
-    setError(null);
-    setSuccess(null);
-    setIsLoadingLocation(true);
-
-    // Check if geolocation is supported
-    if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser');
-      setIsLoadingLocation(false);
-      return;
-    }
-
-    try {
-      // Request location
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000, // 5 minutes
-        });
-      });
-
-      const { latitude, longitude } = position.coords;
-      console.log('📍 Got geolocation:', latitude, longitude);
-
-      // Resolve location via API
-      const zone = await resolveLocation({ lat: latitude, lng: longitude });
-      
-      setLocationZone(zone);
-      setSuccess(
-        zone.zone === 'local'
-          ? `Great! Local delivery is available to ${zone.city}, ${zone.state}`
-          : `Location set to ${zone.city}, ${zone.state}. Shipping rates will be shown at checkout.`
-      );
-
-      // Close modal after short delay
-      setTimeout(() => {
-        onClose();
-      }, 1500);
-
-    } catch (err: any) {
-      console.error('Geolocation error:', err);
-      
-      if (err.code === 1) {
-        setError('Location access was denied. Please enter your address manually.');
-      } else if (err.code === 2) {
-        setError('Unable to determine your location. Please enter your address manually.');
-      } else if (err.code === 3) {
-        setError('Location request timed out. Please try again or enter your address manually.');
-      } else {
-        setError(err.message || 'Failed to get your location. Please enter your address manually.');
-      }
-    } finally {
-      setIsLoadingLocation(false);
-    }
-  };
-
   const handleAddressSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📝 AddressModal: handleAddressSubmit START');
+    console.log('📝 AddressModal: addressInput:', addressInput);
     
     const trimmedAddress = addressInput.trim();
     if (!trimmedAddress) {
+      console.log('📝 AddressModal: Empty address, showing error');
       setError('Please enter an address or ZIP code');
       return;
     }
@@ -122,9 +66,23 @@ export function AddressModal({ isOpen, onClose }: AddressModalProps) {
     setIsLoadingAddress(true);
 
     try {
+      console.log('📝 AddressModal: Calling resolveLocation with:', trimmedAddress);
       const zone = await resolveLocation({ address: trimmedAddress });
+      console.log('📝 AddressModal: resolveLocation returned:', zone);
+      console.log('📝 AddressModal: zone.formattedAddress:', zone.formattedAddress);
+      console.log('📝 AddressModal: zone.street:', zone.street);
+      console.log('📝 AddressModal: zone.city:', zone.city);
       
+      console.log('📝 AddressModal: Calling setLocationZone...');
       setLocationZone(zone);
+      console.log('📝 AddressModal: setLocationZone called');
+      
+      // Verify the update
+      setTimeout(() => {
+        const verifyZone = useLocationStore.getState().locationZone;
+        console.log('📝 AddressModal: Verify - locationZone after set:', verifyZone?.formattedAddress);
+      }, 50);
+      
       setSuccess(
         zone.zone === 'local'
           ? `Great! Local delivery is available to ${zone.city}, ${zone.state}`
@@ -132,12 +90,14 @@ export function AddressModal({ isOpen, onClose }: AddressModalProps) {
       );
 
       // Close modal after short delay
+      console.log('📝 AddressModal: Will close modal in 1500ms');
       setTimeout(() => {
+        console.log('📝 AddressModal: Closing modal now');
         onClose();
       }, 1500);
 
     } catch (err: any) {
-      console.error('Address resolution error:', err);
+      console.error('📝 AddressModal: Address resolution error:', err);
       setError(err.message || 'Could not find this address. Please check and try again.');
     } finally {
       setIsLoadingAddress(false);
@@ -145,10 +105,46 @@ export function AddressModal({ isOpen, onClose }: AddressModalProps) {
   };
 
   const handleClearLocation = () => {
+    console.log('🗑️ AddressModal: handleClearLocation START');
+    console.log('🗑️ AddressModal: Current locationZone before clear:', locationZone?.formattedAddress);
+    
+    // Check localStorage BEFORE clear - all keys
+    try {
+      const keys = ['bmr-location-storage', 'bmr-location-v2', 'bmr-location-v3'];
+      console.log('🗑️ AddressModal: localStorage BEFORE clear:');
+      keys.forEach(key => {
+        const value = localStorage.getItem(key);
+        console.log(`🗑️ AddressModal: ${key}:`, value ? 'exists' : 'empty');
+      });
+    } catch (e) {
+      console.error('🗑️ AddressModal: Error reading localStorage:', e);
+    }
+    
+    console.log('🗑️ AddressModal: Calling clearLocationZone...');
     clearLocationZone();
     setSuccess(null);
     setError(null);
     setAddressInput('');
+    
+    // Verify the clear worked
+    setTimeout(() => {
+      const currentZone = useLocationStore.getState().locationZone;
+      console.log('🗑️ AddressModal: locationZone after clear:', currentZone);
+      
+      // Also check localStorage AFTER clear - all keys
+      try {
+        const keys = ['bmr-location-storage', 'bmr-location-v2', 'bmr-location-v3'];
+        console.log('🗑️ AddressModal: localStorage AFTER clear:');
+        keys.forEach(key => {
+          const value = localStorage.getItem(key);
+          console.log(`🗑️ AddressModal: ${key}:`, value ? 'EXISTS (BUG!)' : 'empty (good)');
+        });
+      } catch (e) {
+        console.error('🗑️ AddressModal: Error reading localStorage after clear:', e);
+      }
+      
+      console.log('🗑️ AddressModal: handleClearLocation END');
+    }, 100);
   };
 
   if (!isOpen) return null;
@@ -194,7 +190,10 @@ export function AddressModal({ isOpen, onClose }: AddressModalProps) {
                   }`} />
                   <div className="flex-1">
                     <p className="font-medium text-sm">
-                      Current location: {locationZone.city}, {locationZone.state}
+                      Current location: {locationZone.formattedAddress || 
+                        (locationZone.street 
+                          ? `${locationZone.street}, ${locationZone.city}, ${locationZone.state} ${locationZone.zip}`
+                          : `${locationZone.city}, ${locationZone.state} ${locationZone.zip}`)}
                     </p>
                     <p className={`text-sm mt-1 ${
                       locationZone.zone === 'local' ? 'text-green-700' : 'text-blue-700'
@@ -217,70 +216,97 @@ export function AddressModal({ isOpen, onClose }: AddressModalProps) {
               </div>
             )}
 
-            {/* Use My Location Button */}
-            <button
-              onClick={handleUseMyLocation}
-              disabled={isLoadingLocation || isLoadingAddress}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-bmr-night text-white rounded-lg hover:bg-bmr-night/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoadingLocation ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Getting your location...</span>
-                </>
-              ) : (
-                <>
-                  <Navigation className="w-5 h-5" />
-                  <span>Use my current location</span>
-                </>
-              )}
-            </button>
+            {/* Address Autocomplete - Google Maps dropdown */}
+            <div>
+              <p className="text-sm text-bmr-muted mb-3">
+                Enter your full street address (not just ZIP code). Shippo requires a complete address for shipping labels.
+              </p>
+              <AddressAutocomplete
+                onAddressSelect={async (result) => {
+                  console.log('📦 AddressModal: Address selected:', result);
+                  try {
+                    // Resolve location zone from the selected address
+                    const zone = await resolveLocation({
+                      address: result.formattedAddress,
+                      lat: result.lat,
+                      lng: result.lng,
+                    });
+                    
+                    // Update location zone - this will trigger re-render in all subscribed components
+                    console.log('🔄 AddressModal: Updating locationZone to:', zone);
+                    console.log('🔄 AddressModal: New formattedAddress:', zone.formattedAddress);
+                    setLocationZone(zone);
+                    
+                    // Verify the update immediately
+                    setTimeout(() => {
+                      const updatedZone = useLocationStore.getState().locationZone;
+                      console.log('✅ AddressModal: Verified locationZone after update:', updatedZone);
+                      console.log('✅ AddressModal: Verified formattedAddress:', updatedZone?.formattedAddress);
+                      console.log('✅ AddressModal: Zone matches?', updatedZone?.formattedAddress === zone.formattedAddress);
+                    }, 50);
+                    
+                    setSuccess(
+                      zone.zone === 'local'
+                        ? `Great! Local delivery is available to ${zone.city}, ${zone.state}`
+                        : `Location set to ${zone.city}, ${zone.state}. Shipping rates will be shown at checkout.`
+                    );
+                    setError(null);
 
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-muted">or</span>
-              </div>
+                    // Close modal after short delay to allow state to propagate
+                    setTimeout(() => {
+                      console.log('🔄 AddressModal: Closing modal, locationZone should be updated');
+                      onClose();
+                    }, 1500);
+                  } catch (err: any) {
+                    console.error('Error resolving location:', err);
+                    setError(err.message || 'Could not process this address. Please try again.');
+                  }
+                }}
+                onDeliveryStatusChange={(isDeliverable) => {
+                  // Optional: handle delivery status change
+                }}
+              />
             </div>
-
-            {/* Manual Address Entry */}
-            <form onSubmit={handleAddressSubmit} className="space-y-3">
-              <div>
-                <label htmlFor="address-input" className="block text-sm font-medium mb-2">
-                  Enter address or ZIP code
-                </label>
-                <input
-                  ref={inputRef}
-                  id="address-input"
-                  type="text"
-                  value={addressInput}
-                  onChange={(e) => setAddressInput(e.target.value)}
-                  placeholder="e.g., 48120 or 123 Main St, Dearborn, MI"
-                  className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-night"
-                  disabled={isLoadingLocation || isLoadingAddress}
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isLoadingLocation || isLoadingAddress || !addressInput.trim()}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-bmr-night text-bmr-night rounded-lg hover:bg-bmr-night hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoadingAddress ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Looking up address...</span>
-                  </>
-                ) : (
-                  <>
-                    <MapPin className="w-5 h-5" />
-                    <span>Apply</span>
-                  </>
-                )}
-              </button>
-            </form>
+            
+            {/* Legacy Manual Entry (fallback) */}
+            <details className="mt-4">
+              <summary className="text-sm text-bmr-muted cursor-pointer hover:text-bmr-ink">
+                Or enter address manually
+              </summary>
+              <form onSubmit={handleAddressSubmit} className="space-y-3 mt-3">
+                <div>
+                  <label htmlFor="address-input-manual" className="block text-sm font-medium mb-2">
+                    Enter address or ZIP code
+                  </label>
+                  <input
+                    id="address-input-manual"
+                    type="text"
+                    value={addressInput}
+                    onChange={(e) => setAddressInput(e.target.value)}
+                    placeholder="e.g., 48120 or 123 Main St, Dearborn, MI"
+                    className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-night"
+                    disabled={isLoadingAddress}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isLoadingAddress || !addressInput.trim()}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-bmr-night text-bmr-night rounded-lg hover:bg-bmr-night hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoadingAddress ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Looking up address...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="w-5 h-5" />
+                      <span>Apply</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </details>
 
             {/* Error Message */}
             {error && (
