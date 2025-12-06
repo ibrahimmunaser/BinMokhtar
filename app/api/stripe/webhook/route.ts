@@ -481,7 +481,15 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       metadata: session.metadata || {},
       
       // Timestamps - use Timestamp.now() for immediate, consistent timestamps
-      createdAt: Timestamp.now(),
+      // CRITICAL: Always set timestamps - never allow null/undefined
+      createdAt: (() => {
+        const ts = Timestamp.now();
+        console.log('📅 Created timestamp object:', ts);
+        console.log('📅 Created timestamp date:', ts?.toDate?.()?.toISOString());
+        console.log('📅 Created timestamp type:', typeof ts);
+        console.log('📅 Created timestamp has toDate:', typeof ts?.toDate === 'function');
+        return ts;
+      })(),
       updatedAt: Timestamp.now(),
       paidAt: Timestamp.now(),
     };
