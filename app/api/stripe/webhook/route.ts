@@ -9,11 +9,14 @@ import Stripe from 'stripe';
 // Mark as dynamic route (webhooks are always dynamic)
 export const dynamic = 'force-dynamic';
 
-// Disable body parsing - we need raw body for signature verification
+// Use Node.js runtime for better compatibility with Stripe webhooks
 export const runtime = 'nodejs';
 
 // Prevent Next.js from parsing the body - we need raw bytes for Stripe signature verification
 export const fetchCache = 'force-no-store';
+
+// Disable body size limit for webhook payloads
+export const maxDuration = 60; // Max function duration in seconds
 
 /**
  * GET /api/stripe/webhook
@@ -38,11 +41,10 @@ export async function POST(request: NextRequest) {
   console.log('📥 Request URL:', request.url);
   
   // Get raw body as text - CRITICAL for signature verification
+  // IMPORTANT: Use request.text() to get the exact raw body that Stripe sent
   let body: string;
   try {
-    // Use arrayBuffer and convert to string to ensure we get raw bytes
-    const arrayBuffer = await request.arrayBuffer();
-    body = Buffer.from(arrayBuffer).toString('utf8');
+    body = await request.text();
     console.log('📥 Body received, length:', body.length);
     console.log('📥 Body first 100 chars:', body.substring(0, 100));
   } catch (error: any) {
