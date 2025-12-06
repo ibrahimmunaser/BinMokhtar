@@ -368,13 +368,27 @@ export default function AdminOrdersPage() {
 
   function formatDate(date: any) {
     if (!date) return 'N/A';
+    
+    let dateObj: Date | null = null;
+    
     if (date.toDate) {
-      return date.toDate().toLocaleDateString();
+      dateObj = date.toDate();
+    } else if (date instanceof Date) {
+      dateObj = date;
     }
-    if (date instanceof Date) {
-      return date.toLocaleDateString();
-    }
-    return 'N/A';
+    
+    if (!dateObj) return 'N/A';
+    
+    // Format: MM/DD/YYYY HH:MM:SS
+    return dateObj.toLocaleString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false // 24-hour format
+    });
   }
 
   function formatPrice(cents: number) {
