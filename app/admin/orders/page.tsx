@@ -379,7 +379,7 @@ export default function AdminOrdersPage() {
     
     if (!dateObj) return 'N/A';
     
-    // Format: MM/DD/YYYY hh:MM:SS AM/PM
+    // Format: MM/DD/YYYY HH:MM:SS AM/PM
     return dateObj.toLocaleString('en-US', {
       year: 'numeric',
       month: '2-digit',
