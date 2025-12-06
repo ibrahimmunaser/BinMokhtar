@@ -9,6 +9,8 @@ import Stripe from 'stripe';
 // Mark as dynamic route (webhooks are always dynamic)
 export const dynamic = 'force-dynamic';
 
+// Updated: 2025-12-06 - Using Timestamp.now() for reliable timestamps
+
 // Use Node.js runtime for better compatibility with Stripe webhooks
 export const runtime = 'nodejs';
 
