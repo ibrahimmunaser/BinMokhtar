@@ -40,13 +40,17 @@ export async function POST(request: NextRequest) {
   console.log('📥 Request method:', request.method);
   console.log('📥 Request URL:', request.url);
   
-  // Get raw body as text - CRITICAL for signature verification
-  // IMPORTANT: Use request.text() to get the exact raw body that Stripe sent
-  let body: string;
+  // Get raw body - CRITICAL for signature verification
+  // We need the EXACT bytes that Stripe sent, so use arrayBuffer and convert to Buffer
+  let body: Buffer;
+  let bodyString: string;
   try {
-    body = await request.text();
-    console.log('📥 Body received, length:', body.length);
-    console.log('📥 Body first 100 chars:', body.substring(0, 100));
+    const rawBody = await request.arrayBuffer();
+    body = Buffer.from(rawBody);
+    bodyString = body.toString('utf8');
+    console.log('📥 Body received as Buffer, length:', body.length);
+    console.log('📥 Body as string length:', bodyString.length);
+    console.log('📥 Body first 100 chars:', bodyString.substring(0, 100));
   } catch (error: any) {
     console.error('❌ Error reading request body:', error);
     return NextResponse.json({ error: 'Failed to read request body' }, { status: 400 });
@@ -57,9 +61,10 @@ export async function POST(request: NextRequest) {
   console.log('📥 Signature value:', signature ? `${signature.substring(0, 20)}...` : 'MISSING');
   console.log('📥 STRIPE_WEBHOOK_SECRET exists:', !!STRIPE_WEBHOOK_SECRET);
   console.log('📥 STRIPE_WEBHOOK_SECRET length:', STRIPE_WEBHOOK_SECRET?.length || 0);
+  console.log('📥 STRIPE_WEBHOOK_SECRET type:', typeof STRIPE_WEBHOOK_SECRET);
   console.log('📥 STRIPE_WEBHOOK_SECRET first 10 chars:', STRIPE_WEBHOOK_SECRET?.substring(0, 10) || 'NOT SET');
   console.log('📥 STRIPE_WEBHOOK_SECRET last 10 chars:', STRIPE_WEBHOOK_SECRET?.substring(STRIPE_WEBHOOK_SECRET.length - 10) || 'NOT SET');
-  console.log('📥 STRIPE_WEBHOOK_SECRET full value:', STRIPE_WEBHOOK_SECRET || 'NOT SET');
+  console.log('📥 STRIPE_WEBHOOK_SECRET exact value:', JSON.stringify(STRIPE_WEBHOOK_SECRET));
 
   if (!signature) {
     console.error('❌ No Stripe signature found');
@@ -80,13 +85,15 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
   try {
     console.log('🔐 Attempting to verify webhook signature...');
-    console.log('🔐 Body length:', body.length);
+    console.log('🔐 Body (Buffer) length:', body.length);
+    console.log('🔐 Body (string) length:', bodyString.length);
     console.log('🔐 Signature header:', signature ? 'present' : 'missing');
     console.log('🔐 Webhook secret length:', STRIPE_WEBHOOK_SECRET?.length || 0);
     
-    // Verify signature
+    // Verify signature using the raw Buffer
+    // Stripe's constructEvent can accept Buffer, string, or Uint8Array
     event = stripe.webhooks.constructEvent(
-      body,
+      body, // Use Buffer for most accurate signature verification
       signature!,
       STRIPE_WEBHOOK_SECRET!
     );
@@ -99,11 +106,14 @@ export async function POST(request: NextRequest) {
     console.error('❌ Error type:', err?.constructor?.name);
     console.error('❌ Error message:', err.message);
     console.error('❌ Error code:', (err as any)?.code);
-    console.error('❌ Body length:', body.length);
-    console.error('❌ Body is string:', typeof body === 'string');
+    console.error('❌ Body (Buffer) length:', body.length);
+    console.error('❌ Body (string) length:', bodyString.length);
+    console.error('❌ Body is Buffer:', Buffer.isBuffer(body));
     console.error('❌ Signature present:', !!signature);
+    console.error('❌ Signature value (first 50 chars):', signature?.substring(0, 50));
     console.error('❌ Webhook secret present:', !!STRIPE_WEBHOOK_SECRET);
     console.error('❌ Webhook secret length:', STRIPE_WEBHOOK_SECRET?.length || 0);
+    console.error('❌ Webhook secret (JSON):', JSON.stringify(STRIPE_WEBHOOK_SECRET));
     console.error('❌ This usually means:');
     console.error('   1. STRIPE_WEBHOOK_SECRET in Render does not match Stripe Dashboard');
     console.error('   2. Webhook secret was rolled/changed in Stripe but not updated in Render');
