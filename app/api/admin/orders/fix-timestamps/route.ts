@@ -35,17 +35,28 @@ export async function POST(request: NextRequest) {
     for (const doc of snapshot.docs) {
       const data = doc.data();
       
-      // Check if createdAt is missing or null
-      if (!data.createdAt) {
-        console.log(`🔧 Fixing order ${doc.id} - missing createdAt`);
+      // Check if createdAt is missing, null, OR not a proper Timestamp
+      const needsFix = !data.createdAt || 
+                       typeof data.createdAt?.toDate !== 'function' ||
+                       !data.createdAt?._seconds;
+      
+      if (needsFix) {
+        console.log(`🔧 Fixing order ${doc.id} - invalid/missing createdAt`);
         
-        // Set timestamps to now (we don't have the original creation time)
-        // If updatedAt exists, use that as a better approximation
-        const timestamp = data.updatedAt || data.paidAt || Timestamp.now();
+        // Try to preserve original time if possible from metadata or other fields
+        let timestamp = Timestamp.now();
+        
+        // Check if there's a valid updatedAt or paidAt we can use
+        if (data.updatedAt && typeof data.updatedAt.toDate === 'function') {
+          timestamp = data.updatedAt;
+        } else if (data.paidAt && typeof data.paidAt.toDate === 'function') {
+          timestamp = data.paidAt;
+        }
         
         batch.update(doc.ref, {
           createdAt: timestamp,
           updatedAt: Timestamp.now(),
+          paidAt: data.paidAt || timestamp, // Ensure paidAt is also valid
         });
         
         fixedCount++;
