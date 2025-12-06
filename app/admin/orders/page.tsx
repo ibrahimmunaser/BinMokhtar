@@ -41,6 +41,31 @@ export default function AdminOrdersPage() {
     error,
   });
 
+  // Effect to check DOM after orders are loaded
+  useEffect(() => {
+    if (!loading && orders.length > 0 && !error) {
+      console.log('🔍 ===== DOM CHECK AFTER ORDERS LOADED =====');
+      setTimeout(() => {
+        const table = document.querySelector('table');
+        const tbody = document.querySelector('tbody');
+        const rows = document.querySelectorAll('tbody tr');
+        console.log('🔍 Table element exists:', !!table);
+        console.log('🔍 Tbody element exists:', !!tbody);
+        console.log('🔍 Number of rows in DOM:', rows.length);
+        console.log('🔍 First row HTML:', rows[0]?.outerHTML?.substring(0, 200));
+        if (table) {
+          console.log('🔍 Table computed styles:', {
+            display: window.getComputedStyle(table).display,
+            visibility: window.getComputedStyle(table).visibility,
+            opacity: window.getComputedStyle(table).opacity,
+            height: window.getComputedStyle(table).height,
+            width: window.getComputedStyle(table).width,
+          });
+        }
+      }, 500);
+    }
+  }, [loading, orders.length, error]);
+
   useEffect(() => {
     console.log('📋 ===== AdminOrdersPage: useEffect TRIGGERED =====');
     console.log('📋 AdminOrdersPage: useEffect timestamp:', new Date().toISOString());
@@ -235,9 +260,16 @@ export default function AdminOrdersPage() {
       console.log('📋 AdminOrdersPage: Last order ID:', ordersData[ordersData.length - 1]?.id);
       
       console.log('📋 AdminOrdersPage: Setting orders state with', ordersData.length, 'orders');
+      console.log('📋 AdminOrdersPage: Sample order data:', ordersData[0]);
       setOrders(ordersData);
       console.log('✅ AdminOrdersPage: Orders state updated');
       console.log('✅ AdminOrdersPage: Orders loaded successfully - total:', ordersData.length);
+      
+      // Use setTimeout to check state after React has updated
+      setTimeout(() => {
+        console.log('🔍 Post-render check: Orders should now be visible in UI');
+        console.log('🔍 If table is not visible, check CSS classes and DOM structure');
+      }, 100);
     } catch (error: any) {
       console.error('❌ ===== AdminOrdersPage: ERROR IN loadOrders() =====');
       console.error('❌ AdminOrdersPage: Error timestamp:', new Date().toISOString());
@@ -353,6 +385,12 @@ export default function AdminOrdersPage() {
   console.log('📋 AdminOrdersPage: Render - loading:', loading);
   console.log('📋 AdminOrdersPage: Render - orders.length:', orders.length);
   console.log('📋 AdminOrdersPage: Render - error:', error);
+  console.log('📋 AdminOrdersPage: Render - Conditional check:', {
+    shouldShowLoading: loading,
+    shouldShowError: !!error,
+    shouldShowEmpty: orders.length === 0,
+    shouldShowTable: !loading && !error && orders.length > 0,
+  });
 
   if (!isAuthenticated) {
     console.log('📋 AdminOrdersPage: Rendering loading screen (not authenticated)');
@@ -455,9 +493,15 @@ export default function AdminOrdersPage() {
             </div>
           </div>
         ) : (
-          <div className="bg-surface-2 rounded-lg border border-line overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
+          (() => {
+            console.log('🎯 ===== RENDERING ORDERS TABLE =====');
+            console.log('🎯 Orders count:', orders.length);
+            console.log('🎯 First order:', orders[0]);
+            console.log('🎯 About to render table with', orders.length, 'rows');
+            return (
+              <div className="bg-surface-2 rounded-lg border border-line overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
                 <thead className="bg-surface-3 border-b border-line">
                   <tr>
                     <th className="px-6 py-4 text-left text-sm font-medium text-bmr-ink">Order</th>
@@ -520,6 +564,8 @@ export default function AdminOrdersPage() {
               </table>
             </div>
           </div>
+            );
+          })()
         )}
       </div>
     </div>
