@@ -6,6 +6,7 @@ import { BestSellers } from '@/components/home/BestSellers';
 import { ReviewsCarousel } from '@/components/home/ReviewsCarousel';
 import { BrandStory } from '@/components/home/BrandStory';
 import { IconRow } from '@/components/home/IconRow';
+import { FIREBASE_IMAGES } from '@/lib/firebase-images';
 import type { HeroSlide, MosaicTile, Review, StoryBlock, IconItem } from '@/types';
 
 export default function HomePage() {
@@ -13,7 +14,7 @@ export default function HomePage() {
   // Initialize with placeholder to prevent empty hero on first render
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([{
     type: 'image',
-    src: '/images/home-page-mens-thobe.png',
+    src: FIREBASE_IMAGES.HOME_MENS_THOBE,
     titleEn: 'Luxury Thobes & Modest Fashion',
     titleAr: 'ثوب فاخر وأزياء محتشمة',
     subEn: 'Timeless elegance for every occasion',
@@ -77,14 +78,14 @@ export default function HomePage() {
       titleEn: "Emirati Thobes",
       titleAr: 'ثوب إماراتي',
       href: '/category/emirati',
-      image: '/images/hero-emirati.png',
+      image: FIREBASE_IMAGES.HERO_EMIRATI,
       objectPosition: 'center 30%',
     },
     {
       titleEn: "Saudi Thobes",
       titleAr: 'ثوب سعودي',
       href: '/category/saudi',
-      image: '/images/hero-saudi.webp',
+      image: FIREBASE_IMAGES.HERO_SAUDI,
       objectPosition: 'center 30%',
     },
     // Boys Categories
@@ -92,7 +93,7 @@ export default function HomePage() {
       titleEn: "Boys' Emirati Thobes",
       titleAr: 'ثوب إماراتي للأولاد',
       href: '/category/thobes',
-      image: '/images/Boys thobe hero.jpg',
+      image: FIREBASE_IMAGES.BOYS_HERO,
       objectPosition: 'center 30%',
     },
     // Shemagh Categories
@@ -100,14 +101,14 @@ export default function HomePage() {
       titleEn: 'Traditional Shemaghs',
       titleAr: 'شماغ تقليدي',
       href: '/category/traditional',
-      image: '/images/hero-traditional.webp',
+      image: FIREBASE_IMAGES.HERO_TRADITIONAL,
       objectPosition: 'center 25%',
     },
     {
       titleEn: 'Yemeni Shemaghs',
       titleAr: 'شماغ يمني',
       href: '/category/yemeni',
-      image: '/images/hero-yemeni.webp',
+      image: FIREBASE_IMAGES.HERO_YEMENI,
       objectPosition: 'right 25%',
     },
   ];

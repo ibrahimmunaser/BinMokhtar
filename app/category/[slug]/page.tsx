@@ -8,6 +8,7 @@ import { Container } from '@/components/layout/Container';
 import { ProductCard } from '@/components/products/ProductCard';
 import { Breadcrumbs } from '@/components/products/Breadcrumbs';
 import { ChevronDown, X, SlidersHorizontal } from 'lucide-react';
+import { FIREBASE_IMAGES } from '@/lib/firebase-images';
 
 const ITEMS_PER_PAGE = 24;
 
@@ -72,16 +73,16 @@ const CATEGORY_STRUCTURE: Record<string, {
   },
 };
 
-// Category-specific hero images with positioning
+// Category-specific hero images with positioning (loaded from Firebase Storage)
 const CATEGORY_HERO_CONFIG: Record<string, { image: string; position: string }> = {
-  'men': { image: '/images/home-page-mens-thobe.png', position: 'center 20%' },
-  'boys': { image: '/images/Boys thobe hero.jpg', position: 'center 30%' },
-  'shemaghs': { image: '/images/home page Shemaghs image.png', position: 'center center' },
-  'emirati': { image: '/images/hero-emirati.png', position: 'center 30%' },
-  'saudi': { image: '/images/hero-saudi.webp', position: 'center 30%' },
-  'thobes': { image: '/images/Boys thobe hero.jpg', position: 'center 30%' },
-  'traditional': { image: '/images/hero-traditional.webp', position: 'center 25%' },
-  'yemeni': { image: '/images/hero-yemeni.webp', position: 'right 25%' },
+  'men': { image: FIREBASE_IMAGES.HOME_MENS_THOBE, position: 'center 20%' },
+  'boys': { image: FIREBASE_IMAGES.BOYS_HERO, position: 'center 30%' },
+  'shemaghs': { image: FIREBASE_IMAGES.HOME_SHEMAGHS, position: 'center center' },
+  'emirati': { image: FIREBASE_IMAGES.HERO_EMIRATI, position: 'center 30%' },
+  'saudi': { image: FIREBASE_IMAGES.HERO_SAUDI, position: 'center 30%' },
+  'thobes': { image: FIREBASE_IMAGES.BOYS_HERO, position: 'center 30%' },
+  'traditional': { image: FIREBASE_IMAGES.HERO_TRADITIONAL, position: 'center 25%' },
+  'yemeni': { image: FIREBASE_IMAGES.HERO_YEMENI, position: 'right 25%' },
 };
 
 export default function CategoryPage() {
