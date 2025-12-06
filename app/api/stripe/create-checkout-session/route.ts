@@ -55,6 +55,52 @@ export async function POST(request: NextRequest) {
       };
     });
 
+    // Add shipping cost as a line item if it exists
+    const shippingAmountRaw = metadata?.shippingAmount;
+    const shippingAmount = shippingAmountRaw 
+      ? (typeof shippingAmountRaw === 'number' ? shippingAmountRaw : parseInt(String(shippingAmountRaw), 10))
+      : 0;
+    
+    console.log('📦 Shipping cost check:', {
+      shippingAmountRaw,
+      shippingAmount,
+      fulfillmentMethod: metadata?.fulfillmentMethod,
+      hasMetadata: !!metadata,
+    });
+    
+    if (shippingAmount > 0 && !isNaN(shippingAmount)) {
+      const fulfillmentMethod = metadata?.fulfillmentMethod || 'shipping';
+      let shippingLabel = 'Shipping';
+      
+      if (fulfillmentMethod === 'local_delivery') {
+        shippingLabel = 'Local Delivery';
+      } else if (fulfillmentMethod === 'shipping' && metadata?.shippingCarrier && metadata?.shippingService) {
+        shippingLabel = `Shipping (${metadata.shippingCarrier} ${metadata.shippingService})`;
+      } else if (fulfillmentMethod === 'shipping' && metadata?.shippingCarrier) {
+        shippingLabel = `Shipping (${metadata.shippingCarrier})`;
+      }
+      
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: shippingLabel,
+            description: 'Shipping and handling',
+          },
+          unit_amount: shippingAmount, // Already in cents
+        },
+        quantity: 1,
+      });
+      
+      console.log('✅ Added shipping as line item:', {
+        label: shippingLabel,
+        amount: shippingAmount,
+        fulfillmentMethod,
+      });
+    } else {
+      console.log('ℹ️ No shipping cost to add (amount:', shippingAmount, ')');
+    }
+
     // Get base URL for redirects
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.headers.get('origin') || 'http://localhost:3000';
 
