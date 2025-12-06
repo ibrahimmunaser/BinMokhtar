@@ -247,10 +247,82 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     const billingAddress = session.customer_details?.address;
 
     // Calculate totals (amounts are in cents)
-    const subtotal = session.amount_subtotal || 0;
+    // Note: Since we add shipping as a line item, we need to extract it from line items
+    // and exclude it from the subtotal calculation
     const total = session.amount_total || 0;
-    const shipping = (session.shipping_cost?.amount_total || 0);
     const tax = (session.total_details?.amount_tax || 0);
+    
+    // Extract shipping cost from line items (shipping is added as a line item)
+    let shipping = 0;
+    const shippingLineItems: Stripe.LineItem[] = [];
+    const productLineItems: Stripe.LineItem[] = [];
+    
+    if (fullSession.line_items?.data) {
+      for (const lineItem of fullSession.line_items.data) {
+        const product = lineItem.price?.product as Stripe.Product;
+        const productName = product?.name || lineItem.description || '';
+        
+        // Check if this is a shipping line item
+        // Shipping line items typically have names like "Shipping", "Local Delivery", etc.
+        const isShippingItem = 
+          productName.toLowerCase().includes('shipping') ||
+          productName.toLowerCase().includes('delivery') ||
+          productName.toLowerCase().includes('handling') ||
+          !product?.metadata?.productId; // Shipping items don't have productId in metadata
+        
+        if (isShippingItem) {
+          shippingLineItems.push(lineItem);
+          shipping += (lineItem.amount_total || 0);
+          console.log('📦 Found shipping line item:', {
+            name: productName,
+            amount: lineItem.amount_total,
+            totalShipping: shipping,
+          });
+        } else {
+          productLineItems.push(lineItem);
+        }
+      }
+    }
+    
+    // Fallback: If no shipping found in line items, try metadata or calculate
+    if (shipping === 0) {
+      // Try metadata first (what we sent from checkout form)
+      const metadataShipping = session.metadata?.shippingAmount;
+      if (metadataShipping) {
+        shipping = typeof metadataShipping === 'number' 
+          ? metadataShipping 
+          : parseInt(String(metadataShipping), 10);
+        console.log('📦 Using shipping from metadata:', shipping);
+      } else {
+        // Calculate as: total - subtotal - tax
+        // But we need to recalculate subtotal without shipping items
+        const calculatedSubtotal = productLineItems.reduce(
+          (sum, item) => sum + (item.amount_total || 0),
+          0
+        );
+        shipping = total - calculatedSubtotal - tax;
+        console.log('📦 Calculated shipping from totals:', {
+          total,
+          calculatedSubtotal,
+          tax,
+          shipping,
+        });
+      }
+    }
+    
+    // Recalculate subtotal excluding shipping items
+    const subtotal = productLineItems.reduce(
+      (sum, item) => sum + (item.amount_total || 0),
+      0
+    ) || session.amount_subtotal || 0;
+    
+    console.log('💰 Order totals:', {
+      subtotal,
+      shipping,
+      tax,
+      total,
+      calculatedTotal: subtotal + shipping + tax,
+    });
 
     // Helper function to remove undefined values from an object
     const removeUndefined = (obj: any): any => {
@@ -309,8 +381,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         country: billingAddress.country || '',
       } : null,
       
-      // Order items
-      items: fullSession.line_items?.data.map((lineItem) => {
+      // Order items (exclude shipping line items - only include actual products)
+      items: productLineItems.map((lineItem) => {
         const product = lineItem.price?.product as Stripe.Product;
         const matchingCartItem = cartItems.find(
           (ci) => ci.sku === product.metadata?.sku
@@ -336,7 +408,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         }
 
         return item;
-      }) || [],
+      }),
       
       // Financial details (all in cents)
       subtotal,
