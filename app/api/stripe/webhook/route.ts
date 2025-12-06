@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe, STRIPE_WEBHOOK_SECRET } from '@/lib/stripe/config';
-import { adminDb, FieldValue } from '@/lib/firebase/server';
+import { adminDb, FieldValue, Timestamp } from '@/lib/firebase/server';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 import { createShippingArtifactsForOrder } from '@/lib/shipping/createShippingArtifacts';
 import { calculateOrderWeight } from '@/lib/shipping/calculateOrderWeight';
@@ -478,10 +478,10 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       // Metadata
       metadata: session.metadata || {},
       
-      // Timestamps - use FieldValue.serverTimestamp() for proper Firestore storage
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-      paidAt: FieldValue.serverTimestamp(),
+      // Timestamps - use Timestamp.now() for immediate, consistent timestamps
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+      paidAt: Timestamp.now(),
     };
 
     // Remove all undefined values before saving to Firestore
@@ -520,9 +520,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         qty: item.qty,
         unitPrice: item.unitPrice,
       })),
-      createdAt: 'FieldValue.serverTimestamp()',
-      updatedAt: 'FieldValue.serverTimestamp()',
-      paidAt: 'FieldValue.serverTimestamp()',
+      createdAt: cleanedOrderData.createdAt?.toDate?.()?.toISOString() || 'Timestamp object',
+      updatedAt: cleanedOrderData.updatedAt?.toDate?.()?.toISOString() || 'Timestamp object',
+      paidAt: cleanedOrderData.paidAt?.toDate?.()?.toISOString() || 'Timestamp object',
     }, null, 2));
     
     let orderRef;

@@ -89,17 +89,24 @@ export async function GET(request: NextRequest) {
     });
     console.log('✅ Step 3: Converted', orders.length, 'orders');
     
-    console.log('📋 Step 4: Sorting orders by createdAt...');
-    // Sort by createdAt descending (orders without createdAt go to the TOP for visibility)
+    console.log('📋 Step 4: Sorting orders by date/time (newest first)...');
+    // Sort by createdAt descending - newest orders at top
+    // Orders without createdAt go to the TOP for visibility (likely new/problematic)
     orders.sort((a, b) => {
       const aCreated = (a.createdAt as unknown) as string | null;
       const bCreated = (b.createdAt as unknown) as string | null;
+      
+      // Handle null/missing timestamps
       if (!aCreated && !bCreated) return 0;
-      if (!aCreated) return -1; // a goes BEFORE b (top of list)
-      if (!bCreated) return 1; // b goes BEFORE a (top of list)
-      return new Date(bCreated).getTime() - new Date(aCreated).getTime();
+      if (!aCreated) return -1; // a goes BEFORE b (show at top for visibility)
+      if (!bCreated) return 1; // b goes BEFORE a (show at top for visibility)
+      
+      // Both have timestamps - sort newest first (descending)
+      const aTime = new Date(aCreated).getTime();
+      const bTime = new Date(bCreated).getTime();
+      return bTime - aTime; // Descending: newest first
     });
-    console.log('✅ Step 4: Orders sorted');
+    console.log('✅ Step 4: Orders sorted by date/time (newest first)');
     
     console.log('📋 Step 5: Preparing response...');
     console.log('📋 Step 5: Total orders to return:', orders.length);
