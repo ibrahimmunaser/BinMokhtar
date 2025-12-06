@@ -74,8 +74,6 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 
-  let event: Stripe.Event;
-
   // Verify webhook signature
   let event: Stripe.Event;
   try {
