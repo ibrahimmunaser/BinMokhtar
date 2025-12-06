@@ -284,7 +284,7 @@ export default function CategoryPage() {
   const activeFiltersCount = selectedSizes.length + selectedColors.length + (selectedSubcategory ? 1 : 0) + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0);
 
   // Get hero image and position for category
-  const heroConfig = CATEGORY_HERO_CONFIG[slug.toLowerCase()] || { image: '/images/home-page-mens-thobe.png', position: 'center 30%' };
+  const heroConfig = CATEGORY_HERO_CONFIG[slug.toLowerCase()] || { image: FIREBASE_IMAGES.HOME_MENS_THOBE, position: 'center 30%' };
   const heroImage = heroConfig.image;
   const heroPosition = heroConfig.position;
 

@@ -9,6 +9,7 @@ import { ProductCard } from '@/components/products/ProductCard';
 import { Breadcrumbs } from '@/components/products/Breadcrumbs';
 import { getAllProducts } from '@/lib/firebaseAdminStore';
 import { ChevronDown, X, SlidersHorizontal } from 'lucide-react';
+import { FIREBASE_IMAGES } from '@/lib/firebase-images';
 
 export const dynamic = 'force-dynamic';
 
@@ -169,7 +170,7 @@ export default function ChildrenCollectionPage() {
       <section className="relative h-[40vh] min-h-[300px] max-h-[500px] bg-surface-3">
         <div className="absolute inset-0">
           <Image
-            src="/images/kids hero page.png"
+            src={FIREBASE_IMAGES.KIDS_HERO}
             alt="Children's Collections"
             fill
             className="object-cover"

@@ -9,6 +9,7 @@ import { ProductCard } from '@/components/products/ProductCard';
 import { Breadcrumbs } from '@/components/products/Breadcrumbs';
 import { getAllProducts } from '@/lib/firebaseAdminStore';
 import { ChevronDown, X, SlidersHorizontal } from 'lucide-react';
+import { FIREBASE_IMAGES } from '@/lib/firebase-images';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,10 +27,10 @@ const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
 const COLORS = ['White', 'Black', 'Beige', 'Brown', 'Navy', 'Grey'];
 
 const HERO_IMAGES = [
-  '/images/menscollection1.png',
-  '/images/menscollection2.png',
-  '/images/menscollection3.png',
-  '/images/menscollection4.png',
+  FIREBASE_IMAGES.MENS_COLLECTION_1,
+  FIREBASE_IMAGES.MENS_COLLECTION_2,
+  FIREBASE_IMAGES.MENS_COLLECTION_3,
+  FIREBASE_IMAGES.MENS_COLLECTION_4,
 ];
 
 export default function MensCollectionPage() {
