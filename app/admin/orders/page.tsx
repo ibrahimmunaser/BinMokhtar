@@ -379,7 +379,7 @@ export default function AdminOrdersPage() {
     
     if (!dateObj) return 'N/A';
     
-    // Format: MM/DD/YYYY HH:MM:SS
+    // Format: MM/DD/YYYY hh:MM:SS AM/PM
     return dateObj.toLocaleString('en-US', {
       year: 'numeric',
       month: '2-digit',
@@ -387,7 +387,7 @@ export default function AdminOrdersPage() {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: false // 24-hour format
+      hour12: true // 12-hour format with AM/PM
     });
   }
 
