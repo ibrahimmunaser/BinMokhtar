@@ -12,6 +12,9 @@ export const dynamic = 'force-dynamic';
 // Disable body parsing - we need raw body for signature verification
 export const runtime = 'nodejs';
 
+// Prevent Next.js from parsing the body - we need raw bytes for Stripe signature verification
+export const fetchCache = 'force-no-store';
+
 /**
  * GET /api/stripe/webhook
  * Test endpoint to verify webhook URL is accessible
@@ -34,10 +37,14 @@ export async function POST(request: NextRequest) {
   console.log('📥 Request method:', request.method);
   console.log('📥 Request URL:', request.url);
   
+  // Get raw body as text - CRITICAL for signature verification
   let body: string;
   try {
-    body = await request.text();
+    // Use arrayBuffer and convert to string to ensure we get raw bytes
+    const arrayBuffer = await request.arrayBuffer();
+    body = Buffer.from(arrayBuffer).toString('utf8');
     console.log('📥 Body received, length:', body.length);
+    console.log('📥 Body first 100 chars:', body.substring(0, 100));
   } catch (error: any) {
     console.error('❌ Error reading request body:', error);
     return NextResponse.json({ error: 'Failed to read request body' }, { status: 400 });
@@ -45,10 +52,12 @@ export async function POST(request: NextRequest) {
   
   const signature = request.headers.get('stripe-signature');
   console.log('📥 Signature present:', !!signature);
+  console.log('📥 Signature value:', signature ? `${signature.substring(0, 20)}...` : 'MISSING');
   console.log('📥 STRIPE_WEBHOOK_SECRET exists:', !!STRIPE_WEBHOOK_SECRET);
   console.log('📥 STRIPE_WEBHOOK_SECRET length:', STRIPE_WEBHOOK_SECRET?.length || 0);
   console.log('📥 STRIPE_WEBHOOK_SECRET first 10 chars:', STRIPE_WEBHOOK_SECRET?.substring(0, 10) || 'NOT SET');
   console.log('📥 STRIPE_WEBHOOK_SECRET last 10 chars:', STRIPE_WEBHOOK_SECRET?.substring(STRIPE_WEBHOOK_SECRET.length - 10) || 'NOT SET');
+  console.log('📥 STRIPE_WEBHOOK_SECRET full value:', STRIPE_WEBHOOK_SECRET || 'NOT SET');
 
   if (!signature) {
     console.error('❌ No Stripe signature found');
@@ -68,22 +77,54 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
 
   // Verify webhook signature
+  let event: Stripe.Event;
   try {
     console.log('🔐 Attempting to verify webhook signature...');
-    event = stripe.webhooks.constructEvent(body, signature, STRIPE_WEBHOOK_SECRET);
+    console.log('🔐 Body length:', body.length);
+    console.log('🔐 Signature header:', signature ? 'present' : 'missing');
+    console.log('🔐 Webhook secret length:', STRIPE_WEBHOOK_SECRET?.length || 0);
+    
+    // Verify signature
+    event = stripe.webhooks.constructEvent(
+      body,
+      signature!,
+      STRIPE_WEBHOOK_SECRET!
+    );
+    
     console.log('✅ Webhook signature verified successfully');
+    console.log('✅ Event type:', event.type);
+    console.log('✅ Event ID:', event.id);
   } catch (err: any) {
     console.error('❌ ===== WEBHOOK SIGNATURE VERIFICATION FAILED =====');
+    console.error('❌ Error type:', err?.constructor?.name);
     console.error('❌ Error message:', err.message);
+    console.error('❌ Error code:', (err as any)?.code);
+    console.error('❌ Body length:', body.length);
+    console.error('❌ Body is string:', typeof body === 'string');
+    console.error('❌ Signature present:', !!signature);
+    console.error('❌ Webhook secret present:', !!STRIPE_WEBHOOK_SECRET);
+    console.error('❌ Webhook secret length:', STRIPE_WEBHOOK_SECRET?.length || 0);
     console.error('❌ This usually means:');
     console.error('   1. STRIPE_WEBHOOK_SECRET in Render does not match Stripe Dashboard');
     console.error('   2. Webhook secret was rolled/changed in Stripe but not updated in Render');
     console.error('   3. Wrong webhook endpoint (using secret from different webhook)');
-    console.error('❌ Expected secret from Stripe Dashboard:', 'whsec_FdaKRHnDuiQhUV6UX6TyG800g5amQD84');
-    console.error('❌ Check Render environment variable STRIPE_WEBHOOK_SECRET matches exactly');
+    console.error('   4. Request body was modified by proxy/middleware before reaching handler');
+    console.error('   5. Body encoding issue (must be UTF-8)');
+    
+    // Check if secret matches expected format
+    if (STRIPE_WEBHOOK_SECRET && !STRIPE_WEBHOOK_SECRET.startsWith('whsec_')) {
+      console.error('❌ Webhook secret does not start with "whsec_" - invalid format!');
+    }
+    
     return NextResponse.json({ 
       error: `Webhook Error: ${err.message}`,
-      hint: 'Check that STRIPE_WEBHOOK_SECRET in Render matches the signing secret in Stripe Dashboard'
+      hint: 'Check that STRIPE_WEBHOOK_SECRET in Render matches the signing secret in Stripe Dashboard exactly',
+      details: {
+        bodyLength: body.length,
+        signaturePresent: !!signature,
+        secretPresent: !!STRIPE_WEBHOOK_SECRET,
+        secretLength: STRIPE_WEBHOOK_SECRET?.length || 0,
+      }
     }, { status: 400 });
   }
 
