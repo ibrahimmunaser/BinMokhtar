@@ -90,13 +90,13 @@ export async function GET(request: NextRequest) {
     console.log('✅ Step 3: Converted', orders.length, 'orders');
     
     console.log('📋 Step 4: Sorting orders by createdAt...');
-    // Sort by createdAt descending (orders without createdAt go to the end)
+    // Sort by createdAt descending (orders without createdAt go to the TOP for visibility)
     orders.sort((a, b) => {
       const aCreated = (a.createdAt as unknown) as string | null;
       const bCreated = (b.createdAt as unknown) as string | null;
       if (!aCreated && !bCreated) return 0;
-      if (!aCreated) return 1; // a goes after b
-      if (!bCreated) return -1; // b goes after a
+      if (!aCreated) return -1; // a goes BEFORE b (top of list)
+      if (!bCreated) return 1; // b goes BEFORE a (top of list)
       return new Date(bCreated).getTime() - new Date(aCreated).getTime();
     });
     console.log('✅ Step 4: Orders sorted');
