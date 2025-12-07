@@ -496,6 +496,24 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
     // Remove all undefined values before saving to Firestore
     const cleanedOrderData = removeUndefined(orderData);
+    
+    // CRITICAL: Verify timestamps are still present after cleaning
+    console.log('🔍 After removeUndefined - createdAt exists:', !!cleanedOrderData.createdAt);
+    console.log('🔍 After removeUndefined - createdAt type:', typeof cleanedOrderData.createdAt);
+    console.log('🔍 After removeUndefined - createdAt value:', cleanedOrderData.createdAt);
+    console.log('🔍 After removeUndefined - createdAt has toDate:', typeof cleanedOrderData.createdAt?.toDate === 'function');
+    
+    // FORCE timestamps if they're missing (safety check)
+    if (!cleanedOrderData.createdAt) {
+      console.error('❌ CRITICAL: createdAt is missing after removeUndefined! Setting it now...');
+      cleanedOrderData.createdAt = Timestamp.now();
+    }
+    if (!cleanedOrderData.updatedAt) {
+      cleanedOrderData.updatedAt = Timestamp.now();
+    }
+    if (!cleanedOrderData.paidAt) {
+      cleanedOrderData.paidAt = Timestamp.now();
+    }
 
     // Save to Firebase
     console.log('📦 Step 2: Initializing Firebase...');
@@ -542,15 +560,43 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       console.log('✅ Step 4: Order ID:', orderRef.id);
       console.log('✅ Step 4: Order document path:', orderRef.path);
       
-      // Verify the order was actually saved
+      // Verify the order was actually saved WITH TIMESTAMPS
       const verifyDoc = await orderRef.get();
       if (verifyDoc.exists) {
         const savedData = verifyDoc.data();
         console.log('✅ Step 4: Order verification - Document exists');
         console.log('✅ Step 4: Order verification - Document ID:', verifyDoc.id);
-        console.log('✅ Step 4: Order verification - Created at:', savedData?.createdAt);
         console.log('✅ Step 4: Order verification - Status:', savedData?.status);
         console.log('✅ Step 4: Order verification - Items count:', savedData?.items?.length);
+        
+        // CRITICAL: Verify timestamps were saved
+        console.log('🔍 TIMESTAMP VERIFICATION:');
+        console.log('🔍 createdAt exists:', !!savedData?.createdAt);
+        console.log('🔍 createdAt type:', typeof savedData?.createdAt);
+        console.log('🔍 createdAt constructor:', savedData?.createdAt?.constructor?.name);
+        console.log('🔍 createdAt has toDate:', typeof savedData?.createdAt?.toDate === 'function');
+        console.log('🔍 createdAt value:', savedData?.createdAt);
+        if (savedData?.createdAt?.toDate) {
+          console.log('🔍 createdAt as ISO:', savedData.createdAt.toDate().toISOString());
+        } else {
+          console.error('❌ CRITICAL: createdAt is NOT a valid Timestamp!');
+        }
+        
+        if (!savedData?.createdAt) {
+          console.error('❌ CRITICAL ERROR: Order was saved WITHOUT createdAt timestamp!');
+          console.error('❌ This order will show N/A in admin panel!');
+          // Try to fix it immediately
+          try {
+            await orderRef.update({
+              createdAt: Timestamp.now(),
+              updatedAt: Timestamp.now(),
+              paidAt: Timestamp.now(),
+            });
+            console.log('✅ Fixed timestamps after save');
+          } catch (fixError) {
+            console.error('❌ Failed to fix timestamps:', fixError);
+          }
+        }
       } else {
         console.error('❌ Step 4: Order verification FAILED - Document does not exist!');
       }
