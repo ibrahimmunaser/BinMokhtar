@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase/server';
+import { adminDb, Timestamp } from '@/lib/firebase/server';
 import { Order } from '@/types';
 
 /**
@@ -88,6 +88,47 @@ export async function GET(request: NextRequest) {
       return converted;
     });
     console.log('✅ Step 3: Converted', orders.length, 'orders');
+    
+    // AUTOMATIC REPAIR: Fix any orders with missing timestamps (runs in background)
+    const ordersNeedingFix = snapshot.docs.filter((doc, index) => {
+      const data = doc.data();
+      const needsFix = !data.createdAt || 
+                       typeof data.createdAt?.toDate !== 'function' ||
+                       !data.createdAt?._seconds;
+      if (needsFix && index < 5) {
+        console.log(`🔧 Order ${doc.id} needs timestamp repair`);
+      }
+      return needsFix;
+    });
+    
+    if (ordersNeedingFix.length > 0) {
+      console.log(`🔧 AUTO-REPAIR: Found ${ordersNeedingFix.length} orders with missing timestamps - fixing automatically...`);
+      // Fix them in background (don't block response)
+      Promise.all(ordersNeedingFix.map(async (doc) => {
+        try {
+          const data = doc.data();
+          // Use updatedAt or paidAt if available, otherwise use now
+          const timestamp = (data.updatedAt && typeof data.updatedAt.toDate === 'function') 
+            ? data.updatedAt 
+            : (data.paidAt && typeof data.paidAt.toDate === 'function')
+            ? data.paidAt
+            : Timestamp.now();
+          
+          await doc.ref.update({
+            createdAt: timestamp,
+            updatedAt: Timestamp.now(),
+            paidAt: data.paidAt || timestamp,
+          });
+          console.log(`✅ Auto-fixed timestamps for order ${doc.id}`);
+        } catch (error: any) {
+          console.error(`❌ Failed to auto-fix order ${doc.id}:`, error?.message);
+        }
+      })).catch(err => {
+        console.error('❌ Auto-repair batch failed:', err);
+      });
+    } else {
+      console.log('✅ All orders have valid timestamps');
+    }
     
     console.log('📋 Step 4: Sorting orders by date/time (newest first)...');
     // Sort by createdAt descending - newest orders at top
