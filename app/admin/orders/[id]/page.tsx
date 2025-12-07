@@ -31,6 +31,33 @@ export default function AdminOrderDetailPage() {
     }
   }, [router, orderId]);
 
+  // Debug logging for label detection
+  useEffect(() => {
+    if (order) {
+      const fulfillmentMethod = order.fulfillmentMethod || 'shipping';
+      const orderAny = order as any;
+      const hasShippingLabel = !!(order.shippo_label_url || order.labelUrl || orderAny.shippoLabelUrl || orderAny.label_url);
+      const hasInternalLabel = !!(order.internal_label_url || order.packingSlipUrl || orderAny.packing_slip_url);
+      const labelStatus = order.shippo_label_status || (hasShippingLabel || hasInternalLabel ? 'success' : 'none');
+      const shippingLabelUrl = order.shippo_label_url || order.labelUrl || orderAny.shippoLabelUrl || orderAny.label_url;
+      
+      console.log('🔍 Order Label Debug:', {
+        orderId: order.id,
+        fulfillmentMethod,
+        labelStatus,
+        hasShippingLabel,
+        hasInternalLabel,
+        shippingLabelUrl,
+        shippo_label_url: order.shippo_label_url,
+        labelUrl: order.labelUrl,
+        shippoLabelUrl: orderAny.shippoLabelUrl,
+        label_url: orderAny.label_url,
+        shippo_label_status: order.shippo_label_status,
+        hasShippingAddress: !!order.shippingAddress,
+      });
+    }
+  }, [order]);
+
   async function loadOrder() {
     try {
       setLoading(true);
@@ -212,26 +239,6 @@ export default function AdminOrderDetailPage() {
   // Get the actual label URL from any possible field
   const shippingLabelUrl = order.shippo_label_url || order.labelUrl || orderAny.shippoLabelUrl || orderAny.label_url;
   
-  // Debug logging for label detection
-  useEffect(() => {
-    if (order) {
-      console.log('🔍 Order Label Debug:', {
-        orderId: order.id,
-        fulfillmentMethod,
-        labelStatus,
-        hasShippingLabel,
-        hasInternalLabel,
-        shippingLabelUrl,
-        shippo_label_url: order.shippo_label_url,
-        labelUrl: order.labelUrl,
-        shippoLabelUrl: orderAny.shippoLabelUrl,
-        label_url: orderAny.label_url,
-        shippo_label_status: order.shippo_label_status,
-        hasShippingAddress: !!order.shippingAddress,
-      });
-    }
-  }, [order, fulfillmentMethod, labelStatus, hasShippingLabel, hasInternalLabel, shippingLabelUrl]);
-
   const handleLogout = () => {
     clearAdminSession();
     router.push('/admin/login');
