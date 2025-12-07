@@ -36,10 +36,18 @@ export default function AdminOrderDetailPage() {
     if (order) {
       const fulfillmentMethod = order.fulfillmentMethod || 'shipping';
       const orderAny = order as any;
-      const hasShippingLabel = !!(order.shippo_label_url || order.labelUrl || orderAny.shippoLabelUrl || orderAny.label_url);
+      const shippingLabelUrl = 
+        order.shippo_label_url || 
+        order.labelUrl || 
+        orderAny.shippoLabelUrl || 
+        orderAny.label_url ||
+        orderAny.labelURL ||
+        orderAny.shippo_label_url;
+      const hasShippingLabel = !!shippingLabelUrl;
       const hasInternalLabel = !!(order.internal_label_url || order.packingSlipUrl || orderAny.packing_slip_url);
-      const labelStatus = order.shippo_label_status || (hasShippingLabel || hasInternalLabel ? 'success' : 'none');
-      const shippingLabelUrl = order.shippo_label_url || order.labelUrl || orderAny.shippoLabelUrl || orderAny.label_url;
+      const labelStatus = order.shippo_label_status === 'failed' 
+        ? 'failed' 
+        : (hasShippingLabel || hasInternalLabel ? 'success' : 'none');
       
       console.log('🔍 Order Label Debug:', {
         orderId: order.id,
@@ -52,8 +60,10 @@ export default function AdminOrderDetailPage() {
         labelUrl: order.labelUrl,
         shippoLabelUrl: orderAny.shippoLabelUrl,
         label_url: orderAny.label_url,
+        labelURL: orderAny.labelURL,
         shippo_label_status: order.shippo_label_status,
         hasShippingAddress: !!order.shippingAddress,
+        allOrderKeys: Object.keys(order).filter(k => k.toLowerCase().includes('label') || k.toLowerCase().includes('url')),
       });
     }
   }, [order]);
@@ -232,12 +242,21 @@ export default function AdminOrderDetailPage() {
   const fulfillmentMethod = order.fulfillmentMethod || 'shipping';
   // Check multiple possible field names for label URLs
   const orderAny = order as any;
-  const hasShippingLabel = !!(order.shippo_label_url || order.labelUrl || orderAny.shippoLabelUrl || orderAny.label_url);
-  const hasInternalLabel = !!(order.internal_label_url || order.packingSlipUrl || orderAny.packing_slip_url);
-  const labelStatus = order.shippo_label_status || (hasShippingLabel || hasInternalLabel ? 'success' : 'none');
+  // Check all possible variations of label URL fields (comprehensive check)
+  const shippingLabelUrl = 
+    order.shippo_label_url || 
+    order.labelUrl || 
+    orderAny.shippoLabelUrl || 
+    orderAny.label_url ||
+    orderAny.labelURL ||
+    orderAny.shippo_label_url;
   
-  // Get the actual label URL from any possible field
-  const shippingLabelUrl = order.shippo_label_url || order.labelUrl || orderAny.shippoLabelUrl || orderAny.label_url;
+  const hasShippingLabel = !!shippingLabelUrl;
+  const hasInternalLabel = !!(order.internal_label_url || order.packingSlipUrl || orderAny.packing_slip_url);
+  // If we have a label URL, status should be success (unless explicitly set to failed)
+  const labelStatus = order.shippo_label_status === 'failed' 
+    ? 'failed' 
+    : (hasShippingLabel || hasInternalLabel ? 'success' : 'none');
   
   const handleLogout = () => {
     clearAdminSession();
@@ -362,33 +381,36 @@ export default function AdminOrderDetailPage() {
             )}
           </div>
 
-          {labelStatus === 'success' && (
-            <div className="space-y-4">
-              {fulfillmentMethod === 'shipping' && hasShippingLabel && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span className="font-medium text-green-900">Shippo Carrier Label Ready</span>
-                  </div>
-                  <p className="text-sm text-green-700 mb-3">This is a carrier shipping label from Shippo for shipping via USPS/UPS.</p>
-                  {order.shippo_tracking_number && (
-                    <div className="mb-3">
-                      <span className="text-sm text-green-700">Tracking Number:</span>
-                      <span className="ml-2 font-medium">{order.shippo_tracking_number}</span>
-                    </div>
-                  )}
-                  <a
-                    href={shippingLabelUrl || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
-                  >
-                    <Printer className="w-4 h-4" />
-                    Print Shippo Label
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
+          {/* Show print button if label exists, regardless of status */}
+          {fulfillmentMethod === 'shipping' && hasShippingLabel && shippingLabelUrl && (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <span className="font-medium text-green-900">Shippo Carrier Label Ready</span>
+              </div>
+              <p className="text-sm text-green-700 mb-3">This is a carrier shipping label from Shippo for shipping via USPS/UPS.</p>
+              {order.shippo_tracking_number && (
+                <div className="mb-3">
+                  <span className="text-sm text-green-700">Tracking Number:</span>
+                  <span className="ml-2 font-medium">{order.shippo_tracking_number}</span>
                 </div>
               )}
+              <a
+                href={shippingLabelUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+              >
+                <Printer className="w-4 h-4" />
+                Print Shippo Label
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+          )}
+
+          {labelStatus === 'success' && (
+            <div className="space-y-4">
+              {/* Internal labels for pickup/delivery */}
               {(fulfillmentMethod === 'pickup' || fulfillmentMethod === 'local_delivery') && hasInternalLabel && (
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
