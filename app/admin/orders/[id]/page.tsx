@@ -451,6 +451,37 @@ export default function AdminOrderDetailPage() {
             </div>
           )}
 
+          {/* Show tracking info if we have tracking number but no label URL (common in test mode) */}
+          {fulfillmentMethod === 'shipping' && !hasShippingLabel && order.shippo_tracking_number && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="w-5 h-5 text-blue-600" />
+                <span className="font-medium text-blue-900">Shipment Created Successfully</span>
+              </div>
+              <p className="text-sm text-blue-700 mb-3">
+                A shipping transaction was created. {!shippingLabelUrl && '(Label PDF not available in test mode)'}
+              </p>
+              <div className="mb-3 p-3 bg-blue-100 rounded">
+                <span className="text-sm text-blue-700 font-medium">Tracking Number:</span>
+                <span className="ml-2 font-mono text-blue-900">{order.shippo_tracking_number}</span>
+              </div>
+              {orderAny.trackingUrl && (
+                <a
+                  href={orderAny.trackingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Track Package on USPS
+                </a>
+              )}
+              <p className="text-xs text-blue-600 mt-3 italic">
+                💡 To generate printable labels, switch to Shippo live mode in your environment settings.
+              </p>
+            </div>
+          )}
+
           {labelStatus === 'success' && (
             <div className="space-y-4">
               {/* Internal labels for pickup/delivery */}
