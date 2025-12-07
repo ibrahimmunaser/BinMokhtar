@@ -49,21 +49,24 @@ export default function AdminOrderDetailPage() {
         ? 'failed' 
         : (hasShippingLabel || hasInternalLabel ? 'success' : 'none');
       
-      console.log('🔍 Order Label Debug:', {
-        orderId: order.id,
-        fulfillmentMethod,
-        labelStatus,
-        hasShippingLabel,
-        hasInternalLabel,
-        shippingLabelUrl,
-        shippo_label_url: order.shippo_label_url,
-        labelUrl: order.labelUrl,
-        shippoLabelUrl: orderAny.shippoLabelUrl,
-        label_url: orderAny.label_url,
-        labelURL: orderAny.labelURL,
-        shippo_label_status: order.shippo_label_status,
-        hasShippingAddress: !!order.shippingAddress,
-        allOrderKeys: Object.keys(order).filter(k => k.toLowerCase().includes('label') || k.toLowerCase().includes('url')),
+      console.log('🔍 Order Label Debug:');
+      console.log('  - orderId:', order.id);
+      console.log('  - fulfillmentMethod:', fulfillmentMethod);
+      console.log('  - labelStatus:', labelStatus);
+      console.log('  - hasShippingLabel:', hasShippingLabel);
+      console.log('  - hasInternalLabel:', hasInternalLabel);
+      console.log('  - shippingLabelUrl:', shippingLabelUrl);
+      console.log('  - shippo_label_url:', order.shippo_label_url);
+      console.log('  - labelUrl:', order.labelUrl);
+      console.log('  - shippoLabelUrl:', orderAny.shippoLabelUrl);
+      console.log('  - label_url:', orderAny.label_url);
+      console.log('  - labelURL:', orderAny.labelURL);
+      console.log('  - shippo_label_status:', order.shippo_label_status);
+      console.log('  - hasShippingAddress:', !!order.shippingAddress);
+      const labelKeys = Object.keys(order).filter(k => k.toLowerCase().includes('label') || k.toLowerCase().includes('url'));
+      console.log('  - allOrderKeys with label/url:', labelKeys);
+      labelKeys.forEach(key => {
+        console.log(`    - ${key}:`, (order as any)[key]);
       });
     }
   }, [order]);
@@ -80,15 +83,18 @@ export default function AdminOrderDetailPage() {
       }
       
       // Log what we received from the API
-      console.log('📥 Order loaded from API:', {
-        orderId: result.order.id,
-        shippo_label_url: result.order.shippo_label_url,
-        labelUrl: result.order.labelUrl,
-        shippo_label_status: result.order.shippo_label_status,
-        shippo_tracking_number: result.order.shippo_tracking_number,
-        allLabelFields: Object.keys(result.order).filter(k => 
-          k.toLowerCase().includes('label') || k.toLowerCase().includes('url')
-        ),
+      console.log('📥 Order loaded from API:');
+      console.log('  - orderId:', result.order.id);
+      console.log('  - shippo_label_url:', result.order.shippo_label_url);
+      console.log('  - labelUrl:', result.order.labelUrl);
+      console.log('  - shippo_label_status:', result.order.shippo_label_status);
+      console.log('  - shippo_tracking_number:', result.order.shippo_tracking_number);
+      const labelFields = Object.keys(result.order).filter(k => 
+        k.toLowerCase().includes('label') || k.toLowerCase().includes('url')
+      );
+      console.log('  - allLabelFields:', labelFields);
+      labelFields.forEach(field => {
+        console.log(`    - ${field}:`, result.order[field]);
       });
       
       // Convert ISO strings back to Date objects for display
@@ -175,14 +181,13 @@ export default function AdminOrderDetailPage() {
       });
       
       const result = await response.json();
-      console.log('📦 Label creation API response:', result);
+      console.log('📦 Label creation API response:', JSON.stringify(result, null, 2));
       
       if (result.success) {
-        console.log('✅ Label created successfully!', {
-          labelUrl: result.labelUrl,
-          trackingNumber: result.trackingNumber,
-          internalLabelUrl: result.internalLabelUrl,
-        });
+        console.log('✅ Label created successfully!');
+        console.log('  - labelUrl:', result.labelUrl);
+        console.log('  - trackingNumber:', result.trackingNumber);
+        console.log('  - internalLabelUrl:', result.internalLabelUrl);
         
         // Wait a moment for database to update
         await new Promise(resolve => setTimeout(resolve, 1000));
