@@ -2,9 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAdminAuthenticated, clearAdminSession, getAdminUsername, updateAdminCredentials } from '@/lib/adminAuth';
+import { 
+  isAdminAuthenticated, 
+  clearAdminSession, 
+  getAdminUsername, 
+  requestCredentialChange,
+  verifyCredentialChange 
+} from '@/lib/adminAuth';
 import Link from 'next/link';
-import { ArrowLeft, LogOut, Save, Lock, Eye, EyeOff, User, Key, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, LogOut, Save, Lock, Eye, EyeOff, User, Key, CheckCircle, AlertCircle, Mail, Shield, Clock } from 'lucide-react';
+
+type CredentialStep = 'form' | 'verify';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -22,19 +30,23 @@ export default function SettingsPage() {
 
   // Credentials state
   const [currentUsername, setCurrentUsername] = useState('');
+  const [credentialStep, setCredentialStep] = useState<CredentialStep>('form');
   const [credentials, setCredentials] = useState({
     currentPassword: '',
     newUsername: '',
     newPassword: '',
     confirmPassword: '',
   });
+  const [verificationCode, setVerificationCode] = useState('');
+  const [maskedEmail, setMaskedEmail] = useState('');
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
     confirm: false,
   });
   const [credentialsLoading, setCredentialsLoading] = useState(false);
-  const [credentialsMessage, setCredentialsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [credentialsMessage, setCredentialsMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [codeExpiresIn, setCodeExpiresIn] = useState(15);
 
   useEffect(() => {
     if (!isAdminAuthenticated()) {
@@ -46,6 +58,22 @@ export default function SettingsPage() {
     }
   }, [router]);
 
+  // Countdown timer for verification code
+  useEffect(() => {
+    if (credentialStep === 'verify' && codeExpiresIn > 0) {
+      const timer = setInterval(() => {
+        setCodeExpiresIn((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 60000); // Update every minute
+      return () => clearInterval(timer);
+    }
+  }, [credentialStep, codeExpiresIn]);
+
   const handleLogout = () => {
     clearAdminSession();
     router.push('/admin/login');
@@ -53,14 +81,14 @@ export default function SettingsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In production, this would save to Firebase
     console.log('Settings saved:', settings);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
     alert('Settings saved successfully!');
   };
 
-  const handleCredentialsSubmit = async (e: React.FormEvent) => {
+  // Step 1: Request credential change (sends verification email)
+  const handleRequestChange = async (e: React.FormEvent) => {
     e.preventDefault();
     setCredentialsMessage(null);
     
@@ -93,41 +121,89 @@ export default function SettingsPage() {
     setCredentialsLoading(true);
     
     try {
-      const result = await updateAdminCredentials(
+      const result = await requestCredentialChange(
         credentials.currentPassword,
         credentials.newUsername || undefined,
         credentials.newPassword || undefined
       );
       
       if (result.success) {
-        setCredentialsMessage({ type: 'success', text: 'Credentials updated successfully!' });
-        // Update displayed username
-        if (credentials.newUsername) {
-          setCurrentUsername(credentials.newUsername);
-        }
-        // Clear form
-        setCredentials({
-          currentPassword: '',
-          newUsername: '',
-          newPassword: '',
-          confirmPassword: '',
+        setMaskedEmail(result.maskedEmail || '');
+        setCodeExpiresIn(result.expiresIn || 15);
+        setCredentialStep('verify');
+        setCredentialsMessage({ 
+          type: 'info', 
+          text: `A verification code has been sent to ${result.maskedEmail}` 
         });
-        
-        // If password was changed, log out after 2 seconds
-        if (credentials.newPassword) {
-          setTimeout(() => {
-            clearAdminSession();
-            router.push('/admin/login');
-          }, 2000);
-        }
       } else {
-        setCredentialsMessage({ type: 'error', text: result.error || 'Failed to update credentials' });
+        setCredentialsMessage({ type: 'error', text: result.error || 'Failed to request change' });
       }
     } catch (error) {
       setCredentialsMessage({ type: 'error', text: 'An error occurred. Please try again.' });
     } finally {
       setCredentialsLoading(false);
     }
+  };
+
+  // Step 2: Verify code and apply changes
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCredentialsMessage(null);
+    
+    if (!verificationCode || verificationCode.length !== 6) {
+      setCredentialsMessage({ type: 'error', text: 'Please enter the 6-digit verification code' });
+      return;
+    }
+    
+    setCredentialsLoading(true);
+    
+    try {
+      const result = await verifyCredentialChange(verificationCode);
+      
+      if (result.success) {
+        setCredentialsMessage({ type: 'success', text: 'Credentials updated successfully!' });
+        
+        // Update displayed username
+        if (result.username) {
+          setCurrentUsername(result.username);
+        }
+        
+        // Reset form
+        setCredentials({
+          currentPassword: '',
+          newUsername: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+        setVerificationCode('');
+        setCredentialStep('form');
+        
+        // If password was changed, log out after 3 seconds
+        if (result.passwordChanged) {
+          setCredentialsMessage({ 
+            type: 'success', 
+            text: 'Password updated successfully! You will be logged out in 3 seconds...' 
+          });
+          setTimeout(() => {
+            clearAdminSession();
+            router.push('/admin/login');
+          }, 3000);
+        }
+      } else {
+        setCredentialsMessage({ type: 'error', text: result.error || 'Failed to verify code' });
+      }
+    } catch (error) {
+      setCredentialsMessage({ type: 'error', text: 'An error occurred. Please try again.' });
+    } finally {
+      setCredentialsLoading(false);
+    }
+  };
+
+  // Cancel verification and go back to form
+  const handleCancelVerification = () => {
+    setCredentialStep('form');
+    setVerificationCode('');
+    setCredentialsMessage(null);
   };
 
   if (!isAuthenticated) {
@@ -191,11 +267,11 @@ export default function SettingsPage() {
         <div className="bg-surface-2 rounded-lg border border-line p-6 lg:p-8 mb-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-bmr-night/10 rounded-lg">
-              <Key className="w-5 h-5 text-bmr-night" />
+              <Shield className="w-5 h-5 text-bmr-night" />
             </div>
             <div>
               <h2 className="font-display text-xl">Login Credentials</h2>
-              <p className="text-sm text-bmr-muted">Change your admin username and password</p>
+              <p className="text-sm text-bmr-muted">Change your admin username and password with email verification</p>
             </div>
           </div>
 
@@ -208,173 +284,293 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <form onSubmit={handleCredentialsSubmit} className="space-y-6">
-            {/* Current Password */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Current Password <span className="text-bmr-acc-red">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-bmr-muted" />
+          {/* Security Notice */}
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <Mail className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-blue-900">Email Verification Required</p>
+                <p className="text-sm text-blue-700 mt-1">
+                  For security, credential changes require verification via your business email. 
+                  A 6-digit code will be sent to your registered email address.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {credentialStep === 'form' ? (
+            /* Step 1: Credential Change Form */
+            <form onSubmit={handleRequestChange} className="space-y-6">
+              {/* Current Password */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Current Password <span className="text-bmr-acc-red">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-bmr-muted" />
+                  </div>
+                  <input
+                    type={showPasswords.current ? 'text' : 'password'}
+                    value={credentials.currentPassword}
+                    onChange={(e) => setCredentials({ ...credentials, currentPassword: e.target.value })}
+                    className="w-full pl-10 pr-12 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
+                    placeholder="Enter current password"
+                    disabled={credentialsLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    tabIndex={-1}
+                  >
+                    {showPasswords.current ? (
+                      <EyeOff className="h-5 w-5 text-bmr-muted hover:text-bmr-ink" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-bmr-muted hover:text-bmr-ink" />
+                    )}
+                  </button>
                 </div>
-                <input
-                  type={showPasswords.current ? 'text' : 'password'}
-                  value={credentials.currentPassword}
-                  onChange={(e) => setCredentials({ ...credentials, currentPassword: e.target.value })}
-                  className="w-full pl-10 pr-12 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
-                  placeholder="Enter current password"
-                  disabled={credentialsLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  tabIndex={-1}
-                >
-                  {showPasswords.current ? (
-                    <EyeOff className="h-5 w-5 text-bmr-muted hover:text-bmr-ink" />
+              </div>
+
+              <hr className="border-line" />
+
+              {/* New Username */}
+              <div>
+                <label className="block text-sm font-medium mb-2">New Username</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-bmr-muted" />
+                  </div>
+                  <input
+                    type="text"
+                    value={credentials.newUsername}
+                    onChange={(e) => setCredentials({ ...credentials, newUsername: e.target.value })}
+                    className="w-full pl-10 pr-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
+                    placeholder="Enter new username (leave empty to keep current)"
+                    disabled={credentialsLoading}
+                    minLength={3}
+                  />
+                </div>
+                <p className="text-xs text-bmr-muted mt-1">Minimum 3 characters</p>
+              </div>
+
+              {/* New Password */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">New Password</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-5 w-5 text-bmr-muted" />
+                    </div>
+                    <input
+                      type={showPasswords.new ? 'text' : 'password'}
+                      value={credentials.newPassword}
+                      onChange={(e) => setCredentials({ ...credentials, newPassword: e.target.value })}
+                      className="w-full pl-10 pr-12 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
+                      placeholder="Enter new password"
+                      disabled={credentialsLoading}
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      tabIndex={-1}
+                    >
+                      {showPasswords.new ? (
+                        <EyeOff className="h-5 w-5 text-bmr-muted hover:text-bmr-ink" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-bmr-muted hover:text-bmr-ink" />
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-xs text-bmr-muted mt-1">Minimum 6 characters</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Confirm New Password</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-5 w-5 text-bmr-muted" />
+                    </div>
+                    <input
+                      type={showPasswords.confirm ? 'text' : 'password'}
+                      value={credentials.confirmPassword}
+                      onChange={(e) => setCredentials({ ...credentials, confirmPassword: e.target.value })}
+                      className="w-full pl-10 pr-12 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
+                      placeholder="Confirm new password"
+                      disabled={credentialsLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      tabIndex={-1}
+                    >
+                      {showPasswords.confirm ? (
+                        <EyeOff className="h-5 w-5 text-bmr-muted hover:text-bmr-ink" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-bmr-muted hover:text-bmr-ink" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Message */}
+              {credentialsMessage && (
+                <div className={`p-4 rounded-lg flex items-center gap-3 ${
+                  credentialsMessage.type === 'success' 
+                    ? 'bg-bmr-acc-green/10 border border-bmr-acc-green/20' 
+                    : credentialsMessage.type === 'info'
+                    ? 'bg-blue-50 border border-blue-200'
+                    : 'bg-bmr-acc-red/10 border border-bmr-acc-red/20'
+                }`}>
+                  {credentialsMessage.type === 'success' ? (
+                    <CheckCircle className="w-5 h-5 text-bmr-acc-green flex-shrink-0" />
+                  ) : credentialsMessage.type === 'info' ? (
+                    <Mail className="w-5 h-5 text-blue-600 flex-shrink-0" />
                   ) : (
-                    <Eye className="h-5 w-5 text-bmr-muted hover:text-bmr-ink" />
+                    <AlertCircle className="w-5 h-5 text-bmr-acc-red flex-shrink-0" />
+                  )}
+                  <p className={`text-sm ${
+                    credentialsMessage.type === 'success' ? 'text-bmr-acc-green' 
+                    : credentialsMessage.type === 'info' ? 'text-blue-700'
+                    : 'text-bmr-acc-red'
+                  }`}>
+                    {credentialsMessage.text}
+                  </p>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={credentialsLoading}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-bmr-night text-surface-2 rounded-lg font-medium hover:bg-bmr-night/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {credentialsLoading ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Sending Code...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4" />
+                      Send Verification Code
+                    </>
                   )}
                 </button>
               </div>
-            </div>
-
-            <hr className="border-line" />
-
-            {/* New Username */}
-            <div>
-              <label className="block text-sm font-medium mb-2">New Username</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-bmr-muted" />
+            </form>
+          ) : (
+            /* Step 2: Verification Code Entry */
+            <form onSubmit={handleVerifyCode} className="space-y-6">
+              {/* Verification Code Sent Notice */}
+              <div className="p-6 bg-surface-3 rounded-lg text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                  <Mail className="w-8 h-8 text-blue-600" />
                 </div>
-                <input
-                  type="text"
-                  value={credentials.newUsername}
-                  onChange={(e) => setCredentials({ ...credentials, newUsername: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
-                  placeholder="Enter new username (leave empty to keep current)"
-                  disabled={credentialsLoading}
-                  minLength={3}
-                />
+                <h3 className="text-lg font-semibold text-bmr-ink mb-2">Check Your Email</h3>
+                <p className="text-sm text-bmr-muted mb-4">
+                  A 6-digit verification code has been sent to<br />
+                  <span className="font-medium text-bmr-ink">{maskedEmail}</span>
+                </p>
+                <div className="flex items-center justify-center gap-2 text-sm text-bmr-muted">
+                  <Clock className="w-4 h-4" />
+                  <span>Code expires in {codeExpiresIn} minute{codeExpiresIn !== 1 ? 's' : ''}</span>
+                </div>
               </div>
-              <p className="text-xs text-bmr-muted mt-1">Minimum 3 characters</p>
-            </div>
 
-            {/* New Password */}
-            <div className="grid md:grid-cols-2 gap-6">
+              {/* Verification Code Input */}
               <div>
-                <label className="block text-sm font-medium mb-2">New Password</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-bmr-muted" />
-                  </div>
+                <label className="block text-sm font-medium mb-2 text-center">
+                  Enter Verification Code
+                </label>
+                <div className="flex justify-center">
                   <input
-                    type={showPasswords.new ? 'text' : 'password'}
-                    value={credentials.newPassword}
-                    onChange={(e) => setCredentials({ ...credentials, newPassword: e.target.value })}
-                    className="w-full pl-10 pr-12 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
-                    placeholder="Enter new password"
+                    type="text"
+                    value={verificationCode}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setVerificationCode(value);
+                    }}
+                    className="w-48 text-center text-2xl font-mono tracking-widest px-4 py-4 border-2 border-line rounded-lg focus:outline-none focus:border-bmr-ink"
+                    placeholder="000000"
+                    maxLength={6}
                     disabled={credentialsLoading}
-                    minLength={6}
+                    autoFocus
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    tabIndex={-1}
-                  >
-                    {showPasswords.new ? (
-                      <EyeOff className="h-5 w-5 text-bmr-muted hover:text-bmr-ink" />
-                    ) : (
-                      <Eye className="h-5 w-5 text-bmr-muted hover:text-bmr-ink" />
-                    )}
-                  </button>
                 </div>
-                <p className="text-xs text-bmr-muted mt-1">Minimum 6 characters</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Confirm New Password</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-bmr-muted" />
-                  </div>
-                  <input
-                    type={showPasswords.confirm ? 'text' : 'password'}
-                    value={credentials.confirmPassword}
-                    onChange={(e) => setCredentials({ ...credentials, confirmPassword: e.target.value })}
-                    className="w-full pl-10 pr-12 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
-                    placeholder="Confirm new password"
-                    disabled={credentialsLoading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    tabIndex={-1}
-                  >
-                    {showPasswords.confirm ? (
-                      <EyeOff className="h-5 w-5 text-bmr-muted hover:text-bmr-ink" />
-                    ) : (
-                      <Eye className="h-5 w-5 text-bmr-muted hover:text-bmr-ink" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Credentials Message */}
-            {credentialsMessage && (
-              <div className={`p-4 rounded-lg flex items-center gap-3 ${
-                credentialsMessage.type === 'success' 
-                  ? 'bg-bmr-acc-green/10 border border-bmr-acc-green/20' 
-                  : 'bg-bmr-acc-red/10 border border-bmr-acc-red/20'
-              }`}>
-                {credentialsMessage.type === 'success' ? (
-                  <CheckCircle className="w-5 h-5 text-bmr-acc-green flex-shrink-0" />
-                ) : (
-                  <AlertCircle className="w-5 h-5 text-bmr-acc-red flex-shrink-0" />
-                )}
-                <p className={`text-sm ${
-                  credentialsMessage.type === 'success' ? 'text-bmr-acc-green' : 'text-bmr-acc-red'
-                }`}>
-                  {credentialsMessage.text}
-                  {credentialsMessage.type === 'success' && credentials.newPassword && (
-                    <span className="block mt-1 text-xs opacity-80">
-                      You will be logged out in 2 seconds...
-                    </span>
-                  )}
+                <p className="text-xs text-bmr-muted mt-2 text-center">
+                  Enter the 6-digit code from your email
                 </p>
               </div>
-            )}
 
-            {/* Submit Button */}
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={credentialsLoading}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-bmr-night text-surface-2 rounded-lg font-medium hover:bg-bmr-night/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {credentialsLoading ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Updating...
-                  </>
-                ) : (
-                  <>
-                    <Key className="w-4 h-4" />
-                    Update Credentials
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+              {/* Message */}
+              {credentialsMessage && (
+                <div className={`p-4 rounded-lg flex items-center gap-3 ${
+                  credentialsMessage.type === 'success' 
+                    ? 'bg-bmr-acc-green/10 border border-bmr-acc-green/20' 
+                    : credentialsMessage.type === 'info'
+                    ? 'bg-blue-50 border border-blue-200'
+                    : 'bg-bmr-acc-red/10 border border-bmr-acc-red/20'
+                }`}>
+                  {credentialsMessage.type === 'success' ? (
+                    <CheckCircle className="w-5 h-5 text-bmr-acc-green flex-shrink-0" />
+                  ) : credentialsMessage.type === 'info' ? (
+                    <Mail className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-bmr-acc-red flex-shrink-0" />
+                  )}
+                  <p className={`text-sm ${
+                    credentialsMessage.type === 'success' ? 'text-bmr-acc-green' 
+                    : credentialsMessage.type === 'info' ? 'text-blue-700'
+                    : 'text-bmr-acc-red'
+                  }`}>
+                    {credentialsMessage.text}
+                  </p>
+                </div>
+              )}
+
+              {/* Buttons */}
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={handleCancelVerification}
+                  disabled={credentialsLoading}
+                  className="px-4 py-2 text-sm text-bmr-muted hover:text-bmr-ink transition-colors disabled:opacity-50"
+                >
+                  ← Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={credentialsLoading || verificationCode.length !== 6}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-bmr-night text-surface-2 rounded-lg font-medium hover:bg-bmr-night/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {credentialsLoading ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Verify & Update
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">

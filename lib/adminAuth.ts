@@ -1,5 +1,6 @@
 // Admin authentication with Firebase-backed credentials
 // Supports both default credentials and custom credentials stored in Firebase
+// Uses email verification for credential changes
 
 const ADMIN_SESSION_KEY = 'bmr_admin_session';
 
@@ -76,20 +77,27 @@ export function isAdminAuthenticated(): boolean {
 }
 
 /**
- * Update admin credentials
+ * Request credential change - sends verification email
+ * Returns masked email where code was sent
  */
-export async function updateAdminCredentials(
+export async function requestCredentialChange(
   currentPassword: string,
   newUsername?: string,
   newPassword?: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ 
+  success: boolean; 
+  error?: string; 
+  maskedEmail?: string;
+  expiresIn?: number;
+}> {
   try {
     const response = await fetch('/api/admin/credentials', {
-      method: 'PUT',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        action: 'request_change',
         currentPassword,
         newUsername,
         newPassword,
@@ -99,12 +107,53 @@ export async function updateAdminCredentials(
     const data = await response.json();
     
     if (!response.ok) {
-      return { success: false, error: data.error || 'Failed to update credentials' };
+      return { success: false, error: data.error || 'Failed to request change' };
     }
     
-    return { success: true };
+    return { 
+      success: true, 
+      maskedEmail: data.maskedEmail,
+      expiresIn: data.expiresIn,
+    };
   } catch (error) {
-    console.error('❌ Error updating credentials:', error);
+    console.error('❌ Error requesting credential change:', error);
+    return { success: false, error: 'Network error. Please try again.' };
+  }
+}
+
+/**
+ * Verify credential change with email code
+ */
+export async function verifyCredentialChange(
+  verificationCode: string
+): Promise<{ 
+  success: boolean; 
+  error?: string; 
+  username?: string;
+  passwordChanged?: boolean;
+}> {
+  try {
+    const response = await fetch('/api/admin/credentials', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ verificationCode }),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to verify change' };
+    }
+    
+    return { 
+      success: true, 
+      username: data.username,
+      passwordChanged: data.passwordChanged,
+    };
+  } catch (error) {
+    console.error('❌ Error verifying credential change:', error);
     return { success: false, error: 'Network error. Please try again.' };
   }
 }

@@ -310,3 +310,126 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationEmailDat
   }
 }
 
+/**
+ * Send admin credential change verification email
+ */
+export async function sendCredentialVerificationEmail(
+  adminEmail: string,
+  verificationCode: string,
+  changeType: 'username' | 'password' | 'both'
+): Promise<{ success: boolean; error?: string }> {
+  console.log('📧 ===== sendCredentialVerificationEmail STARTED =====');
+  console.log('📧 Admin email:', adminEmail);
+  console.log('📧 Change type:', changeType);
+  
+  if (!process.env.RESEND_API_KEY || !resend) {
+    console.error('❌ Email service not configured');
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  const changeDescription = changeType === 'both' 
+    ? 'username and password' 
+    : changeType;
+
+  try {
+    const emailPayload = {
+      from: FROM_EMAIL,
+      to: adminEmail,
+      subject: `🔐 Admin Credential Change Verification - Bin Mukhtar Retail`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Credential Change Verification</title>
+          </head>
+          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #000000; background-color: #F7F3EF;">
+            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #F7F3EF; padding: 0; margin: 0;">
+              <tr>
+                <td align="center" style="padding: 40px 20px;">
+                  <table role="presentation" style="max-width: 500px; width: 100%; border-collapse: collapse; background-color: #FFFFFF; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                    
+                    <!-- Header -->
+                    <tr>
+                      <td style="padding: 40px 30px 20px; background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%); text-align: center;">
+                        <div style="font-size: 32px; font-weight: bold; color: #FFFFFF; letter-spacing: -0.02em; margin-bottom: 4px;">BMR</div>
+                        <div style="font-size: 10px; letter-spacing: 0.3em; color: #C8A94E; text-transform: uppercase;">ADMIN PORTAL</div>
+                      </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                      <td style="padding: 40px 30px;">
+                        <div style="text-align: center;">
+                          <div style="display: inline-block; width: 60px; height: 60px; background-color: #FEF3C7; border-radius: 50%; line-height: 60px; font-size: 28px; margin-bottom: 20px;">
+                            🔐
+                          </div>
+                        </div>
+                        
+                        <h1 style="margin: 0 0 16px; font-size: 24px; font-weight: 600; color: #000000; text-align: center;">
+                          Credential Change Request
+                        </h1>
+                        
+                        <p style="margin: 0 0 24px; font-size: 15px; color: #666666; text-align: center; line-height: 1.6;">
+                          A request was made to change your admin <strong style="color: #000000;">${changeDescription}</strong>. 
+                          Use the verification code below to confirm this change.
+                        </p>
+                        
+                        <!-- Verification Code -->
+                        <div style="background-color: #F7F3EF; border: 2px dashed #C8A94E; border-radius: 8px; padding: 24px; text-align: center; margin-bottom: 24px;">
+                          <p style="margin: 0 0 8px; font-size: 12px; color: #666666; text-transform: uppercase; letter-spacing: 0.1em;">
+                            Verification Code
+                          </p>
+                          <div style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #000000; font-family: 'Courier New', monospace;">
+                            ${verificationCode}
+                          </div>
+                        </div>
+                        
+                        <!-- Warning -->
+                        <div style="background-color: #FEF2F2; border-left: 4px solid #EF4444; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 24px;">
+                          <p style="margin: 0; font-size: 14px; color: #991B1B;">
+                            <strong>⚠️ Security Notice:</strong> This code expires in <strong>15 minutes</strong>. 
+                            If you did not request this change, please ignore this email and your credentials will remain unchanged.
+                          </p>
+                        </div>
+                        
+                        <p style="margin: 0; font-size: 13px; color: #999999; text-align: center;">
+                          This is an automated security email from Bin Mukhtar Retail Admin Portal.
+                        </p>
+                      </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                      <td style="padding: 24px 30px; background-color: #F7F3EF; border-top: 1px solid #E5E5E5; text-align: center;">
+                        <p style="margin: 0; font-size: 12px; color: #999999;">
+                          © ${new Date().getFullYear()} Bin Mukhtar Retail. All rights reserved.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+        </html>
+      `,
+    };
+    
+    const { data: emailData, error } = await resend.emails.send(emailPayload);
+    
+    if (error) {
+      console.error('❌ Failed to send verification email:', error);
+      return { success: false, error: JSON.stringify(error) };
+    }
+
+    console.log('✅ Verification email sent successfully');
+    console.log('✅ Email ID:', emailData?.id);
+    return { success: true };
+  } catch (error: any) {
+    console.error('❌ Exception sending verification email:', error);
+    return { success: false, error: error?.message || 'Unknown error' };
+  }
+}
+
