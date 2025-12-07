@@ -139,12 +139,14 @@ export async function GET(request: NextRequest) {
           fixedDocs.forEach((fixedDoc, index) => {
             if (fixedDoc.exists) {
               const fixedData = fixedDoc.data();
-              const originalIndex = orders.findIndex(o => o.id === fixedDoc.id);
-              if (originalIndex >= 0) {
-                // Update with converted timestamps (as string | null)
-                (orders[originalIndex] as any).createdAt = convertTimestamp(fixedData.createdAt);
-                (orders[originalIndex] as any).updatedAt = convertTimestamp(fixedData.updatedAt);
-                (orders[originalIndex] as any).paidAt = convertTimestamp(fixedData.paidAt);
+              if (fixedData) {
+                const originalIndex = orders.findIndex(o => o.id === fixedDoc.id);
+                if (originalIndex >= 0) {
+                  // Update with converted timestamps (as string | null)
+                  (orders[originalIndex] as any).createdAt = convertTimestamp(fixedData.createdAt);
+                  (orders[originalIndex] as any).updatedAt = convertTimestamp(fixedData.updatedAt);
+                  (orders[originalIndex] as any).paidAt = convertTimestamp(fixedData.paidAt);
+                }
               }
             }
           });
