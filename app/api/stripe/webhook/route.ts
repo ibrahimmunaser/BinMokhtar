@@ -553,6 +553,30 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       paidAt: cleanedOrderData.paidAt?.toDate?.()?.toISOString() || 'Timestamp object',
     }, null, 2));
     
+    // FINAL SAFETY CHECK: Ensure timestamps are ALWAYS set right before saving
+    // This is the last line of defense - timestamps MUST exist here
+    const now = Timestamp.now();
+    cleanedOrderData.createdAt = cleanedOrderData.createdAt || now;
+    cleanedOrderData.updatedAt = cleanedOrderData.updatedAt || now;
+    cleanedOrderData.paidAt = cleanedOrderData.paidAt || now;
+    
+    // Verify one more time
+    if (!cleanedOrderData.createdAt || !cleanedOrderData.updatedAt || !cleanedOrderData.paidAt) {
+      console.error('❌ CRITICAL ERROR: Timestamps are STILL missing right before save!');
+      console.error('❌ createdAt:', cleanedOrderData.createdAt);
+      console.error('❌ updatedAt:', cleanedOrderData.updatedAt);
+      console.error('❌ paidAt:', cleanedOrderData.paidAt);
+      // Force set them
+      cleanedOrderData.createdAt = now;
+      cleanedOrderData.updatedAt = now;
+      cleanedOrderData.paidAt = now;
+    }
+    
+    console.log('✅ FINAL CHECK: Timestamps confirmed before save');
+    console.log('✅ createdAt:', cleanedOrderData.createdAt?.toDate?.()?.toISOString());
+    console.log('✅ updatedAt:', cleanedOrderData.updatedAt?.toDate?.()?.toISOString());
+    console.log('✅ paidAt:', cleanedOrderData.paidAt?.toDate?.()?.toISOString());
+    
     let orderRef;
     try {
       orderRef = await db.collection('orders').add(cleanedOrderData);
