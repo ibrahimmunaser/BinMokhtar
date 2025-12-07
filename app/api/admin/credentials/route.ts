@@ -293,8 +293,16 @@ export async function PUT(request: NextRequest) {
     
     const pendingData = pendingDoc.data();
     
+    // Ensure pendingData exists (TypeScript safety)
+    if (!pendingData) {
+      return NextResponse.json(
+        { error: 'No pending credential change found. Please request a new change.' },
+        { status: 400 }
+      );
+    }
+    
     // Check if code has expired
-    const expiresAt = pendingData?.expiresAt?.toDate?.() || new Date(pendingData?.expiresAt);
+    const expiresAt = pendingData.expiresAt?.toDate?.() || new Date(pendingData.expiresAt);
     if (new Date() > expiresAt) {
       // Delete expired pending change
       await pendingRef.delete();
@@ -305,7 +313,7 @@ export async function PUT(request: NextRequest) {
     }
     
     // Verify the code
-    if (pendingData?.verificationCode !== verificationCode) {
+    if (pendingData.verificationCode !== verificationCode) {
       return NextResponse.json(
         { error: 'Invalid verification code' },
         { status: 401 }
