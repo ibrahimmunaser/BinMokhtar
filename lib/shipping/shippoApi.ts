@@ -51,6 +51,20 @@ export async function shippoRequest(
 
   const data = await response.json();
 
+  // Log transaction responses in detail to debug label URL issues
+  if (endpoint.includes('/transactions')) {
+    console.log('📦 SHIPPO TRANSACTION RESPONSE:');
+    console.log('📦 - Endpoint:', endpoint);
+    console.log('📦 - Status:', response.status);
+    console.log('📦 - Transaction status:', data.status);
+    console.log('📦 - object_id:', data.object_id);
+    console.log('📦 - label_url:', data.label_url);
+    console.log('📦 - tracking_number:', data.tracking_number);
+    console.log('📦 - tracking_url_provider:', data.tracking_url_provider);
+    console.log('📦 - All keys:', Object.keys(data));
+    console.log('📦 - Full response:', JSON.stringify(data, null, 2));
+  }
+
   if (!response.ok) {
     console.error('❌ Shippo API error:', {
       status: response.status,
