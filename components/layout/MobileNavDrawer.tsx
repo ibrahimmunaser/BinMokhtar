@@ -75,10 +75,10 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
   return (
     <>
       <div
-        className="fixed inset-0 bg-bmr-black/50 z-40 lg:hidden"
+        className="fixed inset-0 bg-bmr-black/50 z-[110] lg:hidden"
         onClick={onClose}
       />
-      <div className="fixed top-0 right-0 h-full w-full max-w-sm bg-surface-2 z-50 overflow-y-auto lg:hidden">
+      <div className="fixed top-0 right-0 h-full w-full max-w-sm bg-surface-2 z-[120] overflow-y-auto lg:hidden">
         <div className="p-6">
           <button
             onClick={onClose}
