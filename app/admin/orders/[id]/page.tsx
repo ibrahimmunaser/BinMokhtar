@@ -203,9 +203,13 @@ export default function AdminOrderDetailPage() {
   }
 
   const fulfillmentMethod = order.fulfillmentMethod || 'shipping';
-  const hasShippingLabel = order.shippo_label_url || order.labelUrl;
-  const hasInternalLabel = order.internal_label_url || order.packingSlipUrl;
+  // Check multiple possible field names for label URLs
+  const hasShippingLabel = !!(order.shippo_label_url || order.labelUrl || order.shippoLabelUrl || (order as any).label_url);
+  const hasInternalLabel = !!(order.internal_label_url || order.packingSlipUrl || (order as any).packing_slip_url);
   const labelStatus = order.shippo_label_status || (hasShippingLabel || hasInternalLabel ? 'success' : 'none');
+  
+  // Get the actual label URL from any possible field
+  const shippingLabelUrl = order.shippo_label_url || order.labelUrl || (order as any).shippoLabelUrl || (order as any).label_url;
 
   const handleLogout = () => {
     clearAdminSession();
@@ -346,7 +350,7 @@ export default function AdminOrderDetailPage() {
                     </div>
                   )}
                   <a
-                    href={order.shippo_label_url || order.labelUrl || '#'}
+                    href={shippingLabelUrl || '#'}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
@@ -469,12 +473,23 @@ export default function AdminOrderDetailPage() {
                       )}
                     </div>
                   ) : (
-                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
-                      <p className="text-sm font-medium text-blue-900 mb-1">📦 Shippo Label</p>
-                      <p className="text-sm text-blue-700 mb-2">
-                        Click "Create Shippo Label" above to generate a carrier shipping label via Shippo (USPS/UPS). 
-                        This label is only for shipping orders, not pickup or local delivery.
-                      </p>
+                    <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="text-sm font-medium text-blue-900 mb-1">📦 Ready to Create Shippo Label</p>
+                          <p className="text-sm text-blue-700">
+                            This order has a complete shipping address. Click the button above to generate a carrier shipping label via Shippo (USPS/UPS).
+                          </p>
+                        </div>
+                        <button
+                          onClick={retryLabelCreation}
+                          disabled={retrying}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                        >
+                          <RefreshCw className={`w-4 h-4 ${retrying ? 'animate-spin' : ''}`} />
+                          {retrying ? 'Creating...' : 'Create Label'}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </>
