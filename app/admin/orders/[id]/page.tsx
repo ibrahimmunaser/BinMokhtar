@@ -79,6 +79,18 @@ export default function AdminOrderDetailPage() {
         throw new Error(result.error || 'Failed to load order');
       }
       
+      // Log what we received from the API
+      console.log('📥 Order loaded from API:', {
+        orderId: result.order.id,
+        shippo_label_url: result.order.shippo_label_url,
+        labelUrl: result.order.labelUrl,
+        shippo_label_status: result.order.shippo_label_status,
+        shippo_tracking_number: result.order.shippo_tracking_number,
+        allLabelFields: Object.keys(result.order).filter(k => 
+          k.toLowerCase().includes('label') || k.toLowerCase().includes('url')
+        ),
+      });
+      
       // Convert ISO strings back to Date objects for display
       const orderData: OrderWithId = {
         ...result.order,
@@ -88,6 +100,11 @@ export default function AdminOrderDetailPage() {
       };
       
       setOrder(orderData);
+      
+      // Log after state update
+      setTimeout(() => {
+        console.log('✅ Order state updated');
+      }, 100);
     } catch (error: any) {
       console.error('Error loading order:', error);
       // Order will remain null, showing "Order not found" message
@@ -152,21 +169,42 @@ export default function AdminOrderDetailPage() {
     
     try {
       setRetrying(true);
+      console.log('🚀 Starting label creation for order:', orderId);
       const response = await fetch(`/api/admin/orders/${orderId}/retry-label`, {
         method: 'POST',
       });
       
       const result = await response.json();
+      console.log('📦 Label creation API response:', result);
       
       if (result.success) {
+        console.log('✅ Label created successfully!', {
+          labelUrl: result.labelUrl,
+          trackingNumber: result.trackingNumber,
+          internalLabelUrl: result.internalLabelUrl,
+        });
+        
+        // Wait a moment for database to update
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Reload order to see updated status
+        console.log('🔄 Reloading order...');
+        await loadOrder();
+        
+        // Check if label was loaded
+        setTimeout(() => {
+          const updatedOrder = order; // This will be stale, but we'll check after reload
+          console.log('🔍 After reload - checking if label is visible...');
+        }, 500);
+        
         alert('Label created successfully! The page will refresh to show the label.');
-        await loadOrder(); // Reload order to see updated status
       } else {
         const errorMsg = result.error || 'Unknown error';
+        console.error('❌ Label creation failed:', errorMsg);
         alert(`Failed to create label: ${errorMsg}\n\nPlease check:\n1. Order has complete shipping address\n2. Products have weight information\n3. Shippo API key is configured`);
       }
     } catch (error: any) {
-      console.error('Error creating label:', error);
+      console.error('❌ Error creating label:', error);
       alert(`Error: ${error.message || 'Failed to create label. Please try again.'}`);
     } finally {
       setRetrying(false);
