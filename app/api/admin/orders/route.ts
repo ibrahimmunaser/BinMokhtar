@@ -132,23 +132,24 @@ export async function GET(request: NextRequest) {
       const successCount = fixResults.filter(r => r.success).length;
       console.log(`✅ AUTO-REPAIR COMPLETE: Fixed ${successCount} of ${ordersNeedingFix.length} orders`);
       
-      // Re-fetch the fixed orders to get updated timestamps
-      if (successCount > 0) {
-        console.log('🔄 Re-fetching fixed orders to get updated timestamps...');
-        const fixedDocs = await Promise.all(ordersNeedingFix.map(doc => doc.ref.get()));
-        fixedDocs.forEach((fixedDoc, index) => {
-          if (fixedDoc.exists) {
-            const fixedData = fixedDoc.data();
-            const originalIndex = orders.findIndex(o => o.id === fixedDoc.id);
-            if (originalIndex >= 0) {
-              orders[originalIndex].createdAt = convertTimestamp(fixedData.createdAt);
-              orders[originalIndex].updatedAt = convertTimestamp(fixedData.updatedAt);
-              orders[originalIndex].paidAt = convertTimestamp(fixedData.paidAt);
+        // Re-fetch the fixed orders to get updated timestamps
+        if (successCount > 0) {
+          console.log('🔄 Re-fetching fixed orders to get updated timestamps...');
+          const fixedDocs = await Promise.all(ordersNeedingFix.map(doc => doc.ref.get()));
+          fixedDocs.forEach((fixedDoc, index) => {
+            if (fixedDoc.exists) {
+              const fixedData = fixedDoc.data();
+              const originalIndex = orders.findIndex(o => o.id === fixedDoc.id);
+              if (originalIndex >= 0) {
+                // Update with converted timestamps (as string | null)
+                (orders[originalIndex] as any).createdAt = convertTimestamp(fixedData.createdAt);
+                (orders[originalIndex] as any).updatedAt = convertTimestamp(fixedData.updatedAt);
+                (orders[originalIndex] as any).paidAt = convertTimestamp(fixedData.paidAt);
+              }
             }
-          }
-        });
-        console.log('✅ Updated orders array with fixed timestamps');
-      }
+          });
+          console.log('✅ Updated orders array with fixed timestamps');
+        }
     } else {
       console.log('✅ All orders have valid timestamps');
     }
