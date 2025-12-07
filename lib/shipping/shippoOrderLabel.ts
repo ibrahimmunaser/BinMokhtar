@@ -281,6 +281,33 @@ async function purchaseLabel(
     if (!labelUrl) {
       console.warn('⚠️ WARNING: Transaction successful but no label URL found after retry!');
       console.warn('⚠️ Transaction object:', JSON.stringify(transaction, null, 2));
+      
+      // WORKAROUND: Try to construct the Shippo label URL from transaction ID
+      // Shippo label URLs follow a pattern - try to use it
+      if (transaction.object_id) {
+        const constructedUrl = `https://deliver.goshippo.com/v1/labels/${transaction.object_id}.pdf`;
+        console.log('📦 Trying constructed label URL:', constructedUrl);
+        
+        // Verify the URL works by making a HEAD request
+        try {
+          const checkResponse = await fetch(constructedUrl, { method: 'HEAD' });
+          if (checkResponse.ok) {
+            console.log('✅ Constructed label URL is valid!');
+            return {
+              success: true,
+              shipmentId,
+              transactionId: transaction.object_id,
+              labelUrl: constructedUrl,
+              trackingNumber: transaction.tracking_number,
+              trackingUrl: transaction.tracking_url_provider,
+            };
+          } else {
+            console.warn('❌ Constructed label URL returned status:', checkResponse.status);
+          }
+        } catch (urlError) {
+          console.warn('❌ Error checking constructed URL:', urlError);
+        }
+      }
     }
 
     return {
