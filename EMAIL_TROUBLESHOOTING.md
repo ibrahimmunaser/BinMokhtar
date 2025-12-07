@@ -260,3 +260,4 @@ If this works, your email configuration is correct!
 Once webhooks are configured, emails will automatically send after every purchase! 🎉
 
 
+

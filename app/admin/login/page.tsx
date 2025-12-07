@@ -2,50 +2,43 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { validateAdminCredentials, setAdminSession } from '@/lib/adminAuth';
-
-// For testing - these match lib/adminAuth.ts
-const ADMIN_USERNAME = 'username';
-const ADMIN_PASSWORD = 'password';
+import { validateAdminCredentialsAsync, setAdminSession } from '@/lib/adminAuth';
 
 export default function AdminLoginPage() {
-  console.log('🔐 ===== AdminLoginPage COMPONENT RENDERED =====');
-  console.log('🔐 AdminLoginPage: Component loaded at:', new Date().toISOString());
-  console.log('🔐 AdminLoginPage: Current URL:', typeof window !== 'undefined' ? window.location.href : 'SSR');
-  
   const router = useRouter();
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  console.log('🔐 AdminLoginPage: Credentials - Username:', ADMIN_USERNAME, 'Password:', ADMIN_PASSWORD);
+  const [showDefaultWarning, setShowDefaultWarning] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🔐 AdminLoginPage: Form submitted');
-    console.log('🔐 AdminLoginPage: Username entered:', formData.username);
-    console.log('🔐 AdminLoginPage: Password entered:', formData.password ? '***' : 'empty');
-    
     setError('');
     setLoading(true);
 
-    console.log('🔐 AdminLoginPage: Validating credentials...');
-    // Validate credentials
-    const isValid = validateAdminCredentials(formData.username, formData.password);
-    console.log('🔐 AdminLoginPage: Validation result:', isValid);
-    
-    if (isValid) {
-      console.log('✅ AdminLoginPage: Credentials valid, setting session...');
-      setAdminSession();
-      console.log('✅ AdminLoginPage: Session set, checking sessionStorage...');
-      console.log('✅ AdminLoginPage: SessionStorage value:', typeof window !== 'undefined' ? sessionStorage.getItem('bmr_admin_session') : 'N/A');
-      console.log('✅ AdminLoginPage: Redirecting to /admin...');
-      router.push('/admin');
-    } else {
-      console.error('❌ AdminLoginPage: Invalid credentials');
-      console.error('❌ AdminLoginPage: Expected username:', ADMIN_USERNAME);
-      console.error('❌ AdminLoginPage: Expected password:', ADMIN_PASSWORD);
-      setError('Invalid username or password');
+    try {
+      // Validate credentials against Firebase
+      const isValid = await validateAdminCredentialsAsync(formData.username, formData.password);
+      
+      if (isValid) {
+        setAdminSession(formData.username);
+        
+        // Check if using default credentials
+        if (formData.username === 'admin' && formData.password === 'admin123') {
+          setShowDefaultWarning(true);
+          setTimeout(() => {
+            router.push('/admin/settings');
+          }, 2000);
+        } else {
+          router.push('/admin');
+        }
+      } else {
+        setError('Invalid username or password');
+        setLoading(false);
+      }
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError('An error occurred. Please try again.');
       setLoading(false);
     }
   };
@@ -64,6 +57,14 @@ export default function AdminLoginPage() {
             <p className="text-bmr-muted">Sign in to manage your store</p>
           </div>
 
+          {showDefaultWarning && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-amber-800 text-center">
+                ⚠️ You&apos;re using default credentials. Redirecting to Settings to change them...
+              </p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="username" className="block text-sm font-medium mb-2">
@@ -75,7 +76,8 @@ export default function AdminLoginPage() {
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 required
-                className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
+                disabled={loading}
+                className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink disabled:bg-surface-3 disabled:cursor-not-allowed"
                 placeholder="Enter your username"
               />
             </div>
@@ -90,7 +92,8 @@ export default function AdminLoginPage() {
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
-                className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
+                disabled={loading}
+                className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink disabled:bg-surface-3 disabled:cursor-not-allowed"
                 placeholder="Enter your password"
               />
             </div>
@@ -104,9 +107,19 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary"
+              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Signing in...
+                </span>
+              ) : (
+                'Sign In'
+              )}
             </button>
 
             <div className="text-center text-sm text-bmr-muted">
@@ -124,16 +137,3 @@ export default function AdminLoginPage() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

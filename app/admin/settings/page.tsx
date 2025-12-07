@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAdminAuthenticated, clearAdminSession } from '@/lib/adminAuth';
+import { isAdminAuthenticated, clearAdminSession, getAdminUsername, updateAdminCredentials } from '@/lib/adminAuth';
 import Link from 'next/link';
-import { ArrowLeft, LogOut, Save } from 'lucide-react';
+import { ArrowLeft, LogOut, Save, Shield, Eye, EyeOff, Check, AlertTriangle } from 'lucide-react';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -20,11 +20,31 @@ export default function SettingsPage() {
     flatShippingRate: '9.99',
   });
 
+  // Credential management state
+  const [credentialForm, setCredentialForm] = useState({
+    currentUsername: '',
+    currentPassword: '',
+    newUsername: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [credentialError, setCredentialError] = useState('');
+  const [credentialSuccess, setCredentialSuccess] = useState('');
+  const [credentialLoading, setCredentialLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   useEffect(() => {
     if (!isAdminAuthenticated()) {
       router.push('/admin/login');
     } else {
       setIsAuthenticated(true);
+      // Pre-fill current username
+      const username = getAdminUsername();
+      if (username) {
+        setCredentialForm(prev => ({ ...prev, currentUsername: username }));
+      }
     }
   }, [router]);
 
@@ -40,6 +60,75 @@ export default function SettingsPage() {
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
     alert('Settings saved successfully!');
+  };
+
+  const handleCredentialSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCredentialError('');
+    setCredentialSuccess('');
+
+    // Validation
+    if (!credentialForm.currentUsername || !credentialForm.currentPassword) {
+      setCredentialError('Please enter your current username and password');
+      return;
+    }
+
+    if (!credentialForm.newUsername && !credentialForm.newPassword) {
+      setCredentialError('Please enter a new username or password');
+      return;
+    }
+
+    if (credentialForm.newPassword && credentialForm.newPassword !== credentialForm.confirmPassword) {
+      setCredentialError('New passwords do not match');
+      return;
+    }
+
+    if (credentialForm.newUsername && credentialForm.newUsername.length < 3) {
+      setCredentialError('Username must be at least 3 characters');
+      return;
+    }
+
+    if (credentialForm.newPassword && credentialForm.newPassword.length < 6) {
+      setCredentialError('Password must be at least 6 characters');
+      return;
+    }
+
+    setCredentialLoading(true);
+
+    try {
+      const result = await updateAdminCredentials(
+        credentialForm.currentUsername,
+        credentialForm.currentPassword,
+        credentialForm.newUsername || undefined,
+        credentialForm.newPassword || undefined
+      );
+
+      if (result.success) {
+        setCredentialSuccess(result.message || 'Credentials updated successfully!');
+        // Clear the form
+        setCredentialForm({
+          currentUsername: credentialForm.newUsername || credentialForm.currentUsername,
+          currentPassword: '',
+          newUsername: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+        
+        // If username changed, update the session
+        if (credentialForm.newUsername) {
+          // Re-authenticate with new credentials
+          setTimeout(() => {
+            handleLogout();
+          }, 2000);
+        }
+      } else {
+        setCredentialError(result.error || 'Failed to update credentials');
+      }
+    } catch (error: any) {
+      setCredentialError(error.message || 'An error occurred');
+    } finally {
+      setCredentialLoading(false);
+    }
   };
 
   if (!isAuthenticated) {
@@ -97,6 +186,154 @@ export default function SettingsPage() {
             Back to Dashboard
           </Link>
           <h1 className="font-display text-3xl lg:text-4xl">Store Settings</h1>
+        </div>
+
+        {/* Admin Credentials Section */}
+        <div className="bg-surface-2 rounded-lg border-2 border-bmr-ink p-6 lg:p-8 mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <Shield className="w-6 h-6 text-bmr-ink" />
+            <h2 className="font-display text-xl">Admin Credentials</h2>
+          </div>
+          <p className="text-sm text-bmr-muted mb-6">
+            Change your admin username and/or password. You&apos;ll need to log in again after changing your credentials.
+          </p>
+
+          <form onSubmit={handleCredentialSubmit} className="space-y-6">
+            {/* Current Credentials */}
+            <div className="bg-surface-3/50 rounded-lg p-4 border border-line">
+              <h3 className="text-sm font-medium mb-4 text-bmr-muted">Current Credentials (Required)</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Current Username</label>
+                  <input
+                    type="text"
+                    value={credentialForm.currentUsername}
+                    onChange={(e) => setCredentialForm({ ...credentialForm, currentUsername: e.target.value })}
+                    className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
+                    placeholder="Enter current username"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Current Password</label>
+                  <div className="relative">
+                    <input
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      value={credentialForm.currentPassword}
+                      onChange={(e) => setCredentialForm({ ...credentialForm, currentPassword: e.target.value })}
+                      className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink pr-12"
+                      placeholder="Enter current password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-bmr-muted hover:text-bmr-ink"
+                    >
+                      {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* New Credentials */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-bmr-muted">New Credentials (Fill in what you want to change)</h3>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">New Username</label>
+                <input
+                  type="text"
+                  value={credentialForm.newUsername}
+                  onChange={(e) => setCredentialForm({ ...credentialForm, newUsername: e.target.value })}
+                  className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink"
+                  placeholder="Leave blank to keep current username"
+                  minLength={3}
+                />
+                <p className="text-xs text-bmr-muted mt-1">Minimum 3 characters</p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">New Password</label>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={credentialForm.newPassword}
+                      onChange={(e) => setCredentialForm({ ...credentialForm, newPassword: e.target.value })}
+                      className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink pr-12"
+                      placeholder="Leave blank to keep current"
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-bmr-muted hover:text-bmr-ink"
+                    >
+                      {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-bmr-muted mt-1">Minimum 6 characters</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Confirm New Password</label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={credentialForm.confirmPassword}
+                      onChange={(e) => setCredentialForm({ ...credentialForm, confirmPassword: e.target.value })}
+                      className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:border-bmr-ink pr-12"
+                      placeholder="Confirm new password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-bmr-muted hover:text-bmr-ink"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Error/Success Messages */}
+            {credentialError && (
+              <div className="bg-bmr-acc-red/10 border border-bmr-acc-red rounded-lg p-4 flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-bmr-acc-red flex-shrink-0" />
+                <p className="text-sm text-bmr-acc-red">{credentialError}</p>
+              </div>
+            )}
+
+            {credentialSuccess && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+                <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
+                <p className="text-sm text-green-700">{credentialSuccess}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={credentialLoading}
+              className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {credentialLoading ? (
+                <>
+                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <Shield className="w-4 h-4" />
+                  Update Credentials
+                </>
+              )}
+            </button>
+          </form>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
