@@ -204,12 +204,13 @@ export default function AdminOrderDetailPage() {
 
   const fulfillmentMethod = order.fulfillmentMethod || 'shipping';
   // Check multiple possible field names for label URLs
-  const hasShippingLabel = !!(order.shippo_label_url || order.labelUrl || order.shippoLabelUrl || (order as any).label_url);
-  const hasInternalLabel = !!(order.internal_label_url || order.packingSlipUrl || (order as any).packing_slip_url);
+  const orderAny = order as any;
+  const hasShippingLabel = !!(order.shippo_label_url || order.labelUrl || orderAny.shippoLabelUrl || orderAny.label_url);
+  const hasInternalLabel = !!(order.internal_label_url || order.packingSlipUrl || orderAny.packing_slip_url);
   const labelStatus = order.shippo_label_status || (hasShippingLabel || hasInternalLabel ? 'success' : 'none');
   
   // Get the actual label URL from any possible field
-  const shippingLabelUrl = order.shippo_label_url || order.labelUrl || (order as any).shippoLabelUrl || (order as any).label_url;
+  const shippingLabelUrl = order.shippo_label_url || order.labelUrl || orderAny.shippoLabelUrl || orderAny.label_url;
 
   const handleLogout = () => {
     clearAdminSession();
