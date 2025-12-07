@@ -222,38 +222,59 @@ async function purchaseLabel(
     // Sometimes Shippo needs a moment to generate the label
     if (!labelUrl && transaction.object_id) {
       console.log('⚠️ Label URL not in initial response, fetching transaction details...');
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-        const fetchedTransaction = await shippoRequest(`/transactions/${transaction.object_id}`, {
-          method: 'GET',
-        });
-        
-        console.log('📦 Fetched transaction label fields:', {
-          label_url: fetchedTransaction.label_url,
-          labelURL: fetchedTransaction.labelURL,
-          label_file_url: fetchedTransaction.label_file_url,
-          commercial_invoice_url: fetchedTransaction.commercial_invoice_url,
-        });
-        
-        const fetchedLabelUrl = fetchedTransaction.label_url || 
-                                 fetchedTransaction.labelURL || 
-                                 fetchedTransaction.label_file_url ||
-                                 fetchedTransaction.commercial_invoice_url ||
-                                 null;
-        
-        if (fetchedLabelUrl) {
-          console.log('✅ Found label URL after fetch:', fetchedLabelUrl);
-          return {
-            success: true,
-            shipmentId,
-            transactionId: transaction.object_id,
-            labelUrl: fetchedLabelUrl,
-            trackingNumber: transaction.tracking_number || fetchedTransaction.tracking_number,
-            trackingUrl: transaction.tracking_url_provider || fetchedTransaction.tracking_url_provider,
-          };
+      console.log('📦 Full transaction object:', JSON.stringify(transaction, null, 2));
+      
+      // Try multiple times with increasing delays
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const waitTime = attempt * 2000; // 2s, 4s, 6s
+          console.log(`⏳ Waiting ${waitTime}ms before fetch attempt ${attempt}...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          
+          const fetchedTransaction = await shippoRequest(`/transactions/${transaction.object_id}`, {
+            method: 'GET',
+          });
+          
+          console.log(`📦 Fetched transaction (attempt ${attempt}) label fields:`, {
+            label_url: fetchedTransaction.label_url,
+            labelURL: fetchedTransaction.labelURL,
+            label_file_url: fetchedTransaction.label_file_url,
+            commercial_invoice_url: fetchedTransaction.commercial_invoice_url,
+            status: fetchedTransaction.status,
+            object_id: fetchedTransaction.object_id,
+            allKeys: Object.keys(fetchedTransaction).filter(k => k.toLowerCase().includes('label') || k.toLowerCase().includes('url')),
+          });
+          
+          // Check all possible field names
+          const fetchedLabelUrl = fetchedTransaction.label_url || 
+                                   fetchedTransaction.labelURL || 
+                                   fetchedTransaction.label_file_url ||
+                                   fetchedTransaction.commercial_invoice_url ||
+                                   fetchedTransaction.label ||
+                                   fetchedTransaction.label_pdf ||
+                                   fetchedTransaction.pdf_url ||
+                                   null;
+          
+          if (fetchedLabelUrl) {
+            console.log('✅ Found label URL after fetch:', fetchedLabelUrl);
+            return {
+              success: true,
+              shipmentId,
+              transactionId: transaction.object_id,
+              labelUrl: fetchedLabelUrl,
+              trackingNumber: transaction.tracking_number || fetchedTransaction.tracking_number,
+              trackingUrl: transaction.tracking_url_provider || fetchedTransaction.tracking_url_provider,
+            };
+          }
+          
+          // If status is still SUCCESS but no label URL, log full transaction for debugging
+          if (fetchedTransaction.status === 'SUCCESS' && !fetchedLabelUrl) {
+            console.warn(`⚠️ Attempt ${attempt}: Transaction is SUCCESS but no label URL found`);
+            console.warn('⚠️ Full fetched transaction:', JSON.stringify(fetchedTransaction, null, 2));
+          }
+        } catch (fetchError: any) {
+          console.error(`❌ Error fetching transaction details (attempt ${attempt}):`, fetchError);
         }
-      } catch (fetchError: any) {
-        console.error('❌ Error fetching transaction details:', fetchError);
       }
     }
 
