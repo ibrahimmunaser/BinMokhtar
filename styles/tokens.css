@@ -9,8 +9,12 @@
   --bmr-keffiyeh: #111111;
   --bmr-acc-red: #C62828;
   --bmr-acc-green: #1E7F51;
+  
+  /* Additional brand colors */
+  --bmr-black: #000000;
+  --bmr-white: #FFFFFF;
 
-  /* Surfaces */
+  /* Surfaces - Light theme (same on all devices) */
   --surface-1: #F5F2EE;
   --surface-2: #FFFFFF;
   --surface-3: #EFECE7;
@@ -35,41 +39,12 @@
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* Force light color scheme on all devices */
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bmr-bg: #171614;
-    --surface-2: #1E1D1B;
-    --surface-3: #22211F;
-    --bmr-fg: #F5F2EE;
-    --bmr-ink: #EDEBE7;
-    --line: #3A3834;
-
-    /* Update semantic aliases for dark mode */
-    --text-primary: var(--bmr-fg);
-    --bg-primary: var(--surface-2);
-    --bg-secondary: var(--bmr-bg);
-    --bg-tertiary: var(--surface-3);
-    --border-default: var(--line);
-
-    /* Dark mode shadows */
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
-  }
+/* Explicitly force light mode - override any system dark mode preference */
+html {
+  color-scheme: light !important;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
