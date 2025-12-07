@@ -201,12 +201,72 @@ async function purchaseLabel(
     }
 
     console.log('✅ Label purchased:', transaction.object_id);
+    console.log('📦 Transaction object keys:', Object.keys(transaction));
+    console.log('📦 Transaction label fields:', {
+      label_url: transaction.label_url,
+      labelURL: transaction.labelURL,
+      label_file_url: transaction.label_file_url,
+      commercial_invoice_url: transaction.commercial_invoice_url,
+      tracking_number: transaction.tracking_number,
+      status: transaction.status,
+    });
+
+    // Check multiple possible field names for label URL
+    const labelUrl = transaction.label_url || 
+                     transaction.labelURL || 
+                     transaction.label_file_url ||
+                     transaction.commercial_invoice_url ||
+                     null;
+
+    // If label URL is missing, try fetching the transaction again
+    // Sometimes Shippo needs a moment to generate the label
+    if (!labelUrl && transaction.object_id) {
+      console.log('⚠️ Label URL not in initial response, fetching transaction details...');
+      try {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        const fetchedTransaction = await shippoRequest(`/transactions/${transaction.object_id}`, {
+          method: 'GET',
+        });
+        
+        console.log('📦 Fetched transaction label fields:', {
+          label_url: fetchedTransaction.label_url,
+          labelURL: fetchedTransaction.labelURL,
+          label_file_url: fetchedTransaction.label_file_url,
+          commercial_invoice_url: fetchedTransaction.commercial_invoice_url,
+        });
+        
+        const fetchedLabelUrl = fetchedTransaction.label_url || 
+                                 fetchedTransaction.labelURL || 
+                                 fetchedTransaction.label_file_url ||
+                                 fetchedTransaction.commercial_invoice_url ||
+                                 null;
+        
+        if (fetchedLabelUrl) {
+          console.log('✅ Found label URL after fetch:', fetchedLabelUrl);
+          return {
+            success: true,
+            shipmentId,
+            transactionId: transaction.object_id,
+            labelUrl: fetchedLabelUrl,
+            trackingNumber: transaction.tracking_number || fetchedTransaction.tracking_number,
+            trackingUrl: transaction.tracking_url_provider || fetchedTransaction.tracking_url_provider,
+          };
+        }
+      } catch (fetchError: any) {
+        console.error('❌ Error fetching transaction details:', fetchError);
+      }
+    }
+
+    if (!labelUrl) {
+      console.warn('⚠️ WARNING: Transaction successful but no label URL found after retry!');
+      console.warn('⚠️ Transaction object:', JSON.stringify(transaction, null, 2));
+    }
 
     return {
       success: true,
       shipmentId,
       transactionId: transaction.object_id,
-      labelUrl: transaction.label_url,
+      labelUrl: labelUrl,
       trackingNumber: transaction.tracking_number,
       trackingUrl: transaction.tracking_url_provider,
     };
