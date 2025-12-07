@@ -513,9 +513,9 @@ export default function AdminOrdersPage() {
             console.log('🎯 First order:', orders[0]);
             console.log('🎯 About to render table with', orders.length, 'rows');
             return (
-              <div className="bg-surface-2 rounded-lg border border-line overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+          <div className="bg-surface-2 rounded-lg border border-line overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
                 <thead className="bg-surface-3 border-b border-line">
                   <tr>
                     <th className="px-6 py-4 text-left text-sm font-medium text-bmr-ink">Order</th>

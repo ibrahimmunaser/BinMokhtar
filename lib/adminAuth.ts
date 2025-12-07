@@ -1,73 +1,88 @@
 // Admin authentication with Firebase-backed credentials
-// Credentials are stored in Firestore at settings/admin_credentials
+// Supports both default credentials and custom credentials stored in Firebase
 
 const ADMIN_SESSION_KEY = 'bmr_admin_session';
-const ADMIN_USERNAME_KEY = 'bmr_admin_username';
 
-// Validate credentials against Firebase (async)
+// Default credentials (fallback when no custom credentials are set)
+const DEFAULT_USERNAME = 'username';
+const DEFAULT_PASSWORD = 'password';
+
+/**
+ * Validate admin credentials against Firebase
+ * Falls back to default credentials if Firebase check fails or no custom credentials set
+ */
 export async function validateAdminCredentialsAsync(username: string, password: string): Promise<boolean> {
   try {
-    const response = await fetch(`/api/admin/credentials?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`);
-    const data = await response.json();
+    const response = await fetch('/api/admin/credentials', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+    });
     
-    if (data.isDefault) {
-      console.warn('⚠️ Using default admin credentials. Please change them in Settings!');
+    if (!response.ok) {
+      console.error('❌ Credential validation request failed');
+      // Fallback to local validation
+      return username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD;
     }
     
+    const data = await response.json();
     return data.valid === true;
   } catch (error) {
-    console.error('Error validating credentials:', error);
-    // Fallback to hardcoded credentials if API fails
-    return username === 'admin' && password === 'admin123';
+    console.error('❌ Error validating credentials:', error);
+    // Fallback to local validation if API fails
+    return username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD;
   }
 }
 
-// Legacy sync validation (for backwards compatibility - checks session only)
+/**
+ * Synchronous credential validation (for backwards compatibility)
+ * Note: This only checks against default credentials
+ * Use validateAdminCredentialsAsync for full validation
+ */
 export function validateAdminCredentials(username: string, password: string): boolean {
-  // This is now a placeholder - actual validation should use validateAdminCredentialsAsync
-  // Keep for backwards compatibility during transition
-  console.warn('⚠️ Using sync credential validation. Consider using validateAdminCredentialsAsync instead.');
-  return username === 'admin' && password === 'admin123';
+  return username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD;
 }
 
-export function setAdminSession(username?: string): void {
+export function setAdminSession(): void {
   if (typeof window !== 'undefined') {
     sessionStorage.setItem(ADMIN_SESSION_KEY, 'true');
-    if (username) {
-      sessionStorage.setItem(ADMIN_USERNAME_KEY, username);
-    }
   }
-}
-
-export function getAdminUsername(): string | null {
-  if (typeof window !== 'undefined') {
-    return sessionStorage.getItem(ADMIN_USERNAME_KEY);
-  }
-  return null;
 }
 
 export function clearAdminSession(): void {
   if (typeof window !== 'undefined') {
     sessionStorage.removeItem(ADMIN_SESSION_KEY);
-    sessionStorage.removeItem(ADMIN_USERNAME_KEY);
   }
 }
 
 export function isAdminAuthenticated(): boolean {
+  console.log('🔐 isAdminAuthenticated() called');
+  console.log('🔐 Window available:', typeof window !== 'undefined');
+  
   if (typeof window !== 'undefined') {
     const sessionValue = sessionStorage.getItem(ADMIN_SESSION_KEY);
-    return sessionValue === 'true';
+    console.log('🔐 SessionStorage key:', ADMIN_SESSION_KEY);
+    console.log('🔐 SessionStorage value:', sessionValue);
+    
+    const result = sessionValue === 'true';
+    console.log('🔐 isAdminAuthenticated() returning:', result);
+    return result;
   }
+  
+  console.log('🔐 isAdminAuthenticated() returning false (SSR)');
   return false;
 }
 
-// Update admin credentials
+/**
+ * Update admin credentials
+ */
 export async function updateAdminCredentials(
-  currentUsername: string,
   currentPassword: string,
   newUsername?: string,
   newPassword?: string
-): Promise<{ success: boolean; error?: string; message?: string }> {
+): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch('/api/admin/credentials', {
       method: 'PUT',
@@ -75,27 +90,40 @@ export async function updateAdminCredentials(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        currentUsername,
         currentPassword,
         newUsername,
         newPassword,
       }),
     });
-
+    
     const data = await response.json();
     
     if (!response.ok) {
       return { success: false, error: data.error || 'Failed to update credentials' };
     }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error updating credentials:', error);
+    return { success: false, error: 'Network error. Please try again.' };
+  }
+}
 
-    // Update stored username if changed
-    if (newUsername && typeof window !== 'undefined') {
-      sessionStorage.setItem(ADMIN_USERNAME_KEY, newUsername);
+/**
+ * Get current admin username
+ */
+export async function getAdminUsername(): Promise<string> {
+  try {
+    const response = await fetch('/api/admin/credentials');
+    
+    if (!response.ok) {
+      return DEFAULT_USERNAME;
     }
-
-    return { success: true, message: data.message };
-  } catch (error: any) {
-    console.error('Error updating credentials:', error);
-    return { success: false, error: error.message || 'Failed to update credentials' };
+    
+    const data = await response.json();
+    return data.username || DEFAULT_USERNAME;
+  } catch (error) {
+    console.error('❌ Error fetching username:', error);
+    return DEFAULT_USERNAME;
   }
 }
