@@ -211,6 +211,26 @@ export default function AdminOrderDetailPage() {
   
   // Get the actual label URL from any possible field
   const shippingLabelUrl = order.shippo_label_url || order.labelUrl || orderAny.shippoLabelUrl || orderAny.label_url;
+  
+  // Debug logging for label detection
+  useEffect(() => {
+    if (order) {
+      console.log('🔍 Order Label Debug:', {
+        orderId: order.id,
+        fulfillmentMethod,
+        labelStatus,
+        hasShippingLabel,
+        hasInternalLabel,
+        shippingLabelUrl,
+        shippo_label_url: order.shippo_label_url,
+        labelUrl: order.labelUrl,
+        shippoLabelUrl: orderAny.shippoLabelUrl,
+        label_url: orderAny.label_url,
+        shippo_label_status: order.shippo_label_status,
+        hasShippingAddress: !!order.shippingAddress,
+      });
+    }
+  }, [order, fulfillmentMethod, labelStatus, hasShippingLabel, hasInternalLabel, shippingLabelUrl]);
 
   const handleLogout = () => {
     clearAdminSession();
@@ -448,47 +468,59 @@ export default function AdminOrderDetailPage() {
 
           {labelStatus === 'none' && (
             <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-              <p className="text-sm text-gray-700 mb-3">No label has been created yet.</p>
               {fulfillmentMethod === 'shipping' && (
                 <>
                   {!order.shippingAddress ? (
-                    <div className="mt-3 p-4 bg-red-100 border-2 border-red-400 rounded-lg">
-                      <p className="text-sm font-bold text-red-900 mb-2">⚠️ Missing Shipping Address</p>
-                      <p className="text-sm text-red-700 mb-3">This order does not have a shipping address. A shipping address is required to create a Shippo carrier label.</p>
-                      {order.stripeSessionId ? (
-                        <div>
-                          <p className="text-sm font-medium text-red-900 mb-2">🔧 Solution: Retrieve Address from Stripe</p>
-                          <p className="text-sm text-red-700 mb-3">This order was paid through Stripe. Click the button below to retrieve the shipping address that was collected during checkout.</p>
-                          <button
-                            onClick={retrieveAddressFromStripe}
-                            disabled={retrievingAddress}
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-                          >
-                            <RefreshCw className={`w-5 h-5 ${retrievingAddress ? 'animate-spin' : ''}`} />
-                            {retrievingAddress ? 'Retrieving Address...' : '🔍 Retrieve Address from Stripe'}
-                          </button>
-                          <p className="text-xs text-red-600 mt-2 italic">After retrieving the address, click "Create Shippo Label" above to create the label.</p>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-red-600 italic">Note: This order does not have a Stripe session ID, so the address cannot be automatically retrieved. You may need to manually add the shipping address.</p>
-                      )}
+                    <div className="space-y-4">
+                      <div className="p-4 bg-red-100 border-2 border-red-400 rounded-lg">
+                        <p className="text-sm font-bold text-red-900 mb-2">⚠️ Missing Shipping Address</p>
+                        <p className="text-sm text-red-700 mb-3">This order does not have a shipping address. A shipping address is required to create a Shippo carrier label.</p>
+                        {order.stripeSessionId ? (
+                          <div>
+                            <p className="text-sm font-medium text-red-900 mb-2">🔧 Solution: Retrieve Address from Stripe</p>
+                            <p className="text-sm text-red-700 mb-3">This order was paid through Stripe. Click the button below to retrieve the shipping address that was collected during checkout.</p>
+                            <button
+                              onClick={retrieveAddressFromStripe}
+                              disabled={retrievingAddress}
+                              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                            >
+                              <RefreshCw className={`w-5 h-5 ${retrievingAddress ? 'animate-spin' : ''}`} />
+                              {retrievingAddress ? 'Retrieving Address...' : '🔍 Retrieve Address from Stripe'}
+                            </button>
+                            <p className="text-xs text-red-600 mt-2 italic">After retrieving the address, click "Create Shippo Label" to create the label.</p>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-red-600 italic">Note: This order does not have a Stripe session ID, so the address cannot be automatically retrieved. You may need to manually add the shipping address.</p>
+                        )}
+                      </div>
+                      {/* Always show Create Label button, even without address */}
+                      <div className="flex items-center justify-center">
+                        <button
+                          onClick={retryLabelCreation}
+                          disabled={retrying || !order.shippingAddress}
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-bmr-night text-surface-2 rounded-lg font-semibold hover:bg-bmr-night/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                        >
+                          <RefreshCw className={`w-5 h-5 ${retrying ? 'animate-spin' : ''}`} />
+                          {retrying ? 'Creating...' : 'Create Shippo Label'}
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center justify-between flex-wrap gap-4">
+                        <div className="flex-1">
                           <p className="text-sm font-medium text-blue-900 mb-1">📦 Ready to Create Shippo Label</p>
                           <p className="text-sm text-blue-700">
-                            This order has a complete shipping address. Click the button above to generate a carrier shipping label via Shippo (USPS/UPS).
+                            This order has a complete shipping address. Click the button to generate a carrier shipping label via Shippo (USPS/UPS).
                           </p>
                         </div>
                         <button
                           onClick={retryLabelCreation}
                           disabled={retrying}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md whitespace-nowrap"
                         >
-                          <RefreshCw className={`w-4 h-4 ${retrying ? 'animate-spin' : ''}`} />
-                          {retrying ? 'Creating...' : 'Create Label'}
+                          <RefreshCw className={`w-5 h-5 ${retrying ? 'animate-spin' : ''}`} />
+                          {retrying ? 'Creating...' : 'Create Shippo Label'}
                         </button>
                       </div>
                     </div>
@@ -496,7 +528,7 @@ export default function AdminOrderDetailPage() {
                 </>
               )}
               {(fulfillmentMethod === 'pickup' || fulfillmentMethod === 'local_delivery') && (
-                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
                   <p className="text-sm font-medium text-yellow-900 mb-1">ℹ️ Note: Shippo Labels Not Used</p>
                   <p className="text-sm text-yellow-700">
                     {fulfillmentMethod === 'pickup' 
