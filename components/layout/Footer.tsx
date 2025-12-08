@@ -41,21 +41,27 @@ export function Footer() {
               {/* Social Icons */}
               <div className="flex items-center gap-4">
                 <a 
-                  href="#" 
+                  href="https://www.instagram.com/binmukhtarretail/" 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 hover:border-white/40 transition-all"
                   aria-label="Instagram"
                 >
                   <Instagram className="w-4 h-4" />
                 </a>
                 <a 
-                  href="#" 
+                  href="https://www.facebook.com/p/Bin-Mukhtar-Retail-61573231778600/" 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 hover:border-white/40 transition-all"
                   aria-label="Facebook"
                 >
                   <Facebook className="w-4 h-4" />
                 </a>
                 <a 
-                  href="#" 
+                  href="https://www.tiktok.com/@binmukhtarretail" 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 hover:border-white/40 transition-all"
                   aria-label="TikTok"
                 >
@@ -109,7 +115,7 @@ export function Footer() {
                 &copy; {currentYear} Bin Mukhtar Retail. All rights reserved.
               </div>
               <div className="text-xs opacity-30">
-                Powered by HikmaCoding
+                Built by Hikmah Web Studio
               </div>
             </div>
           </div>
@@ -118,4 +124,3 @@ export function Footer() {
     </footer>
   );
 }
-
