@@ -5,27 +5,33 @@ export default function AboutPage() {
         <h1 className="font-display text-4xl lg:text-5xl mb-6 text-center">About Bin Mukhtar Retail</h1>
         
         <p className="text-lg text-bmr-muted mb-16 text-center max-w-2xl mx-auto">
-          Your premier destination for authentic traditional Islamic attire
+          Where tradition meets quality, and modesty meets style
         </p>
 
         <div className="bg-surface-2 rounded-lg border border-line p-8 lg:p-12 mb-12">
           <div className="space-y-8 text-lg text-bmr-ink leading-relaxed max-w-3xl mx-auto">
             <p>
-              Welcome to Bin Mukhtar Retail, where tradition meets timeless elegance. For over a decade, 
-              we've been dedicated to providing the finest quality thobes, shemaghs, and modest Islamic attire 
-              for discerning customers worldwide.
+              Bin Mukhtar Retail is a modest clothing and Islamic wear company dedicated to providing 
+              high-quality traditional apparel for men. We specialize in a wide range of thobes and 
+              garments that honor heritage, elevate comfort, and meet the needs of modern-day style.
             </p>
 
             <p>
-              Our journey began with a simple mission: to make authentic, high-quality Islamic clothing 
-              accessible to everyone. Today, we proudly serve thousands of customers across the globe, 
-              from our roots in the Middle East to communities in North America, Europe, and beyond.
+              At Bin Mukhtar Retail, we believe that modesty and elegance should be accessible to everyone. 
+              That's why our collection features both affordable everyday thobes and premium luxury designs—each 
+              crafted with care, attention to detail, and exceptional value. Whether you're looking for 
+              something simple and refined or a statement piece with elevated fabrics and tailoring, we 
+              offer options that suit every preference and occasion.
             </p>
 
             <p>
-              Every piece in our collection is carefully selected for its quality, craftsmanship, and 
-              cultural authenticity. We work directly with skilled artisans and trusted manufacturers 
-              to ensure that each garment meets our exacting standards.
+              Our mission is to bring timeless Islamic wear to our customers at great prices without 
+              compromising quality. With a focus on craftsmanship, comfort, and authenticity, Bin Mukhtar 
+              Retail continues to grow as a trusted destination for modest fashion and traditional attire.
+            </p>
+
+            <p className="font-medium text-center italic">
+              Bin Mukhtar Retail — where tradition meets quality, and modesty meets style.
             </p>
           </div>
         </div>
