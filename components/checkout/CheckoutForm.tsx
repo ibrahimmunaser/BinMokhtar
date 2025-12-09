@@ -10,7 +10,8 @@ import { logBeginCheckout } from '@/lib/analytics';
 import { AddressAutocomplete } from './AddressAutocomplete';
 import { ShippingRateSelector } from './ShippingRateSelector';
 import { AddressModal } from '@/components/layout/AddressModal';
-import { AlertCircle, Package, Truck, MapPin, Loader2, Navigation } from 'lucide-react';
+import { AlertCircle, Package, Truck, MapPin, Loader2, Navigation, Trash2, AlertTriangle } from 'lucide-react';
+import { useStockValidation, StockValidationResult } from '@/hooks/useStockValidation';
 import {
   FulfillmentMethod,
   LOCAL_DELIVERY_FEE_CENTS,
@@ -29,9 +30,19 @@ export function CheckoutForm() {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
   const total = useCartStore((state) => state.total());
+  const removeItem = useCartStore((state) => state.remove);
   
   // Auth
   const { user, isAuthenticated } = useAuth();
+  
+  // Stock validation
+  const { 
+    isValidating: isValidatingStock, 
+    validationResults, 
+    hasOutOfStockItems, 
+    validateStock,
+    getItemValidation,
+  } = useStockValidation();
 
   // Location store - use the store directly, no local state needed
   // Subscribe to the entire store state to ensure we get updates
@@ -78,6 +89,14 @@ export function CheckoutForm() {
     setMounted(true);
     console.log('🔄 CheckoutForm: Component mounted');
   }, []);
+  
+  // Validate stock when component mounts or items change
+  useEffect(() => {
+    if (mounted && items.length > 0) {
+      console.log('🔄 CheckoutForm: Validating stock for', items.length, 'items');
+      validateStock(items);
+    }
+  }, [mounted, items, validateStock]);
   
   // Pre-fill email from authenticated user
   useEffect(() => {
@@ -394,9 +413,100 @@ export function CheckoutForm() {
 
   const isLocalDeliveryAvailable = locationZoneObj?.zone === 'local';
 
+  // Get out of stock items for display
+  const outOfStockItems = validationResults.filter(r => !r.isAvailable);
+  
+  // Helper to remove out of stock item
+  const handleRemoveOutOfStockItem = (result: StockValidationResult) => {
+    // Find the cart item that matches this validation result
+    const cartItem = items.find(item => 
+      item.productId === result.productId &&
+      ((!result.size && !item.size) || item.size === result.size) &&
+      ((!result.color && !item.color) || item.color === result.color)
+    );
+    if (cartItem) {
+      removeItem(cartItem.id);
+    }
+  };
+  
+  // Remove all out of stock items
+  const handleRemoveAllOutOfStock = () => {
+    outOfStockItems.forEach(result => {
+      handleRemoveOutOfStockItem(result);
+    });
+  };
+
   return (
     <>
     <form onSubmit={handleStripeCheckout} className="space-y-8">
+      {/* Stock Validation Warning */}
+      {mounted && hasOutOfStockItems && outOfStockItems.length > 0 && (
+        <div className="bg-red-50 border-2 border-red-300 rounded-lg p-6">
+          <div className="flex items-start gap-3 mb-4">
+            <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" />
+            <div>
+              <h3 className="font-semibold text-red-900 text-lg">
+                Some items are no longer available
+              </h3>
+              <p className="text-sm text-red-700 mt-1">
+                Please remove the following items to continue with checkout:
+              </p>
+            </div>
+          </div>
+          
+          <div className="space-y-3 mb-4">
+            {outOfStockItems.map((result, index) => {
+              const variantDesc = [result.size, result.color].filter(Boolean).join(' / ');
+              return (
+                <div 
+                  key={`${result.productId}-${result.size}-${result.color}-${index}`}
+                  className="flex items-center justify-between bg-white rounded-lg p-3 border border-red-200"
+                >
+                  <div>
+                    <p className="font-medium text-red-900">
+                      {result.title}
+                      {variantDesc && <span className="text-red-700"> ({variantDesc})</span>}
+                    </p>
+                    <p className="text-sm text-red-600">
+                      {result.message || 'Out of stock'}
+                      {result.availableStock > 0 && result.availableStock < result.requestedQty && (
+                        <span> - You requested {result.requestedQty}</span>
+                      )}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveOutOfStockItem(result)}
+                    className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Remove
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          
+          {outOfStockItems.length > 1 && (
+            <button
+              type="button"
+              onClick={handleRemoveAllOutOfStock}
+              className="w-full py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Remove All Unavailable Items
+            </button>
+          )}
+        </div>
+      )}
+      
+      {/* Stock Validation Loading */}
+      {mounted && isValidatingStock && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center gap-3">
+          <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+          <span className="text-sm text-blue-700">Checking item availability...</span>
+        </div>
+      )}
+      
       {/* Contact Information */}
       <div>
         <h2 className="text-xl font-display mb-4">Contact Information</h2>
@@ -846,6 +956,8 @@ export function CheckoutForm() {
           isSubmitting || 
           items.length === 0 || 
           isLoadingRates ||
+          isValidatingStock ||
+          hasOutOfStockItems ||
           (fulfillmentMethod === 'shipping' && !selectedRate)
         }
         className="w-full px-8 py-4 bg-bmr-night text-surface-2 font-medium uppercase tracking-wideish rounded-lg hover:bg-bmr-night/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-sm"
@@ -854,6 +966,16 @@ export function CheckoutForm() {
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
             Redirecting to checkout...
+          </>
+        ) : isValidatingStock ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            Checking availability...
+          </>
+        ) : hasOutOfStockItems ? (
+          <>
+            <AlertTriangle className="w-5 h-5" />
+            Remove Unavailable Items First
           </>
         ) : (
           <>
