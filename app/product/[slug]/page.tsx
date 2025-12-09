@@ -360,6 +360,10 @@ export default function ProductPage() {
                 <AddToCartButton
                   onClick={handleAddToCart}
                   disabled={!canAddToCart}
+                  outOfStock={
+                    totalStock === 0 || 
+                    (selectedSize && selectedColor && selectedVariantStock === 0)
+                  }
                 />
               </div>
 
