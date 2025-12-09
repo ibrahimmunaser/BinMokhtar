@@ -58,13 +58,22 @@ export async function getProducts(constraints: QueryConstraint[] = []): Promise<
   const snapshot = await getDocs(q);
   return snapshot.docs.map((doc) => {
     const data = doc.data();
+    // Normalize field names: database uses 'name' but types use 'titleEn'
+    const titleEn = data.titleEn || data.name || '';
+    const titleAr = data.titleAr || data.name || '';
+    
     return { 
       id: doc.id, 
       ...data,
+      // Map 'name' to 'titleEn' for consistency with types
+      titleEn,
+      titleAr,
+      // Map categoryId to category for consistency
+      category: data.category || data.categoryId,
       // Ensure new image fields are populated, fallback to legacy fields
       primaryImageUrl: data.primaryImageUrl || data.images?.[0] || data.thumbnail || data.defaultImage?.url,
       galleryImageUrls: data.galleryImageUrls || data.images || [],
-      primaryImageAlt: data.primaryImageAlt || data.titleEn || data.name,
+      primaryImageAlt: data.primaryImageAlt || titleEn,
     } as Product;
   });
 }
@@ -91,13 +100,22 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
       console.warn('Failed to fetch variants:', e);
     }
     
+    // Normalize field names: database uses 'name' but types use 'titleEn'
+    const titleEn = data.titleEn || data.name || '';
+    const titleAr = data.titleAr || data.name || '';
+    
     return { 
       id: productDoc.id, 
       ...data,
+      // Map 'name' to 'titleEn' for consistency with types
+      titleEn,
+      titleAr,
+      // Map categoryId to category for consistency
+      category: data.category || data.categoryId,
       // Ensure new image fields are populated
       primaryImageUrl: data.primaryImageUrl || data.images?.[0] || data.thumbnail || data.defaultImage?.url,
       galleryImageUrls: data.galleryImageUrls || data.images || [],
-      primaryImageAlt: data.primaryImageAlt || data.titleEn || data.name,
+      primaryImageAlt: data.primaryImageAlt || titleEn,
       // Include variants for stock checking
       variants,
     } as Product;
@@ -124,12 +142,19 @@ export async function getProductsByIds(ids: string[]): Promise<Product[]> {
     const data = docSnap.data();
     // Only include ACTIVE products
     if (docSnap.exists() && data?.status === 'ACTIVE') {
+      // Normalize field names
+      const titleEn = data.titleEn || data.name || '';
+      const titleAr = data.titleAr || data.name || '';
+      
       products.push({ 
         id: docSnap.id, 
         ...data,
+        titleEn,
+        titleAr,
+        category: data.category || data.categoryId,
         primaryImageUrl: data.primaryImageUrl || data.images?.[0] || data.thumbnail || data.defaultImage?.url,
         galleryImageUrls: data.galleryImageUrls || data.images || [],
-        primaryImageAlt: data.primaryImageAlt || data.titleEn || data.name,
+        primaryImageAlt: data.primaryImageAlt || titleEn,
       } as Product);
     }
   }
