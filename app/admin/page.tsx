@@ -224,11 +224,13 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-sm ${
-                        product.published
+                        product.status === 'ACTIVE'
                           ? 'bg-bmr-acc-green/10 text-bmr-acc-green'
+                          : product.status === 'ARCHIVED'
+                          ? 'bg-bmr-acc-red/10 text-bmr-acc-red'
                           : 'bg-bmr-muted/10 text-bmr-muted'
                       }`}>
-                        {product.published ? 'Published' : 'Draft'}
+                        {product.status || 'Draft'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
