@@ -70,6 +70,63 @@ export default function ProductPage() {
   const reviewCount = product?.counts?.reviewCount ?? 0;
   const ratingAvg = product?.counts?.ratingAvg ?? 0;
 
+  // Get variants from product (loaded from Firebase subcollection)
+  const variants = useMemo(() => {
+    return (product as any)?.variants as Array<{ 
+      id: string; 
+      size?: string; 
+      color?: string; 
+      stock: number; 
+      sku: string;
+      price?: number;
+    }> || [];
+  }, [product]);
+
+  // Get stock for the currently selected size+color combination
+  const selectedVariantStock = useMemo(() => {
+    if (!variants.length) return totalStock; // Fall back to total stock if no variants
+    
+    // If we need both size and color
+    if (product?.sizes?.length && product?.colors?.length) {
+      if (!selectedSize || !selectedColor) return 0; // Need both selected
+      const variant = variants.find(v => v.size === selectedSize && v.color === selectedColor);
+      return variant?.stock ?? 0;
+    }
+    
+    // If we only have sizes
+    if (product?.sizes?.length && selectedSize) {
+      const sizeVariants = variants.filter(v => v.size === selectedSize);
+      return sizeVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
+    }
+    
+    // If we only have colors
+    if (product?.colors?.length && selectedColor) {
+      const colorVariants = variants.filter(v => v.color === selectedColor);
+      return colorVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
+    }
+    
+    return totalStock;
+  }, [variants, selectedSize, selectedColor, product, totalStock]);
+
+  // Check if add to cart should be disabled
+  const canAddToCart = useMemo(() => {
+    if (totalStock === 0) return false;
+    
+    // If product has sizes, require size selection
+    if (product?.sizes?.length && !selectedSize) return false;
+    
+    // If product has colors, require color selection
+    if (product?.colors?.length && !selectedColor) return false;
+    
+    // Check variant stock
+    if (selectedVariantStock === 0) return false;
+    
+    // Check quantity doesn't exceed stock
+    if (qty > selectedVariantStock) return false;
+    
+    return true;
+  }, [totalStock, product, selectedSize, selectedColor, selectedVariantStock, qty]);
+
   // Log product view
   if (product && !isLoading) {
     logProductView(product.id, product.titleEn, product.category);
@@ -87,17 +144,34 @@ export default function ProductPage() {
       return;
     }
 
+    // Check stock for the selected variant
+    if (selectedVariantStock === 0) {
+      alert('Sorry, this item is out of stock');
+      return;
+    }
+    
+    if (qty > selectedVariantStock) {
+      alert(`Sorry, only ${selectedVariantStock} items available`);
+      return;
+    }
+
     const itemTitle = product.titleEn || (product as any).name;
     const itemImage = product.primaryImageUrl || (product as any).thumbnail || galleryImages[0];
     
+    // Find the specific variant SKU if available
+    const selectedVariant = variants.find(v => 
+      (!product.sizes?.length || v.size === selectedSize) && 
+      (!product.colors?.length || v.color === selectedColor)
+    );
+    
     addToCart({
-      variantId: product.id,
+      variantId: selectedVariant?.id || product.id,
       productId: product.id,
       title: itemTitle,
       name: itemTitle, // alias for compatibility
-      sku: product.sku,
-      priceAtAdd: product.price || product.basePrice,
-      price: product.price || product.basePrice, // alias for compatibility
+      sku: selectedVariant?.sku || product.sku,
+      priceAtAdd: selectedVariant?.price || product.price || product.basePrice,
+      price: selectedVariant?.price || product.price || product.basePrice, // alias for compatibility
       qty,
       size: selectedSize || undefined,
       color: selectedColor || undefined,
@@ -242,6 +316,8 @@ export default function ProductPage() {
                     sizes={product.sizes}
                     selected={selectedSize}
                     onChange={setSelectedSize}
+                    selectedColor={selectedColor}
+                    variants={variants}
                   />
                 </div>
               )}
@@ -253,18 +329,37 @@ export default function ProductPage() {
                     colors={product.colors}
                     selected={selectedColor}
                     onChange={setSelectedColor}
+                    selectedSize={selectedSize}
+                    variants={variants}
                   />
+                </div>
+              )}
+
+              {/* Selected variant stock warning */}
+              {selectedSize && selectedColor && selectedVariantStock > 0 && selectedVariantStock <= 5 && (
+                <div className="mb-4 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded">
+                  <p className="text-sm font-medium text-yellow-800">
+                    Only {selectedVariantStock} left in this size & color
+                  </p>
+                </div>
+              )}
+              
+              {selectedSize && selectedColor && selectedVariantStock === 0 && (
+                <div className="mb-4 px-4 py-2 bg-bmr-acc-red/10 border border-bmr-acc-red/30 rounded">
+                  <p className="text-sm font-medium text-bmr-acc-red">
+                    This size & color combination is out of stock
+                  </p>
                 </div>
               )}
 
               {/* Quantity & Add to Cart */}
               <div className="mb-6">
                 <div className="flex gap-3 mb-4">
-                  <QtyStepper value={qty} onChange={setQty} max={totalStock} />
+                  <QtyStepper value={qty} onChange={setQty} max={selectedVariantStock || totalStock} />
                 </div>
                 <AddToCartButton
                   onClick={handleAddToCart}
-                  disabled={totalStock === 0}
+                  disabled={!canAddToCart}
                 />
               </div>
 
@@ -357,15 +452,18 @@ export default function ProductPage() {
                   {selectedSize && <span>{selectedSize}</span>}
                   {selectedSize && selectedColor && <span className="mx-1">•</span>}
                   {selectedColor && <span>{selectedColor}</span>}
+                  {selectedVariantStock > 0 && selectedVariantStock <= 5 && (
+                    <span className="ml-2 text-yellow-600">({selectedVariantStock} left)</span>
+                  )}
                 </div>
               )}
             </div>
             <button
               onClick={handleAddToCart}
-              disabled={totalStock === 0}
+              disabled={!canAddToCart}
               className="px-8 py-3 bg-bmr-ink text-surface-2 rounded hover:bg-bmr-fg transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
-              Add to cart
+              {selectedVariantStock === 0 && selectedSize && selectedColor ? 'Out of Stock' : 'Add to cart'}
             </button>
           </div>
         </div>

@@ -1,9 +1,82 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe/config';
+import { adminDb } from '@/lib/firebase/server';
 import Stripe from 'stripe';
 
 // Mark as dynamic route (uses request body)
 export const dynamic = 'force-dynamic';
+
+/**
+ * Validate stock for all items before checkout
+ */
+async function validateStock(items: any[]): Promise<{ valid: boolean; errors: string[] }> {
+  const errors: string[] = [];
+  
+  for (const item of items) {
+    try {
+      const productDoc = await adminDb().collection('products').doc(item.productId).get();
+      
+      if (!productDoc.exists) {
+        errors.push(`Product "${item.title || item.name}" is no longer available`);
+        continue;
+      }
+      
+      const productData = productDoc.data();
+      
+      // Check variant-level stock if size/color specified
+      if (item.size || item.color) {
+        const variantsSnap = await adminDb()
+          .collection('products')
+          .doc(item.productId)
+          .collection('variants')
+          .get();
+        
+        let variantFound = false;
+        for (const variantDoc of variantsSnap.docs) {
+          const variantData = variantDoc.data();
+          const sizeMatch = !item.size || variantData.size === item.size;
+          const colorMatch = !item.color || variantData.color === item.color;
+          
+          if (sizeMatch && colorMatch) {
+            variantFound = true;
+            const availableStock = variantData.stock || 0;
+            
+            if (availableStock < item.qty) {
+              const variantDesc = [item.size, item.color].filter(Boolean).join(' / ');
+              if (availableStock === 0) {
+                errors.push(`"${item.title || item.name}" (${variantDesc}) is out of stock`);
+              } else {
+                errors.push(`"${item.title || item.name}" (${variantDesc}) only has ${availableStock} available (you requested ${item.qty})`);
+              }
+            }
+            break;
+          }
+        }
+        
+        if (!variantFound) {
+          const variantDesc = [item.size, item.color].filter(Boolean).join(' / ');
+          errors.push(`"${item.title || item.name}" (${variantDesc}) is no longer available`);
+        }
+      } else {
+        // Check product-level stock
+        const totalStock = productData?.counts?.totalStock || productData?.stock || 0;
+        
+        if (totalStock < item.qty) {
+          if (totalStock === 0) {
+            errors.push(`"${item.title || item.name}" is out of stock`);
+          } else {
+            errors.push(`"${item.title || item.name}" only has ${totalStock} available (you requested ${item.qty})`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error validating stock for ${item.productId}:`, error);
+      // Continue checking other items
+    }
+  }
+  
+  return { valid: errors.length === 0, errors };
+}
 
 /**
  * POST /api/stripe/create-checkout-session
@@ -26,6 +99,18 @@ export async function POST(request: NextRequest) {
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
         { error: 'Cart items are required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate stock before creating checkout session
+    const stockValidation = await validateStock(items);
+    if (!stockValidation.valid) {
+      return NextResponse.json(
+        { 
+          error: 'Some items in your cart are no longer available',
+          stockErrors: stockValidation.errors 
+        },
         { status: 400 }
       );
     }

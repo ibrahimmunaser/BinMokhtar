@@ -145,6 +145,15 @@ export interface Product {
     descriptionAr?: string;
     canonical?: string;
   };
+  // Variants loaded from subcollection (for stock checking)
+  variants?: Array<{
+    id: string;
+    size?: string;
+    color?: string;
+    stock: number;
+    sku: string;
+    price?: number;
+  }>;
 }
 
 export interface ProductImage {

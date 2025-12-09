@@ -75,14 +75,31 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   const q = query(prodCol, where('slug', '==', slug), where('status', '==', 'ACTIVE'), limit(1));
   const snapshot = await getDocs(q);
   if (!snapshot.empty) {
-    const data = snapshot.docs[0].data();
+    const productDoc = snapshot.docs[0];
+    const data = productDoc.data();
+    
+    // Fetch variants subcollection for stock information
+    let variants: any[] = [];
+    try {
+      const variantsCol = collection(db, 'products', productDoc.id, 'variants');
+      const variantsSnapshot = await getDocs(variantsCol);
+      variants = variantsSnapshot.docs.map(vDoc => ({
+        id: vDoc.id,
+        ...vDoc.data()
+      }));
+    } catch (e) {
+      console.warn('Failed to fetch variants:', e);
+    }
+    
     return { 
-      id: snapshot.docs[0].id, 
+      id: productDoc.id, 
       ...data,
       // Ensure new image fields are populated
       primaryImageUrl: data.primaryImageUrl || data.images?.[0] || data.thumbnail || data.defaultImage?.url,
       galleryImageUrls: data.galleryImageUrls || data.images || [],
       primaryImageAlt: data.primaryImageAlt || data.titleEn || data.name,
+      // Include variants for stock checking
+      variants,
     } as Product;
   }
 
@@ -154,13 +171,52 @@ export async function createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'u
       const productSnap = await getDoc(productRef);
       
       if (productSnap.exists()) {
-        const currentStock = productSnap.data().stock || 0;
-        const newStock = Math.max(0, currentStock - item.qty);
+        const productData = productSnap.data();
+        
+        // Try to decrement variant stock first (per size/color combination)
+        let variantUpdated = false;
+        if (item.size || item.color) {
+          try {
+            // Find and update the specific variant
+            const variantsCol = collection(db, 'products', item.productId, 'variants');
+            const variantsSnapshot = await getDocs(variantsCol);
+            
+            for (const variantDoc of variantsSnapshot.docs) {
+              const variantData = variantDoc.data();
+              const sizeMatch = !item.size || variantData.size === item.size;
+              const colorMatch = !item.color || variantData.color === item.color;
+              
+              if (sizeMatch && colorMatch) {
+                const currentVariantStock = variantData.stock || 0;
+                const newVariantStock = Math.max(0, currentVariantStock - item.qty);
+                
+                await updateDoc(doc(db, 'products', item.productId, 'variants', variantDoc.id), {
+                  stock: newVariantStock,
+                  updatedAt: Timestamp.now(),
+                });
+                
+                variantUpdated = true;
+                console.log(`Updated variant stock: ${item.productId}/${variantDoc.id} - ${currentVariantStock} → ${newVariantStock}`);
+                break; // Found and updated the variant
+              }
+            }
+          } catch (variantError) {
+            console.warn(`Failed to update variant stock for ${item.productId}:`, variantError);
+          }
+        }
+        
+        // Also update the product-level totalStock in counts
+        const currentCounts = productData.counts || { totalStock: 0 };
+        const currentTotalStock = currentCounts.totalStock || productData.stock || 0;
+        const newTotalStock = Math.max(0, currentTotalStock - item.qty);
         
         await updateDoc(productRef, {
-          stock: newStock,
+          'counts.totalStock': newTotalStock,
+          stock: newTotalStock, // Also update legacy field
           updatedAt: Timestamp.now(),
         });
+        
+        console.log(`Updated product totalStock: ${item.productId} - ${currentTotalStock} → ${newTotalStock}`);
       }
     } catch (error) {
       console.error(`Failed to update stock for product ${item.productId}:`, error);

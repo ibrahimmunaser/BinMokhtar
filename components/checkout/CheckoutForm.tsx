@@ -361,6 +361,13 @@ export function CheckoutForm() {
       if (!response.ok) {
         console.error('❌ CheckoutForm: API returned error');
         console.error('❌ CheckoutForm: Error message:', data.error);
+        
+        // Handle stock validation errors specially
+        if (data.stockErrors && Array.isArray(data.stockErrors)) {
+          const errorMessage = 'Stock issues:\n• ' + data.stockErrors.join('\n• ');
+          throw new Error(errorMessage);
+        }
+        
         throw new Error(data.error || 'Failed to create checkout session');
       }
 
