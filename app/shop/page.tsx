@@ -222,13 +222,21 @@ export default function ShopPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {filteredAndSortedProducts.map((product) => (
+                  {filteredAndSortedProducts.map((product) => {
+                    // Generate fallback slug from name if slug is missing
+                    const productSlug = product.slug || 
+                      (product.titleEn || (product as any).name || product.id || '')
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/^-|-$/g, '');
+                    
+                    return (
                     <ProductCard
                       key={product.id}
                       variant={{
                         id: product.id,
                         productId: product.id,
-                        productSlug: product.slug,
+                        productSlug: productSlug,
                         productTitleEn: product.titleEn || (product as any).name || '',
                         productTitleAr: product.titleAr || (product as any).name || '',
                         category: product.category || 'THOBE',
@@ -244,7 +252,8 @@ export default function ShopPage() {
                       }}
                       showSoldOut
                     />
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

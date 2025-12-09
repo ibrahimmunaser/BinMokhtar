@@ -78,13 +78,19 @@ export async function getProducts(constraints: QueryConstraint[] = []): Promise<
   });
 }
 
+// Helper function to generate slug from name
+function generateSlugFromName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const prodCol = collection(db, 'products');
-  // Only return ACTIVE products for storefront
-  const q = query(prodCol, where('slug', '==', slug), where('status', '==', 'ACTIVE'), limit(1));
-  const snapshot = await getDocs(q);
-  if (!snapshot.empty) {
-    const productDoc = snapshot.docs[0];
+  
+  // Helper to transform product document to Product type
+  const transformProductDoc = async (productDoc: any): Promise<Product> => {
     const data = productDoc.data();
     
     // Fetch variants subcollection for stock information
@@ -107,6 +113,8 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     return { 
       id: productDoc.id, 
       ...data,
+      // Ensure slug is set, generate from name if missing
+      slug: data.slug || generateSlugFromName(data.name || data.titleEn || productDoc.id),
       // Map 'name' to 'titleEn' for consistency with types
       titleEn,
       titleAr,
@@ -119,17 +127,46 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
       // Include variants for stock checking
       variants,
     } as Product;
+  };
+
+  // Try 1: Exact slug match in database
+  const q = query(prodCol, where('slug', '==', slug), where('status', '==', 'ACTIVE'), limit(1));
+  const snapshot = await getDocs(q);
+  if (!snapshot.empty) {
+    return transformProductDoc(snapshot.docs[0]);
   }
 
-  // Fallback: try local admin data (mock/localStorage) so PDP works before Firebase is populated
+  // Try 2: Look for products where name-derived slug matches (for products missing slug field)
+  // This is a fallback for legacy products that were created without a slug
+  try {
+    const allActiveQuery = query(prodCol, where('status', '==', 'ACTIVE'));
+    const allSnapshot = await getDocs(allActiveQuery);
+    
+    for (const productDoc of allSnapshot.docs) {
+      const data = productDoc.data();
+      const productName = data.name || data.titleEn || '';
+      const generatedSlug = generateSlugFromName(productName);
+      
+      // Check if the generated slug matches the requested slug
+      if (generatedSlug === slug || productDoc.id === slug) {
+        console.log(`Found product by generated slug: ${productName} → ${generatedSlug}`);
+        return transformProductDoc(productDoc);
+      }
+    }
+  } catch (e) {
+    console.warn('Failed fallback slug search:', e);
+  }
+
+  // Try 3: Fallback to local admin data (mock/localStorage) so PDP works before Firebase is populated
   try {
     const local = getLocalAdminProducts() as any[];
-    const match = local.find((p) => (p.slug === slug));
+    const match = local.find((p) => (p.slug === slug || generateSlugFromName(p.name || p.titleEn || '') === slug));
     // Only return if status is ACTIVE or if status field doesn't exist (legacy data)
     if (match && (!match.status || match.status === 'ACTIVE')) return match as Product;
   } catch (e) {
     // ignore fallback errors
   }
+  
   return null;
 }
 

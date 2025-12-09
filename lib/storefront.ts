@@ -33,13 +33,23 @@ export async function getStorefrontProducts(category?: CategoryFilter): Promise<
         });
       }
       
-      // Ensure products have the new image fields, fallback to legacy if needed
-      products = products.map(p => ({
-        ...p,
-        primaryImageUrl: p.primaryImageUrl || p.galleryImageUrls?.[0] || (p.defaultImage?.url) || undefined,
-        galleryImageUrls: p.galleryImageUrls || [],
-        primaryImageAlt: p.primaryImageAlt || p.titleEn,
-      }));
+      // Ensure products have the new image fields and slug, fallback to legacy if needed
+      products = products.map(p => {
+        // Generate slug from name if missing
+        const slug = p.slug || 
+          ((p as any).name || p.titleEn || p.id || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '');
+        
+        return {
+          ...p,
+          slug,
+          primaryImageUrl: p.primaryImageUrl || p.galleryImageUrls?.[0] || (p.defaultImage?.url) || undefined,
+          galleryImageUrls: p.galleryImageUrls || [],
+          primaryImageAlt: p.primaryImageAlt || p.titleEn,
+        };
+      });
       
       return products;
     }
