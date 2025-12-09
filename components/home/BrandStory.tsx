@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { StoryBlock } from '@/types';
 
 interface BrandStoryProps {
@@ -41,30 +40,10 @@ export function BrandStory({
           })}
         </div>
 
-        {/* Links */}
-        <div className="flex flex-wrap items-center justify-center gap-6 mt-12">
-          <Link
-            href="/size-guide"
-            className="text-sm uppercase tracking-wide text-bmr-ink hover:underline"
-          >
-            Size Guide
-          </Link>
-          <span className="text-bmr-muted">•</span>
-          <Link
-            href="/care"
-            className="text-sm uppercase tracking-wide text-bmr-ink hover:underline"
-          >
-            Care Instructions
-          </Link>
-        </div>
       </div>
     </section>
   );
 }
-
-
-
-
 
 
 
