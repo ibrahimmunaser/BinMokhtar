@@ -362,7 +362,7 @@ export default function ProductPage() {
                   disabled={!canAddToCart}
                   outOfStock={
                     totalStock === 0 || 
-                    (selectedSize && selectedColor && selectedVariantStock === 0)
+                    (!!selectedSize && !!selectedColor && selectedVariantStock === 0)
                   }
                 />
               </div>
