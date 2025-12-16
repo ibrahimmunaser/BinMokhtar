@@ -471,7 +471,7 @@ export default function CategoryPage() {
         <div className="absolute inset-0">
           <Image
             src={heroImage}
-            alt={categoryInfo.name}
+            alt={categoryInfo?.name || slug}
             fill
             className="object-cover"
             style={{ objectPosition: heroPosition }}
@@ -482,8 +482,8 @@ export default function CategoryPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/60" />
         <Container className="relative h-full flex items-center justify-center">
           <div className="text-center text-white">
-            <h1 className="font-display text-4xl lg:text-6xl mb-3">{categoryInfo.name.toUpperCase()}</h1>
-            {categoryInfo.description && (
+            <h1 className="font-display text-4xl lg:text-6xl mb-3">{(categoryInfo?.name || slug).toUpperCase()}</h1>
+            {categoryInfo?.description && (
               <p className="text-lg lg:text-xl text-white/90">{categoryInfo.description}</p>
             )}
           </div>
