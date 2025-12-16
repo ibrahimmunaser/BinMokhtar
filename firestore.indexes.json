@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "subcategories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "parentCategoryId", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "variants",
       "queryScope": "COLLECTION",
       "fields": [

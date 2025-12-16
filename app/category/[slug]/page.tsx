@@ -22,56 +22,65 @@ const SORT_OPTIONS = [
 const SIZES = ['54', '56', '58', '60', '62'];
 const COLORS = ['White', 'Black', 'Beige', 'Brown', 'Navy', 'Grey', 'Cream', 'Olive'];
 
-// Define our category structure
-const CATEGORY_STRUCTURE: Record<string, {
+// Main categories structure
+const MAIN_CATEGORIES: Record<string, {
   name: string;
   description: string;
-  parent?: string;
-  subcategories?: string[];
 }> = {
-  // Main categories
   'men': {
     name: 'Men',
     description: 'Traditional Islamic attire for men',
-    subcategories: ['emirati', 'saudi'],
+  },
+  'women': {
+    name: 'Women',
+    description: 'Traditional Islamic attire for women',
   },
   'boys': {
     name: 'Boys',
     description: 'Traditional Islamic attire for boys',
-    subcategories: ['thobes'],
+  },
+  'girls': {
+    name: 'Girls',
+    description: 'Traditional Islamic attire for girls',
   },
   'shemaghs': {
     name: 'Shemaghs',
     description: 'Traditional head scarves',
-    subcategories: ['traditional', 'yemeni'],
-  },
-  // Subcategories
-  'emirati': {
-    name: 'Emirati Thobes',
-    description: 'Emirati style thobes',
-    parent: 'men',
-  },
-  'saudi': {
-    name: 'Saudi Thobes',
-    description: 'Saudi style thobes',
-    parent: 'men',
-  },
-  'thobes': {
-    name: 'Emirati Thobes',
-    description: 'Boys Emirati thobes',
-    parent: 'boys',
-  },
-  'traditional': {
-    name: 'Traditional',
-    description: 'Traditional shemaghs',
-    parent: 'shemaghs',
-  },
-  'yemeni': {
-    name: 'Yemeni',
-    description: 'Yemeni style shemaghs',
-    parent: 'shemaghs',
   },
 };
+
+// Fallback subcategories (shown only if Firebase returns empty)
+const FALLBACK_SUBCATEGORIES: Record<string, {
+  slug: string;
+  name: string;
+  description: string;
+  parentCategoryId: string;
+}[]> = {
+  'men': [
+    { slug: 'emirati', name: 'Emirati Thobes', description: 'Emirati style thobes', parentCategoryId: 'Men' },
+    { slug: 'saudi', name: 'Saudi Thobes', description: 'Saudi style thobes', parentCategoryId: 'Men' },
+  ],
+  'boys': [
+    { slug: 'thobes', name: 'Emirati Thobes', description: 'Boys Emirati thobes', parentCategoryId: 'Boys' },
+  ],
+  'shemaghs': [
+    { slug: 'traditional', name: 'Traditional', description: 'Traditional shemaghs', parentCategoryId: 'Shemaghs' },
+    { slug: 'yemeni', name: 'Yemeni', description: 'Yemeni style shemaghs', parentCategoryId: 'Shemaghs' },
+  ],
+};
+
+// All fallback subcategory slugs for lookup
+const ALL_FALLBACK_SUBCATEGORIES = Object.values(FALLBACK_SUBCATEGORIES).flat();
+
+// Subcategory data from Firebase
+interface SubcategoryData {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  parentCategoryId: string;
+  active: boolean;
+}
 
 // Category-specific hero images with positioning (loaded from Firebase Storage)
 const CATEGORY_HERO_CONFIG: Record<string, { image: string; position: string }> = {
@@ -95,10 +104,119 @@ export default function CategoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(true);
   
-  // Get category info from our structure
-  const categoryInfo = CATEGORY_STRUCTURE[slug.toLowerCase()];
-  const isSubcategory = categoryInfo?.parent !== undefined;
-  const parentCategory = isSubcategory ? CATEGORY_STRUCTURE[categoryInfo.parent!] : null;
+  // Dynamic subcategories from Firebase
+  const [allSubcategories, setAllSubcategories] = useState<SubcategoryData[]>([]);
+  const [isLoadingSubcategories, setIsLoadingSubcategories] = useState(true);
+  
+  // Determine if this is a main category or a subcategory
+  const slugLower = slug.toLowerCase();
+  const isMainCategory = !!MAIN_CATEGORIES[slugLower];
+  
+  // Check if it's a fallback subcategory (used when Firebase is empty)
+  const fallbackSubcategory = ALL_FALLBACK_SUBCATEGORIES.find(sub => sub.slug === slugLower);
+  
+  // For subcategories, find the matching one from Firebase data OR use fallback
+  const matchedSubcategory = useMemo(() => {
+    if (isMainCategory) return null;
+    // First check Firebase data
+    const fromFirebase = allSubcategories.find(sub => sub.slug.toLowerCase() === slugLower);
+    if (fromFirebase) return fromFirebase;
+    // Fall back to fallback subcategory only if Firebase returned empty
+    if (allSubcategories.length === 0 && fallbackSubcategory) {
+      return {
+        id: fallbackSubcategory.slug,
+        slug: fallbackSubcategory.slug,
+        name: fallbackSubcategory.name,
+        description: fallbackSubcategory.description,
+        parentCategoryId: fallbackSubcategory.parentCategoryId,
+        active: true,
+      } as SubcategoryData;
+    }
+    return null;
+  }, [isMainCategory, allSubcategories, slugLower, fallbackSubcategory]);
+  
+  const isSubcategory = !isMainCategory && (!!matchedSubcategory || (allSubcategories.length === 0 && !!fallbackSubcategory));
+  
+  // Get category info - either from main categories or from matched subcategory
+  const categoryInfo = useMemo(() => {
+    if (isMainCategory) {
+      return MAIN_CATEGORIES[slugLower];
+    }
+    if (matchedSubcategory) {
+      return {
+        name: matchedSubcategory.name,
+        description: matchedSubcategory.description || '',
+      };
+    }
+    // Fall back only if Firebase is empty
+    if (allSubcategories.length === 0 && fallbackSubcategory) {
+      return {
+        name: fallbackSubcategory.name,
+        description: fallbackSubcategory.description,
+      };
+    }
+    // Fallback for unknown slugs
+    return null;
+  }, [isMainCategory, slugLower, matchedSubcategory, fallbackSubcategory, allSubcategories.length]);
+  
+  // Get parent category for subcategories
+  const parentCategory = useMemo(() => {
+    if (!isSubcategory) return null;
+    if (matchedSubcategory) {
+      const parentId = matchedSubcategory.parentCategoryId.toLowerCase();
+      return MAIN_CATEGORIES[parentId] || null;
+    }
+    if (allSubcategories.length === 0 && fallbackSubcategory) {
+      const parentId = fallbackSubcategory.parentCategoryId.toLowerCase();
+      return MAIN_CATEGORIES[parentId] || null;
+    }
+    return null;
+  }, [isSubcategory, matchedSubcategory, fallbackSubcategory, allSubcategories.length]);
+  
+  // Get subcategories for the current main category (for filtering) - from Firebase with fallback
+  const categorySubcategories = useMemo(() => {
+    if (!isMainCategory) return [];
+    
+    // Map slug to parent category ID (case-sensitive as stored in Firebase)
+    const parentId = slugLower.charAt(0).toUpperCase() + slugLower.slice(1);
+    const firebaseSubs = allSubcategories.filter(sub => 
+      sub.parentCategoryId === parentId && sub.active !== false
+    );
+    
+    // If Firebase has data, use it
+    if (firebaseSubs.length > 0) {
+      return firebaseSubs;
+    }
+    
+    // Fall back to defaults if Firebase is empty
+    return (FALLBACK_SUBCATEGORIES[slugLower] || []).map(sub => ({
+      id: sub.slug,
+      slug: sub.slug,
+      name: sub.name,
+      description: sub.description,
+      parentCategoryId: sub.parentCategoryId,
+      active: true,
+    }));
+  }, [isMainCategory, slugLower, allSubcategories]);
+  
+  // Fetch subcategories on mount
+  useEffect(() => {
+    const fetchSubcategories = async () => {
+      setIsLoadingSubcategories(true);
+      try {
+        const response = await fetch('/api/admin/subcategories');
+        const data = await response.json();
+        if (data.success) {
+          setAllSubcategories(data.subcategories || []);
+        }
+      } catch (error) {
+        console.error('Error fetching subcategories:', error);
+      } finally {
+        setIsLoadingSubcategories(false);
+      }
+    };
+    fetchSubcategories();
+  }, []);
   
   // Get filter/sort values from URL
   const sortBy = searchParams?.get('sort') || 'featured';
@@ -120,11 +238,10 @@ export default function CategoryPage() {
         if (data.success && data.products) {
           let filtered = data.products;
           
-          if (isSubcategory) {
+          if (isSubcategory && matchedSubcategory) {
             // Filter by subcategory slug (case-insensitive)
-            // slug is 'emirati', 'saudi', 'thobes', 'traditional', 'yemeni'
-            const subcategorySlug = slug.toLowerCase();
-            const parentSlug = categoryInfo.parent?.toLowerCase();
+            const subcategorySlug = matchedSubcategory.slug.toLowerCase();
+            const parentSlug = matchedSubcategory.parentCategoryId.toLowerCase();
             
             filtered = filtered.filter((p: any) => {
               // Match subcategory field against slug
@@ -141,13 +258,17 @@ export default function CategoryPage() {
                 matchesParent = p.audience === 'BOYS' || p.categoryId?.toLowerCase() === 'boys';
               } else if (parentSlug === 'shemaghs') {
                 matchesParent = p.category === 'SHAAL' || p.categoryId?.toLowerCase() === 'shemaghs';
+              } else if (parentSlug === 'women') {
+                matchesParent = p.categoryId?.toLowerCase() === 'women';
+              } else if (parentSlug === 'girls') {
+                matchesParent = p.categoryId?.toLowerCase() === 'girls';
               }
               
               return matchesSubcategory && matchesParent;
             });
-          } else {
+          } else if (isMainCategory) {
             // Filter by main category slug
-            const categorySlug = slug.toLowerCase();
+            const categorySlug = slugLower;
             filtered = filtered.filter((p: any) => {
               if (categorySlug === 'men') {
                 return p.audience === 'MEN' || p.categoryId?.toLowerCase() === 'men';
@@ -155,6 +276,10 @@ export default function CategoryPage() {
                 return p.audience === 'BOYS' || p.categoryId?.toLowerCase() === 'boys';
               } else if (categorySlug === 'shemaghs') {
                 return p.category === 'SHAAL' || p.categoryId?.toLowerCase() === 'shemaghs';
+              } else if (categorySlug === 'women') {
+                return p.categoryId?.toLowerCase() === 'women';
+              } else if (categorySlug === 'girls') {
+                return p.categoryId?.toLowerCase() === 'girls';
               }
               return p.categoryId?.toLowerCase() === categorySlug;
             });
@@ -169,12 +294,17 @@ export default function CategoryPage() {
       setIsLoading(false);
     };
 
-    if (categoryInfo) {
+    // Wait for subcategories to load before fetching products (for subcategory pages)
+    // But allow fallback subcategories to work immediately if Firebase is empty
+    if (isLoadingSubcategories && !fallbackSubcategory) return;
+    
+    if (isMainCategory || matchedSubcategory || (allSubcategories.length === 0 && fallbackSubcategory)) {
       fetchProducts();
-    } else {
+    } else if (!isLoadingSubcategories) {
+      // Unknown category/subcategory
       setIsLoading(false);
     }
-  }, [slug, categoryInfo, isSubcategory, parentCategory]);
+  }, [slug, slugLower, isMainCategory, isSubcategory, matchedSubcategory, fallbackSubcategory, isLoadingSubcategories, allSubcategories.length]);
 
   // Update URL with new params
   const updateFilters = (key: string, value: string | string[]) => {
@@ -283,13 +413,26 @@ export default function CategoryPage() {
   // Active filters count
   const activeFiltersCount = selectedSizes.length + selectedColors.length + (selectedSubcategory ? 1 : 0) + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0);
 
-  // Get hero image and position for category
-  const heroConfig = CATEGORY_HERO_CONFIG[slug.toLowerCase()] || { image: FIREBASE_IMAGES.HOME_MENS_THOBE, position: 'center 30%' };
+  // Get hero image and position for category (with fallback for dynamic subcategories)
+  const heroConfig = CATEGORY_HERO_CONFIG[slugLower] || 
+    (matchedSubcategory ? CATEGORY_HERO_CONFIG[matchedSubcategory.parentCategoryId.toLowerCase()] : null) ||
+    { image: FIREBASE_IMAGES.HOME_MENS_THOBE, position: 'center 30%' };
   const heroImage = heroConfig.image;
   const heroPosition = heroConfig.position;
 
-  // Category not found
-  if (!categoryInfo) {
+  // Category not found - show loading while subcategories are being fetched
+  if (isLoadingSubcategories && !isMainCategory && !fallbackSubcategory) {
+    return (
+      <Container className="py-12">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-bmr-ink border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-muted">Loading...</p>
+        </div>
+      </Container>
+    );
+  }
+  
+  if (!categoryInfo && !isMainCategory && !matchedSubcategory && !(allSubcategories.length === 0 && fallbackSubcategory)) {
     return (
       <Container className="py-12">
         <div className="text-center">
@@ -309,14 +452,15 @@ export default function CategoryPage() {
   ];
   
   if (isSubcategory && parentCategory) {
+    const parentId = matchedSubcategory?.parentCategoryId || fallbackSubcategory?.parentCategoryId || '';
     breadcrumbItems.push({
       label: parentCategory.name,
-      href: `/category/${categoryInfo.parent}`,
+      href: `/category/${parentId.toLowerCase()}`,
     });
   }
   
   breadcrumbItems.push({
-    label: categoryInfo.name,
+    label: categoryInfo?.name || slug,
     href: `/category/${slug}`,
   });
 
@@ -414,7 +558,7 @@ export default function CategoryPage() {
                       onClick={() => updateFilters('subcategory', '')}
                       className="flex items-center gap-1 px-3 py-1 bg-bmr-ink text-surface-2 text-sm rounded-full hover:bg-bmr-fg transition-colors"
                     >
-                      {CATEGORY_STRUCTURE[selectedSubcategory]?.name || selectedSubcategory}
+                      {allSubcategories.find(s => s.slug === selectedSubcategory)?.name || selectedSubcategory}
                       <X className="w-3 h-3" />
                     </button>
                   )}
@@ -461,8 +605,8 @@ export default function CategoryPage() {
 
               {/* Filter Controls */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {/* Subcategory - Only show for main categories with subcategories */}
-                {!isSubcategory && categoryInfo?.subcategories && categoryInfo.subcategories.length > 0 && (
+                {/* Subcategory - Only show for main categories with subcategories (loaded from Firebase) */}
+                {isMainCategory && categorySubcategories.length > 0 && (
                 <div>
                   <label className="block text-sm font-medium mb-3">Style</label>
                   <div className="flex flex-wrap gap-2">
@@ -476,22 +620,19 @@ export default function CategoryPage() {
                     >
                       All
                     </button>
-                    {categoryInfo.subcategories.map(subSlug => {
-                      const subInfo = CATEGORY_STRUCTURE[subSlug];
-                      return (
-                        <button
-                          key={subSlug}
-                          onClick={() => updateFilters('subcategory', subSlug)}
-                          className={`px-4 py-2 text-sm border rounded transition-colors ${
-                            selectedSubcategory === subSlug
-                              ? 'bg-bmr-ink text-surface-2 border-bmr-ink'
-                              : 'border-line hover:border-bmr-ink'
-                          }`}
-                        >
-                          {subInfo?.name || subSlug}
-                        </button>
-                      );
-                    })}
+                    {categorySubcategories.map(sub => (
+                      <button
+                        key={sub.slug}
+                        onClick={() => updateFilters('subcategory', sub.slug)}
+                        className={`px-4 py-2 text-sm border rounded transition-colors ${
+                          selectedSubcategory === sub.slug
+                            ? 'bg-bmr-ink text-surface-2 border-bmr-ink'
+                            : 'border-line hover:border-bmr-ink'
+                        }`}
+                      >
+                        {sub.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
                 )}

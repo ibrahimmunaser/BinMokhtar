@@ -40,6 +40,20 @@ export interface Category {
   sort?: number;
 }
 
+export interface Subcategory {
+  id: string;
+  slug: string;
+  name: string;
+  nameAr?: string;
+  description?: string;
+  descriptionAr?: string;
+  parentCategoryId: string; // Reference to parent category (e.g., 'Men', 'Boys', 'Shemaghs')
+  active: boolean;
+  sort?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 // ============================================================================
 // Settings & Configuration
 // ============================================================================

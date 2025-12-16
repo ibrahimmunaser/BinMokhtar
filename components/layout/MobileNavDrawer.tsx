@@ -1,22 +1,43 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
 import type { NavItem } from '@/types';
 
-// Navigation structure: Men, Boys, Shemaghs, About, Contact
-const defaultNavigation: NavItem[] = [
+// Subcategory data from Firebase
+interface SubcategoryData {
+  id: string;
+  name: string;
+  slug: string;
+  parentCategoryId: string;
+  active: boolean;
+}
+
+// Fallback subcategories (shown only if Firebase returns empty)
+const FALLBACK_NAV_SUBCATEGORIES: Record<string, NavItem[]> = {
+  men: [
+    { id: 'emirati', labelEn: 'Emirati Thobes', labelAr: 'ثوب إماراتي', href: '/category/emirati', sort: 1 },
+    { id: 'saudi', labelEn: 'Saudi Thobes', labelAr: 'ثوب سعودي', href: '/category/saudi', sort: 2 },
+  ],
+  boys: [
+    { id: 'thobes', labelEn: 'Emirati Thobes', labelAr: 'ثوب إماراتي', href: '/category/thobes', sort: 1 },
+  ],
+  shemaghs: [
+    { id: 'traditional', labelEn: 'Traditional', labelAr: 'تقليدي', href: '/category/traditional', sort: 1 },
+    { id: 'yemeni', labelEn: 'Yemeni', labelAr: 'يمني', href: '/category/yemeni', sort: 2 },
+  ],
+};
+
+// Main navigation structure (subcategories loaded dynamically)
+const mainCategories: NavItem[] = [
   {
     id: 'men',
     labelEn: 'Men',
     labelAr: 'رجال',
     href: '/category/men',
     sort: 1,
-    children: [
-      { id: 'emirati', labelEn: 'Emirati Thobes', labelAr: 'ثوب إماراتي', href: '/category/emirati', sort: 1 },
-      { id: 'saudi', labelEn: 'Saudi Thobes', labelAr: 'ثوب سعودي', href: '/category/saudi', sort: 2 },
-    ],
+    children: FALLBACK_NAV_SUBCATEGORIES.men, // Fallback children until Firebase loads
   },
   {
     id: 'boys',
@@ -24,9 +45,7 @@ const defaultNavigation: NavItem[] = [
     labelAr: 'أولاد',
     href: '/category/boys',
     sort: 2,
-    children: [
-      { id: 'thobes', labelEn: 'Emirati Thobes', labelAr: 'ثوب إماراتي', href: '/category/thobes', sort: 1 },
-    ],
+    children: FALLBACK_NAV_SUBCATEGORIES.boys, // Fallback children until Firebase loads
   },
   {
     id: 'shemaghs',
@@ -34,14 +53,20 @@ const defaultNavigation: NavItem[] = [
     labelAr: 'شماغ',
     href: '/category/shemaghs',
     sort: 3,
-    children: [
-      { id: 'traditional', labelEn: 'Traditional', labelAr: 'تقليدي', href: '/category/traditional', sort: 1 },
-      { id: 'yemeni', labelEn: 'Yemeni', labelAr: 'يمني', href: '/category/yemeni', sort: 2 },
-    ],
+    children: FALLBACK_NAV_SUBCATEGORIES.shemaghs, // Fallback children until Firebase loads
   },
   { id: 'about', labelEn: 'ABOUT', labelAr: 'عن', href: '/about', sort: 4 },
   { id: 'contact', labelEn: 'CONTACT', labelAr: 'اتصل', href: '/contact', sort: 5 },
 ];
+
+// Map category IDs to their Firebase parent IDs (case-sensitive)
+const categoryIdToParentId: Record<string, string> = {
+  'men': 'Men',
+  'boys': 'Boys',
+  'shemaghs': 'Shemaghs',
+  'women': 'Women',
+  'girls': 'Girls',
+};
 
 interface MobileNavDrawerProps {
   isOpen: boolean;
@@ -50,6 +75,61 @@ interface MobileNavDrawerProps {
 
 export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [subcategories, setSubcategories] = useState<SubcategoryData[]>([]);
+  
+  // Fetch subcategories on mount
+  useEffect(() => {
+    const fetchSubcategories = async () => {
+      try {
+        const response = await fetch('/api/admin/subcategories');
+        const data = await response.json();
+        if (data.success) {
+          setSubcategories(data.subcategories || []);
+        }
+      } catch (error) {
+        console.error('Error fetching subcategories for mobile nav:', error);
+      }
+    };
+    fetchSubcategories();
+  }, []);
+  
+  // Build navigation with dynamic subcategories (from Firebase, with fallback)
+  const primaryNav = useMemo(() => {
+    return mainCategories.map(category => {
+      // Skip categories that don't have subcategories (About, Contact)
+      if (!['men', 'boys', 'shemaghs', 'women', 'girls'].includes(category.id)) {
+        return category;
+      }
+      
+      // Get the Firebase parent ID for this category
+      const parentId = categoryIdToParentId[category.id];
+      
+      // Find subcategories from Firebase
+      const firebaseSubcategories = subcategories
+        .filter(sub => sub.parentCategoryId === parentId && sub.active !== false)
+        .map(sub => ({
+          id: sub.slug,
+          labelEn: sub.name,
+          labelAr: sub.name,
+          href: `/category/${sub.slug}`,
+          sort: 0,
+        }));
+      
+      // If Firebase has data, use it; otherwise fall back to defaults
+      if (firebaseSubcategories.length > 0) {
+        return {
+          ...category,
+          children: firebaseSubcategories,
+        };
+      }
+      
+      // Fall back to default subcategories
+      return {
+        ...category,
+        children: FALLBACK_NAV_SUBCATEGORIES[category.id] || [],
+      };
+    });
+  }, [subcategories]);
 
   useEffect(() => {
     if (isOpen) {
@@ -67,8 +147,6 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
   };
-
-  const primaryNav = defaultNavigation;
 
   if (!isOpen) return null;
 
@@ -181,4 +259,3 @@ function MobileNavItem({
     </Link>
   );
 }
-

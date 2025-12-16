@@ -12,28 +12,44 @@ import { MultiSelect } from './MultiSelect';
 import { VariantStockMatrix } from './VariantStockMatrix';
 import { ColorImageMapper } from './ColorImageMapper';
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { getAllSubcategories } from '@/lib/firebaseAdminStore';
 
-// Category options and subcategories (per your spec)
-// Subcategory values should match URL slugs for filtering
+// Category options (main categories)
 const CATEGORY_OPTIONS = ['Men', 'Women', 'Boys', 'Girls', 'Shemaghs'] as const;
-const CATEGORY_TREE: Record<string, { subcategories: { value: string; label: string }[] }> = {
-  Men: { subcategories: [
+
+// Fallback subcategories (shown only if Firebase returns empty)
+const FALLBACK_SUBCATEGORIES: Record<string, { value: string; label: string }[]> = {
+  Men: [
     { value: 'emirati', label: 'Emirati Thobes' },
     { value: 'saudi', label: 'Saudi Thobes' },
-  ]},
-  Women: { subcategories: [
+  ],
+  Women: [
     { value: 'hijabs', label: 'Hijabs' },
     { value: 'abayas', label: 'Abayas' },
-  ]},
-  Boys: { subcategories: [
+  ],
+  Boys: [
     { value: 'thobes', label: 'Emirati Thobes' },
-  ]},
-  Girls: { subcategories: [] },
-  Shemaghs: { subcategories: [
+  ],
+  Girls: [],
+  Shemaghs: [
     { value: 'traditional', label: 'Traditional' },
     { value: 'yemeni', label: 'Yemeni' },
-  ]},
+  ],
 };
+
+// Subcategory interface
+interface SubcategoryOption {
+  value: string;
+  label: string;
+}
+
+interface Subcategory {
+  id: string;
+  name: string;
+  slug: string;
+  parentCategoryId: string;
+  active: boolean;
+}
 
 // Available sizes and colors
 const SIZE_OPTIONS = ['54', '56', '58', '60', '62'];
@@ -142,6 +158,10 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const isEditMode = !!productId;
+  
+  // Dynamic subcategories state
+  const [allSubcategories, setAllSubcategories] = useState<Subcategory[]>([]);
+  const [isLoadingSubcategories, setIsLoadingSubcategories] = useState(true);
 
   const {
     register,
@@ -186,12 +206,47 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
   // Check if basic information is filled (required fields only)
   const isBasicInfoComplete = title && title.length >= 4 && price && price > 0 && category;
 
+  // Load subcategories on mount
+  useEffect(() => {
+    const loadSubcategories = async () => {
+      setIsLoadingSubcategories(true);
+      try {
+        const subs = await getAllSubcategories();
+        setAllSubcategories(subs);
+      } catch (error) {
+        console.error('Error loading subcategories:', error);
+      } finally {
+        setIsLoadingSubcategories(false);
+      }
+    };
+    loadSubcategories();
+  }, []);
+
   // Load product data if in edit mode
   useEffect(() => {
     if (productId) {
       loadProduct();
     }
   }, [productId]);
+
+  // Get subcategories for the selected category (from Firebase, with fallback)
+  const getSubcategoriesForCategory = (categoryId: string): SubcategoryOption[] => {
+    // Get subcategories from Firebase for this category
+    const firebaseSubs = allSubcategories
+      .filter(sub => sub.parentCategoryId === categoryId && sub.active !== false)
+      .map(sub => ({
+        value: sub.slug,
+        label: sub.name,
+      }));
+    
+    // If Firebase has data for this category, use it
+    if (firebaseSubs.length > 0) {
+      return firebaseSubs;
+    }
+    
+    // Otherwise fall back to defaults (Firebase might not be seeded yet)
+    return FALLBACK_SUBCATEGORIES[categoryId] || [];
+  };
 
   const loadProduct = async () => {
     try {
@@ -491,21 +546,38 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
               )}
             </div>
 
-          {/* Subcategory (depends on chosen category) */}
-          {category && CATEGORY_TREE[category]?.subcategories?.length > 0 && (
+          {/* Subcategory (depends on chosen category - loaded dynamically from Firebase) */}
+          {category && (
             <div className="space-y-2">
               <label className="block text-sm font-medium">Subcategory</label>
-              <select
-                {...register('subcategory')}
-                className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-ink"
-              >
-                <option value="">Select subcategory</option>
-                {CATEGORY_TREE[category].subcategories.map((sub) => (
-                  <option key={sub.value} value={sub.value}>
-                    {sub.label}
-                  </option>
-                ))}
-              </select>
+              {isLoadingSubcategories ? (
+                <div className="w-full px-4 py-3 border border-line rounded-lg bg-surface-3 text-bmr-muted flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading subcategories...
+                </div>
+              ) : (
+                <>
+                  <select
+                    {...register('subcategory')}
+                    className="w-full px-4 py-3 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-ink"
+                  >
+                    <option value="">Select subcategory</option>
+                    {getSubcategoriesForCategory(category).map((sub) => (
+                      <option key={sub.value} value={sub.value}>
+                        {sub.label}
+                      </option>
+                    ))}
+                  </select>
+                  {getSubcategoriesForCategory(category).length === 0 && (
+                    <p className="text-sm text-bmr-muted mt-1">
+                      No subcategories available for {category}.{' '}
+                      <a href="/admin/categories" className="text-blue-600 hover:underline" target="_blank">
+                        Create one →
+                      </a>
+                    </p>
+                  )}
+                </>
+              )}
             </div>
           )}
           </div>

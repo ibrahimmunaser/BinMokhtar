@@ -222,3 +222,94 @@ export async function updateCategoryProductCounts(): Promise<void> {
   console.log('Category counts will be updated by cloud functions');
 }
 
+// Subcategories
+export async function getAllSubcategories(parentCategoryId?: string) {
+  if (!USE_FIREBASE) return [];
+
+  try {
+    const url = parentCategoryId 
+      ? `/api/admin/subcategories?parentCategoryId=${encodeURIComponent(parentCategoryId)}`
+      : '/api/admin/subcategories';
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.subcategories || [];
+    }
+    
+    console.warn('Firebase subcategories fetch failed');
+    return [];
+  } catch (error) {
+    console.error('Error fetching subcategories from Firebase:', error);
+    return [];
+  }
+}
+
+export async function addSubcategory(subcategoryData: {
+  name: string;
+  parentCategoryId: string;
+  description?: string;
+  slug?: string;
+}) {
+  if (!USE_FIREBASE) return null;
+
+  try {
+    const response = await fetch('/api/admin/subcategories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(subcategoryData),
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      return data.subcategory;
+    }
+    
+    throw new Error(data.error || 'Failed to create subcategory');
+  } catch (error) {
+    console.error('Error creating subcategory in Firebase:', error);
+    throw error;
+  }
+}
+
+export async function updateSubcategory(subcategoryId: string, updates: any): Promise<void> {
+  if (!USE_FIREBASE) return;
+
+  try {
+    const response = await fetch('/api/admin/subcategories', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: subcategoryId, ...updates }),
+    });
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to update subcategory');
+    }
+  } catch (error) {
+    console.error('Error updating subcategory in Firebase:', error);
+    throw error;
+  }
+}
+
+export async function deleteSubcategory(subcategoryId: string): Promise<void> {
+  if (!USE_FIREBASE) return;
+
+  try {
+    const response = await fetch(`/api/admin/subcategories?id=${subcategoryId}`, {
+      method: 'DELETE',
+    });
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to delete subcategory');
+    }
+  } catch (error) {
+    console.error('Error deleting subcategory from Firebase:', error);
+    throw error;
+  }
+}
+

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FilterState } from '@/types';
 
 // Main categories (collections)
@@ -10,8 +10,8 @@ const MAIN_CATEGORIES = [
   { id: 'shemaghs', name: 'Shemaghs' },
 ];
 
-// Subcategories grouped by main category
-const SUBCATEGORIES = {
+// Fallback subcategories (shown only if Firebase returns empty)
+const FALLBACK_SUBCATEGORIES: Record<string, { id: string; name: string }[]> = {
   men: [
     { id: 'emirati', name: 'Emirati Thobes' },
     { id: 'saudi', name: 'Saudi Thobes' },
@@ -24,6 +24,14 @@ const SUBCATEGORIES = {
     { id: 'yemeni', name: 'Yemeni' },
   ],
 };
+
+interface SubcategoryData {
+  id: string;
+  name: string;
+  slug: string;
+  parentCategoryId: string;
+  active: boolean;
+}
 
 interface FilterRailProps {
   filters: FilterState;
@@ -45,6 +53,29 @@ export function FilterRail({
   const [priceMin, setPriceMin] = useState(filters.priceRange[0]);
   const [priceMax, setPriceMax] = useState(filters.priceRange[1]);
   const [selectedMainCategories, setSelectedMainCategories] = useState<string[]>([]);
+  
+  // Dynamic subcategories from Firebase
+  const [allSubcategories, setAllSubcategories] = useState<SubcategoryData[]>([]);
+  const [isLoadingSubcategories, setIsLoadingSubcategories] = useState(true);
+
+  // Fetch subcategories on mount
+  useEffect(() => {
+    const fetchSubcategories = async () => {
+      setIsLoadingSubcategories(true);
+      try {
+        const response = await fetch('/api/admin/subcategories');
+        const data = await response.json();
+        if (data.success) {
+          setAllSubcategories(data.subcategories || []);
+        }
+      } catch (error) {
+        console.error('Error fetching subcategories:', error);
+      } finally {
+        setIsLoadingSubcategories(false);
+      }
+    };
+    fetchSubcategories();
+  }, []);
 
   const toggleMainCategory = (id: string) => {
     const newSelected = selectedMainCategories.includes(id)
@@ -90,9 +121,41 @@ export function FilterRail({
     onChange({ ...filters, priceRange: [priceMin, priceMax] });
   };
 
-  // Get subcategories only for selected main categories (empty if none selected)
+  // Map category IDs to parent category IDs (normalize case)
+  const getCategoryParentId = (categoryId: string): string => {
+    const normalizedId = categoryId.toLowerCase();
+    // Map lowercase category IDs to proper case for parent matching
+    const mappings: Record<string, string> = {
+      'men': 'Men',
+      'boys': 'Boys',
+      'shemaghs': 'Shemaghs',
+      'women': 'Women',
+      'girls': 'Girls',
+    };
+    return mappings[normalizedId] || categoryId;
+  };
+
+  // Get subcategories only for selected main categories (from Firebase, with fallback)
   const availableSubcategories = selectedMainCategories.length > 0
-    ? selectedMainCategories.flatMap(cat => SUBCATEGORIES[cat as keyof typeof SUBCATEGORIES] || [])
+    ? selectedMainCategories.flatMap(catId => {
+        const catIdLower = catId.toLowerCase();
+        const parentId = getCategoryParentId(catId);
+        
+        // Get subcategories from Firebase
+        const firebaseSubs = allSubcategories
+          .filter(sub => sub.parentCategoryId === parentId && sub.active !== false)
+          .map(sub => ({
+            id: sub.slug,
+            name: sub.name,
+          }));
+        
+        // If Firebase has data, use it; otherwise fall back to defaults
+        if (firebaseSubs.length > 0) {
+          return firebaseSubs;
+        }
+        
+        return FALLBACK_SUBCATEGORIES[catIdLower] || [];
+      })
     : [];
 
   return (
@@ -115,23 +178,29 @@ export function FilterRail({
         </div>
       </div>
 
-      {/* Subcategories / Style */}
-      {availableSubcategories.length > 0 && (
+      {/* Subcategories / Style - Now dynamic from Firebase */}
+      {selectedMainCategories.length > 0 && (
         <div>
           <h3 className="text-sm font-medium uppercase tracking-wideish mb-4">Style</h3>
-          <div className="space-y-2">
-            {availableSubcategories.map((sub) => (
-              <label key={sub.id} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={filters.subcategories?.includes(sub.id) || false}
-                  onChange={() => toggleSubcategory(sub.id)}
-                  className="w-4 h-4 border-border"
-                />
-                <span className="text-sm">{sub.name}</span>
-              </label>
-            ))}
-          </div>
+          {isLoadingSubcategories ? (
+            <p className="text-sm text-bmr-muted">Loading styles...</p>
+          ) : availableSubcategories.length > 0 ? (
+            <div className="space-y-2">
+              {availableSubcategories.map((sub) => (
+                <label key={sub.id} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filters.subcategories?.includes(sub.id) || false}
+                    onChange={() => toggleSubcategory(sub.id)}
+                    className="w-4 h-4 border-border"
+                  />
+                  <span className="text-sm">{sub.name}</span>
+                </label>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-bmr-muted">No styles available for selected categories</p>
+          )}
         </div>
       )}
 
@@ -230,7 +299,8 @@ export function FilterRail({
 
       {/* Clear All */}
       <button
-        onClick={() =>
+        onClick={() => {
+          setSelectedMainCategories([]);
           onChange({
             categories: [],
             subcategories: [],
@@ -238,8 +308,8 @@ export function FilterRail({
             colors: [],
             sleeves: [],
             priceRange: [0, 100000],
-          })
-        }
+          });
+        }}
         className="text-sm text-muted hover:text-bmr-black underline"
       >
         Clear all filters
@@ -247,6 +317,3 @@ export function FilterRail({
     </div>
   );
 }
-
-
-
