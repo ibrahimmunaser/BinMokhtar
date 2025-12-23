@@ -57,7 +57,7 @@ const COLOR_OPTIONS = ['White', 'Black', 'Beige', 'Brown', 'Navy', 'Grey', 'Crea
 
 // Variant interface - Extended with new required fields
 interface Variant {
-  size: string;
+  size?: string; // Optional for one-size items like Shemaghs
   color: string;
   stock: number;
   sku: string; // Now required
@@ -98,7 +98,7 @@ const productSchema = z.object({
   sizes: z.array(z.string()),
   colors: z.array(z.string()).min(1, 'At least 1 color is required'),
   variants: z.array(z.object({
-    size: z.string(),
+    size: z.string().optional(), // Optional for one-size items like Shemaghs
     color: z.string(),
     stock: z.number().int().nonnegative('Stock must be non-negative'),
     sku: z.string().min(1, 'SKU is required'),

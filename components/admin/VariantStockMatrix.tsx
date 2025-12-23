@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 
 interface Variant {
-  size: string;
+  size?: string; // Optional for one-size items
   color: string;
   stock: number;
   sku: string; // Required
@@ -27,7 +27,7 @@ export function VariantStockMatrix({ sizes, colors, value, onChange, basePrice, 
 
   // Generate all possible combinations when sizes or colors change
   useEffect(() => {
-    if (sizes.length === 0 || colors.length === 0) {
+    if (colors.length === 0) {
       setVariants([]);
       onChange([]);
       return;
@@ -35,25 +35,50 @@ export function VariantStockMatrix({ sizes, colors, value, onChange, basePrice, 
 
     const newVariants: Variant[] = [];
     
-    for (const size of sizes) {
+    // Handle one-size products (e.g., Shemaghs)
+    if (sizes.length === 0) {
       for (const color of colors) {
-        // Check if this variant already exists
-        const existing = variants.find(v => v.size === size && v.color === color);
+        // Check if this variant already exists (one-size)
+        const existing = variants.find(v => !v.size && v.color === color);
         
         if (existing) {
           // Keep existing data
           newVariants.push(existing);
         } else {
-          // Create new variant with default values
+          // Create new variant with default values (no size)
           newVariants.push({
-            size,
+            size: 'One Size',
             color,
             stock: 0,
-            sku: `${size}-${color}-${Date.now()}`.toUpperCase().replace(/\s+/g, '-'),
+            sku: `OS-${color}-${Date.now()}`.toUpperCase().replace(/\s+/g, '-'),
             barcode: '',
             price: basePrice, // Default to product price
             salePrice: baseSalePrice, // Default to product sale price
           });
+        }
+      }
+    } else {
+      // Handle sized products
+      for (const size of sizes) {
+        for (const color of colors) {
+          // Check if this variant already exists
+          const existing = variants.find(v => v.size === size && v.color === color);
+          
+          if (existing) {
+            // Keep existing data
+            newVariants.push(existing);
+          } else {
+            // Create new variant with default values
+            newVariants.push({
+              size,
+              color,
+              stock: 0,
+              sku: `${size}-${color}-${Date.now()}`.toUpperCase().replace(/\s+/g, '-'),
+              barcode: '',
+              price: basePrice, // Default to product price
+              salePrice: baseSalePrice, // Default to product sale price
+            });
+          }
         }
       }
     }
@@ -62,7 +87,7 @@ export function VariantStockMatrix({ sizes, colors, value, onChange, basePrice, 
     onChange(newVariants);
   }, [sizes, colors]);
 
-  const updateVariantField = (size: string, color: string, field: keyof Variant, value: any) => {
+  const updateVariantField = (size: string | undefined, color: string, field: keyof Variant, value: any) => {
     const updatedVariants = variants.map(v => {
       if (v.size === size && v.color === color) {
         return { ...v, [field]: value };
@@ -74,11 +99,11 @@ export function VariantStockMatrix({ sizes, colors, value, onChange, basePrice, 
     onChange(updatedVariants);
   };
 
-  const updateStock = (size: string, color: string, stock: number) => {
+  const updateStock = (size: string | undefined, color: string, stock: number) => {
     updateVariantField(size, color, 'stock', Math.max(0, stock));
   };
 
-  const deleteVariant = (size: string, color: string) => {
+  const deleteVariant = (size: string | undefined, color: string) => {
     const updatedVariants = variants.filter(v => !(v.size === size && v.color === color));
     setVariants(updatedVariants);
     onChange(updatedVariants);
@@ -90,7 +115,7 @@ export function VariantStockMatrix({ sizes, colors, value, onChange, basePrice, 
     onChange(updatedVariants);
   };
 
-  const getVariantStock = (size: string, color: string): number => {
+  const getVariantStock = (size: string | undefined, color: string): number => {
     const variant = variants.find(v => v.size === size && v.color === color);
     return variant?.stock ?? 0;
   };
@@ -99,12 +124,12 @@ export function VariantStockMatrix({ sizes, colors, value, onChange, basePrice, 
     return variants.reduce((sum, v) => sum + (v.stock || 0), 0);
   };
 
-  if (sizes.length === 0 || colors.length === 0) {
+  if (colors.length === 0) {
     return (
       <div className="p-8 border-2 border-dashed border-line rounded-lg text-center">
         <p className="text-bmr-muted mb-2">No variants to configure</p>
         <p className="text-sm text-bmr-muted">
-          Please select at least one size and one color to manage stock levels
+          Please select at least one color to manage stock levels
         </p>
       </div>
     );
@@ -173,7 +198,7 @@ export function VariantStockMatrix({ sizes, colors, value, onChange, basePrice, 
                   }`}
                 >
                   {/* Size */}
-                  <td className="px-3 py-3 font-medium">{variant.size}</td>
+                  <td className="px-3 py-3 font-medium">{variant.size || 'One Size'}</td>
                   
                   {/* Color */}
                   <td className="px-3 py-3 font-medium">{variant.color}</td>
