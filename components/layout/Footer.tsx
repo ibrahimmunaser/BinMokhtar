@@ -97,7 +97,6 @@ export function Footer() {
                     <li><Link href="/about" className="text-sm opacity-70 hover:opacity-100 transition-opacity">About Us</Link></li>
                     <li><Link href="/legal/privacy" className="text-sm opacity-70 hover:opacity-100 transition-opacity">Privacy Policy</Link></li>
                     <li><Link href="/legal/terms" className="text-sm opacity-70 hover:opacity-100 transition-opacity">Terms of Service</Link></li>
-                    <li><Link href="/legal/returns" className="text-sm opacity-70 hover:opacity-100 transition-opacity">Return Policy</Link></li>
                   </ul>
                 </div>
               </div>
