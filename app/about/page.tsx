@@ -61,29 +61,6 @@ export default function AboutPage() {
           ))}
         </div>
 
-        {/* Why Choose Us */}
-        <div className="bg-bmr-night text-surface-2 rounded-lg p-8 lg:p-12">
-          <h2 className="font-display text-3xl lg:text-4xl mb-8 text-center">Why Choose Us?</h2>
-
-          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            {[
-              'Curated selection of authentic Islamic attire',
-              'Premium quality fabrics and craftsmanship',
-              'Wide range of sizes and styles for the whole family',
-              'Fast, reliable worldwide shipping',
-              'Easy returns and exchanges within 14 days',
-              'Responsive customer support team',
-            ].map((reason) => (
-              <div key={reason} className="flex items-start gap-3">
-                <svg className="w-6 h-6 text-bmr-acc-green flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="opacity-90">{reason}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Closing */}
         <div className="mt-20 text-center">
           <p className="text-lg text-bmr-muted mb-8">
