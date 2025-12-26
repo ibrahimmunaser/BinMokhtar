@@ -77,7 +77,7 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
             src={slide.src}
             alt={title}
             fill
-            className="object-cover object-[center_20%] sm:object-[center_22%] lg:object-[center_25%]"
+            className="object-cover object-[30%_center] sm:object-[35%_center] lg:object-center"
             priority={currentSlide === 0}
             sizes="100vw"
             onLoadingComplete={() => {
