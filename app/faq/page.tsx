@@ -39,23 +39,6 @@ const faqs = [
     ],
   },
   {
-    category: 'Products & Sizing',
-    questions: [
-      {
-        q: 'How do I choose the right size?',
-        a: 'Please refer to our detailed Size Guide page. We provide measurements for height, chest, and length. If you\'re between sizes, we recommend sizing up.',
-      },
-      {
-        q: 'What fabrics do you use?',
-        a: 'We use premium cotton blends, pure cotton, and polyester blends depending on the product. Each product page lists specific fabric composition.',
-      },
-      {
-        q: 'Are your thobes pre-shrunk?',
-        a: 'Yes, most of our thobes are pre-shrunk to minimize shrinkage. However, we recommend following care instructions carefully.',
-      },
-    ],
-  },
-  {
     category: 'Payment & Security',
     questions: [
       {
