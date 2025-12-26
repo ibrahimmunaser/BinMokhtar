@@ -42,9 +42,9 @@ export function CategoryMosaic({ tiles }: CategoryMosaicProps) {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
                 {/* Content */}
-                <div className="absolute inset-0 flex items-end justify-center text-center px-6 pb-2">
-                  <div className="w-full">
-                    <h3 className="font-display text-2xl md:text-3xl lg:text-5xl font-medium text-white mb-2">
+                <div className="absolute inset-0 flex items-end justify-center px-6 pb-2">
+                  <div className="w-full text-center">
+                    <h3 className="font-display text-2xl md:text-3xl lg:text-5xl font-medium text-white mb-2 mx-auto">
                       {title}
                     </h3>
                     <span className="inline-flex items-center justify-center px-6 py-2 bg-white text-bmr-ink rounded-full text-xs font-medium uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-opacity duration-300">
