@@ -38,23 +38,6 @@ const faqs = [
       },
     ],
   },
-  {
-    category: 'Payment & Security',
-    questions: [
-      {
-        q: 'What payment methods do you accept?',
-        a: 'We accept all major credit cards (Visa, Mastercard, American Express, Discover), PayPal, Apple Pay, and Google Pay.',
-      },
-      {
-        q: 'Is my payment information secure?',
-        a: 'Absolutely. We use industry-standard SSL encryption and never store your full credit card information on our servers.',
-      },
-      {
-        q: 'Can I use multiple payment methods?',
-        a: 'Currently, we accept one payment method per order. However, you can use gift cards in combination with other payment methods.',
-      },
-    ],
-  },
 ];
 
 export default function FAQPage() {
