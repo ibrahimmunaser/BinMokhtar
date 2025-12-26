@@ -86,7 +86,6 @@ export function Footer() {
                   <h4 className="text-xs font-semibold mb-5 uppercase tracking-widest opacity-40">Help</h4>
                   <ul className="space-y-3">
                     <li><Link href="/contact" className="text-sm opacity-70 hover:opacity-100 transition-opacity">Contact Us</Link></li>
-                    <li><Link href="/shipping-returns" className="text-sm opacity-70 hover:opacity-100 transition-opacity">Shipping & Returns</Link></li>
                     <li><Link href="/size-guide" className="text-sm opacity-70 hover:opacity-100 transition-opacity">Size Guide</Link></li>
                     <li><Link href="/faq" className="text-sm opacity-70 hover:opacity-100 transition-opacity">FAQ</Link></li>
                   </ul>
