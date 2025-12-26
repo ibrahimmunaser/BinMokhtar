@@ -36,8 +36,11 @@ export function ProductCard({ variant, showSoldOut = false, showDeliveryInfo = t
             src={variant.imageUrl}
             alt={title}
             fill
+            loading="lazy"
             className="object-cover transition-transform duration-500 group-hover:scale-105"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            placeholder="blur"
+            blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2YzZjRmNiIvPjwvc3ZnPg=="
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-bmr-muted">
