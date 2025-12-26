@@ -36,31 +36,6 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* Values */}
-        <h2 className="font-display text-3xl lg:text-4xl mb-12 text-center">Our Values</h2>
-
-        <div className="grid md:grid-cols-3 gap-8 mb-20">
-          {[
-            {
-              title: 'Quality',
-              description: 'We source only premium fabrics and work with skilled artisans to ensure every garment meets our high standards of excellence.',
-            },
-            {
-              title: 'Authenticity',
-              description: 'Our designs respect traditional Islamic clothing styles while incorporating modern comfort and contemporary fit.',
-            },
-            {
-              title: 'Service',
-              description: "We're committed to providing exceptional customer service and ensuring your complete satisfaction with every purchase.",
-            },
-          ].map((value) => (
-            <div key={value.title} className="bg-surface-2 rounded-lg border border-line p-8 text-center">
-              <h3 className="font-display text-2xl mb-4">{value.title}</h3>
-              <p className="text-bmr-muted leading-relaxed">{value.description}</p>
-            </div>
-          ))}
-        </div>
-
         {/* Closing */}
         <div className="mt-20 text-center">
           <p className="text-lg text-bmr-muted mb-8">
