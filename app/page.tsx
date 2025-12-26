@@ -78,14 +78,12 @@ export default function HomePage() {
       titleAr: 'ثوب إماراتي',
       href: '/category/emirati',
       image: FIREBASE_IMAGES.HERO_EMIRATI,
-      objectPosition: 'center 30%',
     },
     {
       titleEn: "Saudi Thobes",
       titleAr: 'ثوب سعودي',
       href: '/category/saudi',
       image: FIREBASE_IMAGES.HERO_SAUDI,
-      objectPosition: 'center 30%',
     },
     // Boys Categories
     {
@@ -93,7 +91,6 @@ export default function HomePage() {
       titleAr: 'ثوب إماراتي للأولاد',
       href: '/category/thobes',
       image: FIREBASE_IMAGES.BOYS_HERO,
-      objectPosition: 'center 30%',
     },
     // Shemagh Categories
     {
@@ -101,14 +98,12 @@ export default function HomePage() {
       titleAr: 'شماغ تقليدي',
       href: '/category/traditional',
       image: FIREBASE_IMAGES.HERO_TRADITIONAL,
-      objectPosition: 'center 25%',
     },
     {
       titleEn: 'Yemeni Shemaghs',
       titleAr: 'شماغ يمني',
       href: '/category/yemeni',
       image: FIREBASE_IMAGES.HERO_YEMENI,
-      objectPosition: 'right 25%',
     },
   ];
 
