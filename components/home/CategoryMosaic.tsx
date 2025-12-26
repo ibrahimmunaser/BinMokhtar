@@ -15,7 +15,7 @@ export function CategoryMosaic({ tiles }: CategoryMosaicProps) {
   return (
     <section className="py-16 lg:py-24 bg-surface-1">
       <div className="container-wide">
-        <div className="flex flex-wrap justify-center gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {tiles.map((tile, index) => {
             const title = tile.titleEn;
 
@@ -23,7 +23,7 @@ export function CategoryMosaic({ tiles }: CategoryMosaicProps) {
               <Link
                 key={index}
                 href={tile.href}
-                className="group relative overflow-hidden bg-bmr-stone rounded-lg w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.75rem)] h-[250px] md:h-[300px]"
+                className="group relative overflow-hidden bg-bmr-stone rounded-lg h-[250px] md:h-[300px]"
               >
                 {/* Image */}
                 <Image
