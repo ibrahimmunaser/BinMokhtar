@@ -5,9 +5,8 @@ import { CategoryMosaic } from '@/components/home/CategoryMosaic';
 import { BestSellers } from '@/components/home/BestSellers';
 import { ReviewsCarousel } from '@/components/home/ReviewsCarousel';
 import { BrandStory } from '@/components/home/BrandStory';
-import { IconRow } from '@/components/home/IconRow';
 import { FIREBASE_IMAGES } from '@/lib/firebase-images';
-import type { HeroSlide, MosaicTile, Review, StoryBlock, IconItem } from '@/types';
+import type { HeroSlide, MosaicTile, Review, StoryBlock } from '@/types';
 
 export default function HomePage() {
   // Build hero slides dynamically from /public/images (hero*.{png,jpg,jpeg,webp}) and /public/videos (hero*.{mp4,webm,ogg})
@@ -130,24 +129,6 @@ export default function HomePage() {
     },
   ];
 
-  const iconItems: IconItem[] = [
-    {
-      iconName: 'Truck',
-      labelEn: 'Worldwide Delivery',
-      labelAr: 'توصيل عالمي',
-    },
-    {
-      iconName: 'RefreshCw',
-      labelEn: '14-Day Exchange',
-      labelAr: 'استبدال ١٤ يوم',
-    },
-    {
-      iconName: 'Heart',
-      labelEn: 'Made with Care',
-      labelAr: 'صنع بعناية',
-    },
-  ];
-
   return (
     <>
       <HeroCarousel slides={heroSlides} />
@@ -160,8 +141,6 @@ export default function HomePage() {
       <ReviewsCarousel reviews={reviews} />
 
       <BrandStory storyBlocks={storyBlocks} />
-
-      <IconRow items={iconItems} />
     </>
   );
 }
