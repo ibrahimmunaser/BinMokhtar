@@ -25,39 +25,9 @@ export default function HomePage() {
 
   // Load 5-star reviews with comments for homepage
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [mosaicTiles, setMosaicTiles] = useState<MosaicTile[]>([
-    // Default fallback tiles
-    {
-      titleEn: "Emirati Thobes",
-      titleAr: 'ثوب إماراتي',
-      href: '/category/emirati',
-      image: FIREBASE_IMAGES.HERO_EMIRATI,
-    },
-    {
-      titleEn: "Saudi Thobes",
-      titleAr: 'ثوب سعودي',
-      href: '/category/saudi',
-      image: FIREBASE_IMAGES.HERO_SAUDI,
-    },
-    {
-      titleEn: "Boys' Emirati Thobes",
-      titleAr: 'ثوب إماراتي للأولاد',
-      href: '/category/thobes',
-      image: FIREBASE_IMAGES.BOYS_HERO,
-    },
-    {
-      titleEn: 'Traditional Shemaghs',
-      titleAr: 'شماغ تقليدي',
-      href: '/category/traditional',
-      image: FIREBASE_IMAGES.HERO_TRADITIONAL,
-    },
-    {
-      titleEn: 'Yemeni Shemaghs',
-      titleAr: 'شماغ يمني',
-      href: '/category/yemeni',
-      image: FIREBASE_IMAGES.HERO_YEMENI,
-    },
-  ]);
+  // Start with empty array - will load from API
+  const [mosaicTiles, setMosaicTiles] = useState<MosaicTile[]>([]);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
   
   useEffect(() => {
     let mounted = true;
@@ -108,7 +78,10 @@ export default function HomePage() {
         }
       } catch (error) {
         console.error('Error loading categories:', error);
-        // Keep default tiles on error
+      } finally {
+        if (mounted) {
+          setIsCategoriesLoading(false);
+        }
       }
     }
 
@@ -139,7 +112,7 @@ export default function HomePage() {
     <>
       <HeroCarousel slides={heroSlides} />
 
-      <CategoryMosaic tiles={mosaicTiles} />
+      {!isCategoriesLoading && <CategoryMosaic tiles={mosaicTiles} />}
 
       {/* Best Sellers - will be empty until products are added to Firebase */}
       <BestSellers products={[]} />
