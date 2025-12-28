@@ -22,14 +22,14 @@ Your Stripe integration is now using **LIVE KEYS**. This means:
 ```env
 STRIPE_SECRET_KEY=sk_live_51SReiIQppfBXsI5H...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51SReiIQppfBXsI5H...
-STRIPE_WEBHOOK_SECRET=whsec_WIJNpPoJzy3web4TCi4OKxJ64nVW0xs1
+STRIPE_WEBHOOK_SECRET=whsec_[YOUR_LIVE_WEBHOOK_SECRET]
 ```
 
 ### Test Keys (Commented Out):
 ```env
 # STRIPE_SECRET_KEY=sk_test_51SReiIQppfBXsI5H...
 # NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51SReiIQppfBXsI5H...
-# STRIPE_WEBHOOK_SECRET=whsec_YpiORb1liEgxTbbDoLlSa0gkse5KZpzB
+# STRIPE_WEBHOOK_SECRET=whsec_[YOUR_TEST_WEBHOOK_SECRET]
 ```
 
 ---
