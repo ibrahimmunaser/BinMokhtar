@@ -250,6 +250,7 @@ export async function addSubcategory(subcategoryData: {
   parentCategoryId: string;
   description?: string;
   slug?: string;
+  imageUrl?: string;
 }) {
   if (!USE_FIREBASE) return null;
 
