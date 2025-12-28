@@ -1,16 +1,23 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/server';
 
-// Helper function to format category prefix
-function getCategoryPrefix(parentCategory: string): string {
+// Helper function to format category display name
+function formatCategoryName(subcategoryName: string, parentCategory: string): string {
+  // For Shemaghs: subcategory name + "Shemaghs" (e.g., "Traditional Shemaghs")
+  if (parentCategory === 'Shemaghs') {
+    return `${subcategoryName} Shemaghs`;
+  }
+  
+  // For others: add prefix (e.g., "Men's Emirati Thobes")
   const prefixes: Record<string, string> = {
     'Men': "Men's",
     'Boys': "Boys'",
     'Women': "Women's",
     'Girls': "Girls'",
-    'Shemaghs': '', // No prefix for Shemaghs
   };
-  return prefixes[parentCategory] || '';
+  
+  const prefix = prefixes[parentCategory];
+  return prefix ? `${prefix} ${subcategoryName}` : subcategoryName;
 }
 
 // GET homepage categories (subcategories with images)
@@ -25,8 +32,7 @@ export async function GET() {
     const categories = snapshot.docs
       .map(doc => {
         const data = doc.data();
-        const prefix = getCategoryPrefix(data.parentCategoryId);
-        const displayName = prefix ? `${prefix} ${data.name}` : data.name;
+        const displayName = formatCategoryName(data.name, data.parentCategoryId);
         
         return {
           id: doc.id,
