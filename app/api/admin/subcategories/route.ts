@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/server';
+import { FIREBASE_IMAGES } from '@/lib/firebase-images';
 
 // Default subcategories - these should always exist
 const DEFAULT_SUBCATEGORIES = [
-  { name: 'Emirati Thobes', slug: 'emirati', description: 'Emirati style thobes', parentCategoryId: 'Men', active: true, sort: 1 },
-  { name: 'Saudi Thobes', slug: 'saudi', description: 'Saudi style thobes', parentCategoryId: 'Men', active: true, sort: 2 },
+  { name: 'Emirati Thobes', slug: 'emirati', description: 'Emirati style thobes', parentCategoryId: 'Men', active: true, sort: 1, imageUrl: FIREBASE_IMAGES.HERO_EMIRATI },
+  { name: 'Saudi Thobes', slug: 'saudi', description: 'Saudi style thobes', parentCategoryId: 'Men', active: true, sort: 2, imageUrl: FIREBASE_IMAGES.HERO_SAUDI },
   { name: 'Hijabs', slug: 'hijabs', description: 'Elegant hijabs', parentCategoryId: 'Women', active: true, sort: 1 },
   { name: 'Abayas', slug: 'abayas', description: 'Traditional abayas', parentCategoryId: 'Women', active: true, sort: 2 },
-  { name: 'Emirati Thobes', slug: 'thobes', description: 'Boys Emirati thobes', parentCategoryId: 'Boys', active: true, sort: 1 },
-  { name: 'Traditional', slug: 'traditional', description: 'Traditional shemaghs', parentCategoryId: 'Shemaghs', active: true, sort: 1 },
-  { name: 'Yemeni', slug: 'yemeni', description: 'Yemeni style shemaghs', parentCategoryId: 'Shemaghs', active: true, sort: 2 },
+  { name: 'Emirati Thobes', slug: 'thobes', description: 'Boys Emirati thobes', parentCategoryId: 'Boys', active: true, sort: 1, imageUrl: FIREBASE_IMAGES.BOYS_HERO },
+  { name: 'Traditional', slug: 'traditional', description: 'Traditional shemaghs', parentCategoryId: 'Shemaghs', active: true, sort: 1, imageUrl: FIREBASE_IMAGES.HERO_TRADITIONAL },
+  { name: 'Yemeni', slug: 'yemeni', description: 'Yemeni style shemaghs', parentCategoryId: 'Shemaghs', active: true, sort: 2, imageUrl: FIREBASE_IMAGES.HERO_YEMENI },
 ];
 
 // Ensure default subcategories exist (adds missing ones without removing existing data)
@@ -18,20 +19,24 @@ async function ensureDefaultsExist() {
   
   // Get all existing subcategories
   const snapshot = await subcategoriesRef.get();
-  const existingSlugs = new Set<string>();
+  const existingBySlug = new Map<string, any>();
   snapshot.docs.forEach(doc => {
     const data = doc.data();
     if (data.slug) {
-      existingSlugs.add(data.slug);
+      existingBySlug.set(data.slug, { id: doc.id, ...data });
     }
   });
   
-  // Add any missing defaults
+  // Add any missing defaults or update existing ones with missing imageUrl
   const batch = adminDb().batch();
   let addedCount = 0;
+  let updatedCount = 0;
   
   for (const sub of DEFAULT_SUBCATEGORIES) {
-    if (!existingSlugs.has(sub.slug)) {
+    const existing = existingBySlug.get(sub.slug);
+    
+    if (!existing) {
+      // Add new subcategory
       console.log(`Adding missing default subcategory: ${sub.name} (${sub.slug})`);
       const docRef = subcategoriesRef.doc();
       batch.set(docRef, {
@@ -40,15 +45,24 @@ async function ensureDefaultsExist() {
         updatedAt: new Date(),
       });
       addedCount++;
+    } else if (sub.imageUrl && !existing.imageUrl) {
+      // Update existing subcategory with imageUrl if it doesn't have one
+      console.log(`Updating subcategory ${sub.name} (${sub.slug}) with imageUrl`);
+      const docRef = subcategoriesRef.doc(existing.id);
+      batch.update(docRef, {
+        imageUrl: sub.imageUrl,
+        updatedAt: new Date(),
+      });
+      updatedCount++;
     }
   }
   
-  if (addedCount > 0) {
+  if (addedCount > 0 || updatedCount > 0) {
     await batch.commit();
-    console.log(`Added ${addedCount} missing default subcategories`);
+    console.log(`Added ${addedCount} and updated ${updatedCount} subcategories`);
   }
   
-  return addedCount;
+  return addedCount + updatedCount;
 }
 
 // GET all subcategories (optionally filter by parent category)
