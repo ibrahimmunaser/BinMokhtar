@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
       slug: body.slug || body.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
       description: body.description || '',
       parentCategoryId: body.parentCategoryId,
+      imageUrl: body.imageUrl || null, // Add imageUrl support
       active: body.active !== false, // Default to true
       sort: body.sort || 0,
       createdAt: new Date(),

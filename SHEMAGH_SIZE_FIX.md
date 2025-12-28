@@ -93,3 +93,6 @@ Variants without sizes are saved to Firestore with `size: undefined`, which is v
 ## Files Not Modified (Already Compatible)
 - `app/api/admin/products/route.ts` - Already handles optional sizes
 
+
+
+

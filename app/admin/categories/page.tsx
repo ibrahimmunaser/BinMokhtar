@@ -6,6 +6,7 @@ import { isAdminAuthenticated, clearAdminSession } from '@/lib/adminAuth';
 import { getAllSubcategories, addSubcategory, updateSubcategory, deleteSubcategory } from '@/lib/firebaseAdminStore';
 import Link from 'next/link';
 import { ArrowLeft, LogOut, ChevronDown, ChevronRight, Plus, Edit2, Trash2, X, Check, Loader2 } from 'lucide-react';
+import { ImageUpload } from '@/components/admin/ImageUpload';
 
 // Define the main category structure (these are the parent categories)
 const MAIN_CATEGORIES = [
@@ -48,6 +49,7 @@ interface Subcategory {
   description: string;
   parentCategoryId: string;
   active: boolean;
+  imageUrl?: string; // Add image support
 }
 
 export default function CategoriesPage() {
@@ -69,6 +71,7 @@ export default function CategoriesPage() {
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formSlug, setFormSlug] = useState('');
+  const [formImageUrl, setFormImageUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -149,6 +152,7 @@ export default function CategoriesPage() {
     setFormName('');
     setFormDescription('');
     setFormSlug('');
+    setFormImageUrl('');
     setError('');
     setShowAddModal(true);
   };
@@ -168,6 +172,7 @@ export default function CategoriesPage() {
         description: formDescription.trim(),
         slug: formSlug.trim() || formName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
         parentCategoryId: selectedCategory,
+        imageUrl: formImageUrl,
       });
       
       setSubcategories(prev => [...prev, newSub]);
@@ -185,6 +190,7 @@ export default function CategoriesPage() {
     setFormName(subcategory.name);
     setFormDescription(subcategory.description || '');
     setFormSlug(subcategory.slug);
+    setFormImageUrl(subcategory.imageUrl || '');
     setError('');
     setShowEditModal(true);
   };
@@ -203,11 +209,12 @@ export default function CategoriesPage() {
         name: formName.trim(),
         description: formDescription.trim(),
         slug: formSlug.trim() || formName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+        imageUrl: formImageUrl,
       });
       
       setSubcategories(prev => prev.map(sub => 
         sub.id === selectedSubcategory.id 
-          ? { ...sub, name: formName.trim(), description: formDescription.trim(), slug: formSlug.trim() }
+          ? { ...sub, name: formName.trim(), description: formDescription.trim(), slug: formSlug.trim(), imageUrl: formImageUrl }
           : sub
       ));
       setShowEditModal(false);
@@ -495,6 +502,17 @@ export default function CategoriesPage() {
                   placeholder="Brief description of this subcategory"
                 />
               </div>
+              <div>
+                <ImageUpload
+                  label="Category Image"
+                  name="imageUrl"
+                  value={formImageUrl}
+                  onChange={setFormImageUrl}
+                />
+                <p className="text-xs text-bmr-muted mt-1">
+                  This image will be displayed on the homepage category tiles
+                </p>
+              </div>
             </div>
             <div className="flex justify-end gap-3 p-6 border-t border-line">
               <button
@@ -571,6 +589,17 @@ export default function CategoriesPage() {
                   className="w-full px-4 py-2 border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-ink"
                   rows={3}
                 />
+              </div>
+              <div>
+                <ImageUpload
+                  label="Category Image"
+                  name="imageUrl"
+                  value={formImageUrl}
+                  onChange={setFormImageUrl}
+                />
+                <p className="text-xs text-bmr-muted mt-1">
+                  This image will be displayed on the homepage category tiles
+                </p>
               </div>
             </div>
             <div className="flex justify-end gap-3 p-6 border-t border-line">

@@ -25,6 +25,39 @@ export default function HomePage() {
 
   // Load 5-star reviews with comments for homepage
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [mosaicTiles, setMosaicTiles] = useState<MosaicTile[]>([
+    // Default fallback tiles
+    {
+      titleEn: "Emirati Thobes",
+      titleAr: 'ثوب إماراتي',
+      href: '/category/emirati',
+      image: FIREBASE_IMAGES.HERO_EMIRATI,
+    },
+    {
+      titleEn: "Saudi Thobes",
+      titleAr: 'ثوب سعودي',
+      href: '/category/saudi',
+      image: FIREBASE_IMAGES.HERO_SAUDI,
+    },
+    {
+      titleEn: "Boys' Emirati Thobes",
+      titleAr: 'ثوب إماراتي للأولاد',
+      href: '/category/thobes',
+      image: FIREBASE_IMAGES.BOYS_HERO,
+    },
+    {
+      titleEn: 'Traditional Shemaghs',
+      titleAr: 'شماغ تقليدي',
+      href: '/category/traditional',
+      image: FIREBASE_IMAGES.HERO_TRADITIONAL,
+    },
+    {
+      titleEn: 'Yemeni Shemaghs',
+      titleAr: 'شماغ يمني',
+      href: '/category/yemeni',
+      image: FIREBASE_IMAGES.HERO_YEMENI,
+    },
+  ]);
   
   useEffect(() => {
     let mounted = true;
@@ -66,46 +99,24 @@ export default function HomePage() {
       }
     }
 
+    async function loadCategories() {
+      try {
+        const res = await fetch('/api/homepage-categories', { cache: 'no-store' });
+        const json = await res.json();
+        if (mounted && json.success && json.categories?.length > 0) {
+          setMosaicTiles(json.categories);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        // Keep default tiles on error
+      }
+    }
+
     loadHeroMedia();
     loadReviews();
+    loadCategories();
     return () => { mounted = false; };
   }, []);
-
-  const mosaicTiles: MosaicTile[] = [
-    // Men's Categories
-    {
-      titleEn: "Emirati Thobes",
-      titleAr: 'ثوب إماراتي',
-      href: '/category/emirati',
-      image: FIREBASE_IMAGES.HERO_EMIRATI,
-    },
-    {
-      titleEn: "Saudi Thobes",
-      titleAr: 'ثوب سعودي',
-      href: '/category/saudi',
-      image: FIREBASE_IMAGES.HERO_SAUDI,
-    },
-    // Boys Categories
-    {
-      titleEn: "Boys' Emirati Thobes",
-      titleAr: 'ثوب إماراتي للأولاد',
-      href: '/category/thobes',
-      image: FIREBASE_IMAGES.BOYS_HERO,
-    },
-    // Shemagh Categories
-    {
-      titleEn: 'Traditional Shemaghs',
-      titleAr: 'شماغ تقليدي',
-      href: '/category/traditional',
-      image: FIREBASE_IMAGES.HERO_TRADITIONAL,
-    },
-    {
-      titleEn: 'Yemeni Shemaghs',
-      titleAr: 'شماغ يمني',
-      href: '/category/yemeni',
-      image: FIREBASE_IMAGES.HERO_YEMENI,
-    },
-  ];
 
   const storyBlocks: StoryBlock[] = [
     {
