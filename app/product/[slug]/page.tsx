@@ -227,8 +227,6 @@ export default function ProductPage() {
     `,
     shipping: `
       <ul class="space-y-2">
-        <li>• <strong>Free shipping</strong> on orders over $89</li>
-        <li>• <strong>30-day returns</strong> – hassle-free</li>
         <li>• Orders typically ship within 1-2 business days</li>
         <li>• Track your order from checkout to delivery</li>
       </ul>
@@ -365,22 +363,6 @@ export default function ProductPage() {
                     (!!selectedSize && !!selectedColor && selectedVariantStock === 0)
                   }
                 />
-              </div>
-
-              {/* Trust Badges */}
-              <div className="flex flex-col gap-2 text-sm text-muted mb-8 pb-8 border-b border-line">
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4" />
-                  <span>Free returns 30 days</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Truck className="w-4 h-4" />
-                  <span>Free shipping over $89</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  <span>Secure checkout</span>
-                </div>
               </div>
 
               {/* Accordions */}
