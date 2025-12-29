@@ -48,7 +48,14 @@ export async function GET() {
       .filter(cat => cat.active !== false && cat.image) // Filter in memory
       .sort((a, b) => a.sort - b.sort); // Sort by sort field
 
-    return NextResponse.json({ categories, success: true });
+    return NextResponse.json(
+      { categories, success: true },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('Error fetching homepage categories:', error);
     return NextResponse.json({ error: error.message, success: false }, { status: 500 });

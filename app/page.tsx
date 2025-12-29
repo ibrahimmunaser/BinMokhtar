@@ -33,7 +33,9 @@ export default function HomePage() {
     let mounted = true;
     async function loadHeroMedia() {
       try {
-        const res = await fetch('/api/hero-media', { cache: 'no-store' });
+        const res = await fetch('/api/hero-media', { 
+          next: { revalidate: 600 } // Cache for 10 minutes
+        });
         const json = await res.json();
         const slides: any[] = json?.slides || [];
         const mapped: HeroSlide[] = slides.map((s: any, idx: number) => ({
@@ -59,7 +61,9 @@ export default function HomePage() {
 
     async function loadReviews() {
       try {
-        const res = await fetch('/api/reviews?homepage=true&limit=10', { cache: 'no-store' });
+        const res = await fetch('/api/reviews?homepage=true&limit=10', { 
+          next: { revalidate: 300 } // Cache for 5 minutes
+        });
         const json = await res.json();
         if (mounted && json.success && json.reviews?.length > 0) {
           setReviews(json.reviews);
@@ -71,7 +75,9 @@ export default function HomePage() {
 
     async function loadCategories() {
       try {
-        const res = await fetch('/api/homepage-categories', { cache: 'no-store' });
+        const res = await fetch('/api/homepage-categories', { 
+          next: { revalidate: 300 } // Cache for 5 minutes
+        });
         const json = await res.json();
         if (mounted && json.success && json.categories?.length > 0) {
           setMosaicTiles(json.categories);

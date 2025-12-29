@@ -81,11 +81,18 @@ export async function GET(req: NextRequest) {
       );
       
       // Apply limit if specified
-      if (limitParam) {
-        return NextResponse.json({ reviews: reviewsWithProducts.slice(0, parseInt(limitParam)), success: true });
-      }
+      const finalReviews = limitParam 
+        ? reviewsWithProducts.slice(0, parseInt(limitParam))
+        : reviewsWithProducts;
       
-      return NextResponse.json({ reviews: reviewsWithProducts, success: true });
+      return NextResponse.json(
+        { reviews: finalReviews, success: true },
+        {
+          headers: {
+            'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+          },
+        }
+      );
     }
 
     if (productId) {

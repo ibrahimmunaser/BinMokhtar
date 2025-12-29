@@ -48,7 +48,14 @@ export async function GET(_req: NextRequest) {
       .sort((a, b) => a.order - b.order)
       .map(({ order, ...rest }) => rest);
 
-    return NextResponse.json({ slides, success: true });
+    return NextResponse.json(
+      { slides, success: true },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('Failed to list hero media:', error);
     return NextResponse.json({ slides: [], success: false, error: error?.message || 'Failed to read hero media' }, { status: 200 });
