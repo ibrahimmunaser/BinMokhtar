@@ -89,6 +89,14 @@ const productSchema = z.object({
     },
     z.number().positive('Sale price must be greater than 0').optional()
   ),
+  weight: z.preprocess(
+    (v) => {
+      if (v === '' || v === undefined) return undefined;
+      if (typeof v === 'number' && Number.isNaN(v)) return undefined;
+      return Number(v);
+    },
+    z.number().positive('Weight must be greater than 0').optional()
+  ),
   images: z.array(z.string()).min(1, 'At least 1 product image is required'),
   primaryImageUrl: z.string().url().optional(),
   galleryImageUrls: z.array(z.string().url()).optional(),
@@ -181,6 +189,7 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
       status: 'DRAFT' as const,
       price: 0,
       salePrice: undefined,
+      weight: undefined,
       images: [],
       primaryImageUrl: undefined,
       galleryImageUrls: [],
@@ -302,6 +311,9 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
       console.log('🏷️ Processed tags:', tags);
       console.log('🏷️ Tags will be set in form:', tags);
 
+      // Convert weight from grams to ounces (if exists)
+      const weightInOz = product.weight_grams ? product.weight_grams / 28.35 : undefined;
+
       // Reset form with product data
       reset({
         title: product.name || '',
@@ -310,6 +322,7 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
         status: product.status || 'DRAFT',
         price: priceInDollars,
         salePrice: compareAtPriceInDollars,
+        weight: weightInOz ? Math.round(weightInOz * 100) / 100 : undefined, // Round to 2 decimals
         images: product.galleryImageUrls || product.images || [],
         primaryImageUrl: product.primaryImageUrl || product.images?.[0] || undefined,
         galleryImageUrls: product.galleryImageUrls || product.images || [],
@@ -356,6 +369,7 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
         subtitle: '',
         price: data.salePrice ? data.salePrice.toString() : data.price.toString(), // Use sale price if provided, otherwise regular price
         compareAtPrice: data.salePrice ? data.price.toString() : undefined, // If there's a sale price, the regular price becomes compareAt
+        weight_grams: data.weight ? Math.round(data.weight * 28.35) : undefined, // Convert oz to grams (1 oz = 28.35g)
         images: data.images,
         thumbnail: data.images[0],
         categoryId: data.category,
@@ -519,6 +533,21 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
                 error={errors.salePrice?.message}
                 {...register('salePrice', { valueAsNumber: true })}
               />
+            </div>
+
+            <div className="space-y-2">
+              <ProductFormField
+                label="Weight (oz) - Optional but recommended for accurate shipping"
+                type="number"
+                placeholder="12 (e.g., 12 oz for a thobe, 6 oz for a shemagh)"
+                step="0.1"
+                min="0"
+                error={errors.weight?.message}
+                {...register('weight', { valueAsNumber: true })}
+              />
+              <p className="text-xs text-muted">
+                💡 Tip: Men's thobes ~12 oz, Boys' thobes ~10 oz, Shemaghs ~6 oz. Leave empty to use 16 oz default.
+              </p>
             </div>
 
             <div className="space-y-2">

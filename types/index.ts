@@ -247,6 +247,7 @@ export interface CartItem {
   length?: string;
   sleeve?: string; // alias for length
   color?: string;
+  weight?: number; // weight in ounces (for shipping calculations)
 }
 
 export type OrderStatus = 'PENDING' | 'PAID' | 'FULFILLED' | 'CANCELLED' | 'REFUNDED';

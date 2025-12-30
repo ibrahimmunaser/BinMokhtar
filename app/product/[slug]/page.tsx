@@ -164,6 +164,9 @@ export default function ProductPage() {
       (!product.colors?.length || v.color === selectedColor)
     );
     
+    // Convert weight from grams to ounces (1 gram = 0.035274 oz)
+    const weightInOz = product.weight_grams ? product.weight_grams * 0.035274 : undefined;
+    
     addToCart({
       variantId: selectedVariant?.id || product.id,
       productId: product.id,
@@ -178,6 +181,7 @@ export default function ProductPage() {
       imageUrl: itemImage,
       image: itemImage, // alias for compatibility
       slug: product.slug,
+      weight: weightInOz, // weight in ounces for shipping
     });
 
     logAddToCart(product.id, product.titleEn, product.price || product.basePrice, qty);

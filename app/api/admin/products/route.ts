@@ -171,6 +171,7 @@ export async function POST(request: NextRequest) {
       subcategory: body.subcategory || '', // Save subcategory
       status, // DRAFT, ACTIVE, or ARCHIVED
       price: Math.round(parseFloat(body.price) * 100), // Convert to cents (basePrice)
+      weight_grams: body.weight_grams ? Math.round(Number(body.weight_grams)) : undefined, // Weight in grams
       compareAtPrice: body.compareAtPrice ? Math.round(parseFloat(body.compareAtPrice) * 100) : null,
       colors,
       sizes,
@@ -353,6 +354,7 @@ export async function PUT(request: NextRequest) {
       subcategory: body.subcategory || existingData?.subcategory || '', // Save subcategory
       status, // DRAFT, ACTIVE, or ARCHIVED
       price: Math.round(parseFloat(body.price) * 100), // Convert to cents
+      weight_grams: body.weight_grams ? Math.round(Number(body.weight_grams)) : undefined, // Weight in grams
       compareAtPrice: body.compareAtPrice ? Math.round(parseFloat(body.compareAtPrice) * 100) : null,
       colors,
       sizes,

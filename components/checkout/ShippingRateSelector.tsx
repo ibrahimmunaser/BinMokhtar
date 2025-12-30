@@ -37,7 +37,8 @@ export function ShippingRateSelector({
         sku: item.sku,
         name: item.title || item.name || '',
         qty: item.qty,
-        // Weight and dimensions would come from product data if available
+        weight: item.weight, // Weight in ounces (from product data)
+        // Dimensions could be added here if needed in the future
       }));
 
       const response = await fetch('/api/shipping/rates', {
