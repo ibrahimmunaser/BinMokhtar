@@ -289,7 +289,7 @@ export default function AdminOrderDetailPage() {
       'Has Shippo Label': order.shippo_label_url ? 'Yes' : 'No',
       'Shippo Label URL': order.shippo_label_url || 'N/A',
       'Shippo Tracking Number': order.shippo_tracking_number || 'N/A',
-      'Shippo Tracking URL': order.shippo_tracking_url || 'N/A',
+      'Shippo Tracking URL': order.trackingUrl || 'N/A',
       'Has Internal Label': order.internal_label_url ? 'Yes' : 'No',
       'Internal Label URL': order.internal_label_url || 'N/A',
       'Shippo Error': order.shippo_error_message || 'N/A',
