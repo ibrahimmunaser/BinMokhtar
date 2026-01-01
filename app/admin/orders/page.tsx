@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAdminAuthenticated } from '@/lib/adminAuth';
 import Link from 'next/link';
-import { Package, AlertCircle, CheckCircle, Clock, ExternalLink, RefreshCw, LogOut } from 'lucide-react';
+import { Package, AlertCircle, CheckCircle, Clock, ExternalLink, RefreshCw, LogOut, Download } from 'lucide-react';
 import { clearAdminSession } from '@/lib/adminAuth';
 import type { Order } from '@/types';
+import * as XLSX from 'xlsx';
 
 // Module-level log to verify file is loaded (runs when module is imported)
 if (typeof window !== 'undefined') {
@@ -395,6 +396,88 @@ export default function AdminOrdersPage() {
     return `$${(cents / 100).toFixed(2)}`;
   }
 
+  function exportToExcel() {
+    if (orders.length === 0) {
+      alert('No orders to export');
+      return;
+    }
+
+    // Prepare data for Excel export
+    const excelData = orders.map(order => ({
+      'Order Number': order.orderNumber || order.id.slice(-8).toUpperCase(),
+      'Order ID': order.id,
+      'Customer Name': order.customerName || 'Customer',
+      'Customer Email': order.email,
+      'Fulfillment Method': getFulfillmentMethodLabel(order.fulfillmentMethod),
+      'Order Status': order.status,
+      'Payment Status': order.paymentStatus || 'N/A',
+      'Shippo Label Status': order.shippo_label_status || 'none',
+      'Has Shippo Label': order.shippo_label_url ? 'Yes' : 'No',
+      'Has Internal Label': order.internal_label_url ? 'Yes' : 'No',
+      'Shippo Tracking Number': order.shippo_tracking_number || 'N/A',
+      'Shippo Tracking URL': order.shippo_tracking_url || 'N/A',
+      'Subtotal': formatPrice(order.subtotal || 0),
+      'Shipping Cost': formatPrice(order.shippingCost || 0),
+      'Tax': formatPrice(order.tax || 0),
+      'Total': formatPrice(order.total),
+      'Items Count': order.items?.length || 0,
+      'Items': order.items?.map(item => `${item.name || item.title} (Qty: ${item.qty})`).join('; ') || 'N/A',
+      'Shipping Address': order.shippingAddress ? 
+        `${order.shippingAddress.line1}, ${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.zip}, ${order.shippingAddress.country}` : 
+        'N/A',
+      'Phone': order.shippingAddress?.phone || 'N/A',
+      'Created At': formatDate(order.createdAt),
+      'Updated At': formatDate(order.updatedAt),
+      'Paid At': formatDate(order.paidAt),
+      'Shippo Error': order.shippo_error_message || 'N/A',
+    }));
+
+    // Create worksheet
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Set column widths for better readability
+    ws['!cols'] = [
+      { wch: 15 }, // Order Number
+      { wch: 25 }, // Order ID
+      { wch: 20 }, // Customer Name
+      { wch: 30 }, // Customer Email
+      { wch: 18 }, // Fulfillment Method
+      { wch: 12 }, // Order Status
+      { wch: 15 }, // Payment Status
+      { wch: 18 }, // Shippo Label Status
+      { wch: 15 }, // Has Shippo Label
+      { wch: 18 }, // Has Internal Label
+      { wch: 25 }, // Tracking Number
+      { wch: 50 }, // Tracking URL
+      { wch: 12 }, // Subtotal
+      { wch: 12 }, // Shipping Cost
+      { wch: 10 }, // Tax
+      { wch: 12 }, // Total
+      { wch: 12 }, // Items Count
+      { wch: 60 }, // Items
+      { wch: 60 }, // Shipping Address
+      { wch: 15 }, // Phone
+      { wch: 20 }, // Created At
+      { wch: 20 }, // Updated At
+      { wch: 20 }, // Paid At
+      { wch: 40 }, // Shippo Error
+    ];
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Orders');
+
+    // Generate filename with current date
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const filename = `BMR_Orders_${dateStr}.xlsx`;
+
+    // Download file
+    XLSX.writeFile(wb, filename);
+
+    console.log(`✅ Exported ${orders.length} orders to ${filename}`);
+  }
+
   console.log('📋 AdminOrdersPage: Render - isAuthenticated:', isAuthenticated);
   console.log('📋 AdminOrdersPage: Render - loading:', loading);
   console.log('📋 AdminOrdersPage: Render - orders.length:', orders.length);
@@ -470,14 +553,25 @@ export default function AdminOrdersPage() {
             <h1 className="text-3xl font-display font-bold text-bmr-ink mb-2">Orders</h1>
             <p className="text-bmr-muted">Manage orders and shipping labels</p>
           </div>
-          <button
-            onClick={loadOrders}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-bmr-ink bg-surface-2 border border-line rounded hover:bg-surface-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={exportToExcel}
+              disabled={loading || orders.length === 0}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-bmr-night border border-bmr-night rounded hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={orders.length === 0 ? 'No orders to export' : `Export ${orders.length} orders to Excel`}
+            >
+              <Download className="w-4 h-4" />
+              Export to Excel
+            </button>
+            <button
+              onClick={loadOrders}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-bmr-ink bg-surface-2 border border-line rounded hover:bg-surface-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {loading ? (

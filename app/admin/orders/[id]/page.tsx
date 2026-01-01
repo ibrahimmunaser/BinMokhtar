@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { isAdminAuthenticated, clearAdminSession } from '@/lib/adminAuth';
 import Link from 'next/link';
-import { ArrowLeft, Package, AlertCircle, CheckCircle, RefreshCw, ExternalLink, Printer, LogOut } from 'lucide-react';
+import { ArrowLeft, Package, AlertCircle, CheckCircle, RefreshCw, ExternalLink, Printer, LogOut, Download } from 'lucide-react';
 import type { Order } from '@/types';
+import * as XLSX from 'xlsx';
 
 interface OrderWithId extends Order {
   id: string;
@@ -244,6 +245,129 @@ export default function AdminOrderDetailPage() {
     }
   }
 
+  function exportOrderToExcel() {
+    if (!order) return;
+
+    // Create comprehensive order export data
+    const orderInfo = {
+      'Order Number': order.orderNumber || order.id.slice(-8).toUpperCase(),
+      'Order ID': order.id,
+      'Order Status': order.status,
+      'Payment Status': order.paymentStatus || 'N/A',
+      'Created At': formatDate(order.createdAt),
+      'Updated At': formatDate(order.updatedAt),
+      'Paid At': formatDate(order.paidAt),
+    };
+
+    const customerInfo = {
+      'Customer Name': order.customerName || 'N/A',
+      'Customer Email': order.email,
+      'Phone': order.phone || 'N/A',
+    };
+
+    const shippingInfo = order.shippingAddress ? {
+      'Shipping - Full Name': order.shippingAddress.fullName || 'N/A',
+      'Shipping - Address Line 1': order.shippingAddress.address || 'N/A',
+      'Shipping - Address Line 2': order.shippingAddress.address2 || '',
+      'Shipping - City': order.shippingAddress.city || 'N/A',
+      'Shipping - State': order.shippingAddress.state || 'N/A',
+      'Shipping - ZIP': order.shippingAddress.zip || 'N/A',
+      'Shipping - Country': order.shippingAddress.country || 'N/A',
+    } : {
+      'Shipping - Full Name': 'N/A',
+      'Shipping - Address Line 1': 'N/A',
+      'Shipping - Address Line 2': '',
+      'Shipping - City': 'N/A',
+      'Shipping - State': 'N/A',
+      'Shipping - ZIP': 'N/A',
+      'Shipping - Country': 'N/A',
+    };
+
+    const fulfillmentInfo = {
+      'Fulfillment Method': getFulfillmentMethodLabel(order.fulfillmentMethod),
+      'Shippo Label Status': order.shippo_label_status || 'none',
+      'Has Shippo Label': order.shippo_label_url ? 'Yes' : 'No',
+      'Shippo Label URL': order.shippo_label_url || 'N/A',
+      'Shippo Tracking Number': order.shippo_tracking_number || 'N/A',
+      'Shippo Tracking URL': order.shippo_tracking_url || 'N/A',
+      'Has Internal Label': order.internal_label_url ? 'Yes' : 'No',
+      'Internal Label URL': order.internal_label_url || 'N/A',
+      'Shippo Error': order.shippo_error_message || 'N/A',
+      'Total Weight (grams)': order.total_weight_grams || 'N/A',
+    };
+
+    const financialInfo = {
+      'Subtotal': formatPrice(order.subtotal || 0),
+      'Shipping Cost': formatPrice(order.shipping || 0),
+      'Tax': formatPrice(order.tax || 0),
+      'Total': formatPrice(order.total),
+    };
+
+    // Create Order Summary Sheet
+    const summaryData = [
+      { 'Field': 'ORDER INFORMATION', 'Value': '' },
+      ...Object.entries(orderInfo).map(([k, v]) => ({ 'Field': k, 'Value': v })),
+      { 'Field': '', 'Value': '' },
+      { 'Field': 'CUSTOMER INFORMATION', 'Value': '' },
+      ...Object.entries(customerInfo).map(([k, v]) => ({ 'Field': k, 'Value': v })),
+      { 'Field': '', 'Value': '' },
+      { 'Field': 'SHIPPING INFORMATION', 'Value': '' },
+      ...Object.entries(shippingInfo).map(([k, v]) => ({ 'Field': k, 'Value': v })),
+      { 'Field': '', 'Value': '' },
+      { 'Field': 'FULFILLMENT INFORMATION', 'Value': '' },
+      ...Object.entries(fulfillmentInfo).map(([k, v]) => ({ 'Field': k, 'Value': v })),
+      { 'Field': '', 'Value': '' },
+      { 'Field': 'FINANCIAL INFORMATION', 'Value': '' },
+      ...Object.entries(financialInfo).map(([k, v]) => ({ 'Field': k, 'Value': v })),
+    ];
+
+    // Create Items Sheet
+    const itemsData = order.items.map(item => ({
+      'Item Name': item.title || item.name || 'N/A',
+      'SKU': item.sku || 'N/A',
+      'Size': item.size || 'N/A',
+      'Color': item.color || 'N/A',
+      'Quantity': item.qty,
+      'Unit Price': formatPrice(item.unitPrice),
+      'Total Price': formatPrice(item.unitPrice * item.qty),
+      'Image URL': item.imageUrl || 'N/A',
+    }));
+
+    // Create workbook with multiple sheets
+    const wb = XLSX.utils.book_new();
+
+    // Add Summary Sheet
+    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+    wsSummary['!cols'] = [
+      { wch: 30 }, // Field column
+      { wch: 50 }, // Value column
+    ];
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Order Summary');
+
+    // Add Items Sheet
+    const wsItems = XLSX.utils.json_to_sheet(itemsData);
+    wsItems['!cols'] = [
+      { wch: 40 }, // Item Name
+      { wch: 20 }, // SKU
+      { wch: 12 }, // Size
+      { wch: 15 }, // Color
+      { wch: 10 }, // Quantity
+      { wch: 12 }, // Unit Price
+      { wch: 12 }, // Total Price
+      { wch: 50 }, // Image URL
+    ];
+    XLSX.utils.book_append_sheet(wb, wsItems, 'Order Items');
+
+    // Generate filename
+    const orderNum = order.orderNumber || order.id.slice(-8).toUpperCase();
+    const filename = `Order_${orderNum}.xlsx`;
+
+    // Download file
+    XLSX.writeFile(wb, filename);
+
+    console.log(`✅ Exported order ${orderNum} to ${filename}`);
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-surface-1 flex items-center justify-center">
@@ -346,13 +470,23 @@ export default function AdminOrderDetailPage() {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Link
-          href="/admin/orders"
-          className="inline-flex items-center gap-2 text-bmr-muted hover:text-bmr-ink mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Orders
-        </Link>
+        <div className="flex items-center justify-between mb-6">
+          <Link
+            href="/admin/orders"
+            className="inline-flex items-center gap-2 text-bmr-muted hover:text-bmr-ink transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Orders
+          </Link>
+          <button
+            onClick={exportOrderToExcel}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-bmr-night border border-bmr-night rounded hover:bg-opacity-90 transition-colors"
+            title="Export this order to Excel"
+          >
+            <Download className="w-4 h-4" />
+            Export to Excel
+          </button>
+        </div>
 
         <div className="mb-8">
           <h1 className="text-3xl font-display font-bold text-bmr-ink mb-2">
