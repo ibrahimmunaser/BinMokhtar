@@ -417,7 +417,7 @@ export default function AdminOrdersPage() {
       'Shippo Tracking Number': order.shippo_tracking_number || 'N/A',
       'Shippo Tracking URL': order.trackingUrl || 'N/A',
       'Subtotal': formatPrice(order.subtotal || 0),
-      'Shipping Cost': formatPrice(order.shippingCost || 0),
+      'Shipping Cost': formatPrice(order.shipping || 0),
       'Tax': formatPrice(order.tax || 0),
       'Total': formatPrice(order.total),
       'Items Count': order.items?.length || 0,
