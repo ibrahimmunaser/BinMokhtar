@@ -7,6 +7,7 @@ import {
   FulfillmentMethod,
   LocationZone,
 } from '@/lib/shipping/config';
+import { decrementInventoryForOrder } from '@/lib/inventory';
 
 export const dynamic = 'force-dynamic';
 
@@ -204,6 +205,31 @@ export async function POST(request: NextRequest) {
     const orderId = orderRef.id;
 
     console.log('✅ Order created:', orderId);
+
+    // Decrement inventory for all items in the order
+    console.log('📦 Decrementing inventory...');
+    try {
+      const inventoryResult = await decrementInventoryForOrder(
+        body.items.map(item => ({
+          productId: item.productId,
+          variantId: item.variantId,
+          size: item.size,
+          color: item.color,
+          qty: item.qty,
+          sku: item.sku,
+        }))
+      );
+      
+      if (!inventoryResult.success) {
+        console.warn('⚠️ Some inventory updates failed:', inventoryResult.errors);
+        // Log errors but don't fail the order - inventory can be manually adjusted
+      } else {
+        console.log('✅ Inventory decremented successfully');
+      }
+    } catch (inventoryError: any) {
+      console.error('❌ Inventory decrement failed:', inventoryError);
+      // Don't fail the order if inventory update fails - can be fixed manually
+    }
 
     // Create fulfillment label/packing slip
     let fulfillmentResult = {};

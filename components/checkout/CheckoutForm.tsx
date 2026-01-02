@@ -882,7 +882,7 @@ export function CheckoutForm() {
         <div className="p-6 bg-surface-3/50 rounded-lg border border-line">
           <h3 className="font-semibold mb-3">Pickup Location</h3>
           <p className="text-sm text-bmr-muted">
-            We are located in <strong>Detroit Metro Area</strong>. You'll receive pickup instructions via email after placing your order.
+            We are located in <strong>Detroit Metro Area</strong>. After placing your order, please DM us on Instagram or email info@binmukhtarretail.com to arrange your pickup time and location.
           </p>
         </div>
       )}

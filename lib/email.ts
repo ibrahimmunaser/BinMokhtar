@@ -199,12 +199,16 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationEmailDat
                             <h2 style="margin: 0 0 12px; font-size: 18px; font-weight: 600; color: #000000;">Pickup Instructions</h2>
                             <p style="margin: 0 0 16px; font-size: 14px; color: #666666; line-height: 1.6;">
                               <strong style="color: #000000;">We are located in Dearborn, Michigan.</strong><br>
-                              To arrange your pickup, please send us a direct message on Instagram with your order reference (#${data.orderNumber}).
+                              To arrange your pickup, please send us a direct message on Instagram or email us at info@binmukhtarretail.com with your order reference (#${data.orderNumber}).
                             </p>
                             <div style="text-align: center;">
                               <a href="https://www.instagram.com/binmukhtarretail?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" 
-                                 style="display: inline-block; padding: 12px 24px; background: linear-gradient(to right, #833AB4, #E1306C); color: #FFFFFF; text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 14px;">
+                                 style="display: inline-block; padding: 12px 24px; margin-right: 8px; background: linear-gradient(to right, #833AB4, #E1306C); color: #FFFFFF; text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 14px;">
                                 DM on Instagram
+                              </a>
+                              <a href="mailto:info@binmukhtarretail.com?subject=Pickup%20Request%20-%20Order%20%23${data.orderNumber}" 
+                                 style="display: inline-block; padding: 12px 24px; background-color: #1a1a1a; color: #FFFFFF; text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 14px;">
+                                Email Us
                               </a>
                             </div>
                           </div>

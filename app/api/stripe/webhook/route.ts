@@ -4,6 +4,7 @@ import { adminDb, FieldValue, Timestamp } from '@/lib/firebase/server';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 import { createShippingArtifactsForOrder } from '@/lib/shipping/createShippingArtifacts';
 import { calculateOrderWeight } from '@/lib/shipping/calculateOrderWeight';
+import { decrementInventoryForOrder } from '@/lib/inventory';
 import Stripe from 'stripe';
 
 // Mark as dynamic route (webhooks are always dynamic)
@@ -631,6 +632,35 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       console.error('❌ Step 4: Error stack:', saveError?.stack);
       console.error('❌ Step 4: Full error:', JSON.stringify(saveError, Object.getOwnPropertyNames(saveError), 2));
       throw saveError;
+    }
+
+    // Decrement inventory for all items in the order
+    console.log('📦 ===== INVENTORY MANAGEMENT =====');
+    console.log('📦 Decrementing inventory for', cleanedOrderData.items.length, 'items');
+    try {
+      const inventoryResult = await decrementInventoryForOrder(
+        cleanedOrderData.items.map((item: any) => ({
+          productId: item.productId,
+          variantId: item.variantId,
+          size: item.size,
+          color: item.color,
+          qty: item.qty,
+          sku: item.sku,
+        }))
+      );
+      
+      if (!inventoryResult.success) {
+        console.warn('⚠️ Some inventory updates failed:', inventoryResult.errors);
+        // Log errors but don't fail the webhook - inventory can be manually adjusted
+      } else {
+        console.log('✅ Inventory decremented successfully for all items');
+      }
+    } catch (inventoryError: any) {
+      console.error('❌ Inventory decrement failed:', inventoryError);
+      console.error('❌ Error message:', inventoryError?.message);
+      console.error('❌ Error stack:', inventoryError?.stack);
+      // Don't fail the webhook if inventory update fails - can be fixed manually
+      // This prevents Stripe from retrying the webhook
     }
 
     // Send order confirmation email
