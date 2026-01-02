@@ -323,7 +323,7 @@ export default function AdminOrderDetailPage() {
 
     // Create Items Sheet
     const itemsData = order.items.map(item => ({
-      'Item Name': item.title || item.name || 'N/A',
+      'Item Name': item.title || 'N/A',
       'SKU': item.sku || 'N/A',
       'Size': item.size || 'N/A',
       'Color': item.color || 'N/A',
