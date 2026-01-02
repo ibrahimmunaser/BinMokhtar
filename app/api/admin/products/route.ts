@@ -117,15 +117,21 @@ export async function POST(request: NextRequest) {
           : []);
 
     const variantsInput: any[] = Array.isArray(body.variants) ? body.variants : [];
+    
+    // Calculate total stock from ALL variants BEFORE filtering
+    const totalStock = variantsInput.reduce((sum, v) => {
+      const stock = Math.max(0, parseInt(String(v.stock || 0)));
+      return sum + stock;
+    }, 0);
+    
+    // Normalize variants for storage (only filter out completely invalid entries)
     const normalizedVariants = variantsInput
       .map((v) => ({
         size: v.size || undefined,
         color: v.color || undefined,
         stock: Math.max(0, parseInt(String(v.stock || 0))),
       }))
-      .filter((v) => (v.size || v.color) && Number.isFinite(v.stock));
-
-    const totalStock = normalizedVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
+      .filter((v) => Number.isFinite(v.stock)); // Only filter if stock is invalid, not based on size/color
 
     // Handle colorImageMappings
     const colorImageMappings = Array.isArray(body.colorImageMappings) 
@@ -302,15 +308,21 @@ export async function PUT(request: NextRequest) {
           : []);
 
     const variantsInput: any[] = Array.isArray(body.variants) ? body.variants : [];
+    
+    // Calculate total stock from ALL variants BEFORE filtering
+    const totalStock = variantsInput.reduce((sum, v) => {
+      const stock = Math.max(0, parseInt(String(v.stock || 0)));
+      return sum + stock;
+    }, 0);
+    
+    // Normalize variants for storage (only filter out completely invalid entries)
     const normalizedVariants = variantsInput
       .map((v) => ({
         size: v.size || undefined,
         color: v.color || undefined,
         stock: Math.max(0, parseInt(String(v.stock || 0))),
       }))
-      .filter((v) => (v.size || v.color) && Number.isFinite(v.stock));
-
-    const totalStock = normalizedVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
+      .filter((v) => Number.isFinite(v.stock)); // Only filter if stock is invalid, not based on size/color
 
     // Validate slug uniqueness (if changed)
     const existingDoc = await adminDb().collection('products').doc(productId).get();
@@ -360,6 +372,14 @@ export async function PUT(request: NextRequest) {
       sizes,
       sleeve: body.sleeve === 'short' || body.sleeve === 'long' ? body.sleeve : null,
       stock: Number.isFinite(totalStock) ? totalStock : 0,
+      // Counts object for dashboard display (CRITICAL for inventory management)
+      counts: {
+        variants: normalizedVariants.length,
+        activeVariants: normalizedVariants.filter(v => v.stock > 0).length,
+        totalStock: Number.isFinite(totalStock) ? totalStock : 0,
+        reviewCount: existingData?.counts?.reviewCount || 0,
+        ratingAvg: existingData?.counts?.ratingAvg || 0,
+      },
       // Image fields
       images: body.images || ['/placeholder.svg'],
       thumbnail: body.thumbnail || body.images?.[0] || '/placeholder.svg',
