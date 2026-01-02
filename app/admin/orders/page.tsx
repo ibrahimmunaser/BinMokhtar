@@ -415,13 +415,13 @@ export default function AdminOrdersPage() {
       'Has Shippo Label': order.shippo_label_url ? 'Yes' : 'No',
       'Has Internal Label': order.internal_label_url ? 'Yes' : 'No',
       'Shippo Tracking Number': order.shippo_tracking_number || 'N/A',
-      'Shippo Tracking URL': order.shippo_tracking_url || 'N/A',
+      'Shippo Tracking URL': order.trackingUrl || 'N/A',
       'Subtotal': formatPrice(order.subtotal || 0),
       'Shipping Cost': formatPrice(order.shippingCost || 0),
       'Tax': formatPrice(order.tax || 0),
       'Total': formatPrice(order.total),
       'Items Count': order.items?.length || 0,
-      'Items': order.items?.map(item => `${item.name || item.title} (Qty: ${item.qty})`).join('; ') || 'N/A',
+      'Items': order.items?.map(item => `${item.title} (Qty: ${item.qty})`).join('; ') || 'N/A',
       'Shipping Address': order.shippingAddress ? 
         `${order.shippingAddress.line1}, ${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.zip}, ${order.shippingAddress.country}` : 
         'N/A',
