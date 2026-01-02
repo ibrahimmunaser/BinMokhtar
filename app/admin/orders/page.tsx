@@ -423,7 +423,7 @@ export default function AdminOrdersPage() {
       'Items Count': order.items?.length || 0,
       'Items': order.items?.map(item => `${item.title} (Qty: ${item.qty})`).join('; ') || 'N/A',
       'Shipping Address': order.shippingAddress ? 
-        `${order.shippingAddress.line1}, ${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.zip}, ${order.shippingAddress.country}` : 
+        `${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.zip}, ${order.shippingAddress.country}` : 
         'N/A',
       'Phone': order.shippingAddress?.phone || 'N/A',
       'Created At': formatDate(order.createdAt),
