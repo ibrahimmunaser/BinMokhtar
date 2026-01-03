@@ -421,7 +421,13 @@ export default function AdminOrdersPage() {
       'Tax': formatPrice(order.tax || 0),
       'Total': formatPrice(order.total),
       'Items Count': order.items?.length || 0,
-      'Items': order.items?.map(item => `${item.title} (Qty: ${item.qty})`).join('; ') || 'N/A',
+      'Items': order.items?.map(item => {
+        const parts = [item.title];
+        if (item.size || item.color) parts.push(`[${[item.size, item.color].filter(Boolean).join('/')}]`);
+        if (item.sku) parts.push(`SKU: ${item.sku}`);
+        parts.push(`Qty: ${item.qty}`);
+        return parts.join(' ');
+      }).join('; ') || 'N/A',
       'Shipping Address': order.shippingAddress ? 
         `${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.zip}, ${order.shippingAddress.country}` : 
         'N/A',

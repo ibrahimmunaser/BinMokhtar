@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe, STRIPE_WEBHOOK_SECRET } from '@/lib/stripe/config';
 import { adminDb, FieldValue, Timestamp } from '@/lib/firebase/server';
-import { sendOrderConfirmationEmail } from '@/lib/email';
+import { sendOrderConfirmationEmail, sendAdminOrderNotification } from '@/lib/email';
 import { createShippingArtifactsForOrder } from '@/lib/shipping/createShippingArtifacts';
 import { calculateOrderWeight } from '@/lib/shipping/calculateOrderWeight';
 import { decrementInventoryForOrder } from '@/lib/inventory';
@@ -714,6 +714,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           qty: item.qty,
           unitPrice: item.unitPrice,
           imageUrl: item.imageUrl,
+          sku: item.sku, // Added SKU
+          size: item.size, // Added size
+          color: item.color, // Added color
         })),
         subtotal: cleanedOrderData.subtotal,
         shipping: cleanedOrderData.shipping,
@@ -744,6 +747,20 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           console.log('✅ Email ID:', emailResult.emailId);
           console.log('✅ Timestamp:', new Date().toISOString());
           console.log('✅ Duration:', duration, 'ms');
+          
+          // Send admin notification email
+          console.log('📧 Sending admin notification email...');
+          try {
+            const adminResult = await sendAdminOrderNotification(emailData);
+            if (adminResult.success) {
+              console.log('✅ Admin notification email sent successfully');
+              console.log('✅ Admin Email ID:', adminResult.emailId);
+            } else {
+              console.error('⚠️ Admin notification failed (non-critical):', adminResult.error);
+            }
+          } catch (adminError: any) {
+            console.error('⚠️ Admin notification exception (non-critical):', adminError?.message);
+          }
         } else {
           console.error('❌ ===== EMAIL SEND FAILED =====');
           console.error('❌ Failed to send order confirmation email');

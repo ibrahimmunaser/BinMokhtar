@@ -22,6 +22,9 @@ interface OrderConfirmationEmailData {
     qty: number;
     unitPrice: number;
     imageUrl?: string;
+    sku?: string; // Added SKU
+    size?: string; // Added size
+    color?: string; // Added color
   }>;
   subtotal: number;
   shipping: number;
@@ -139,6 +142,8 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationEmailDat
                               ` : ''}
                               <td style="vertical-align: top;">
                                 <h3 style="margin: 0 0 8px; font-size: 16px; font-weight: 500; color: #000000; line-height: 1.4;">${item.title}</h3>
+                                ${item.size || item.color ? `<p style="margin: 0 0 4px; font-size: 14px; color: #666666;">${[item.size, item.color].filter(Boolean).join(' / ')}</p>` : ''}
+                                ${item.sku ? `<p style="margin: 0 0 4px; font-size: 13px; color: #999999;">SKU: ${item.sku}</p>` : ''}
                                 <p style="margin: 0 0 8px; font-size: 14px; color: #666666;">Quantity: ${item.qty}</p>
                                 <p style="margin: 0; font-size: 16px; font-weight: 600; color: #000000;">${formatPrice(item.unitPrice * item.qty)}</p>
                               </td>
@@ -310,6 +315,182 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationEmailDat
     console.error('❌ Error message:', error?.message);
     console.error('❌ Error stack:', error?.stack);
     console.error('❌ Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+    return { success: false, error: error?.message || 'Unknown error' };
+  }
+}
+
+/**
+ * Send admin notification email when a new order is placed
+ */
+export async function sendAdminOrderNotification(data: OrderConfirmationEmailData) {
+  console.log('📧 ===== sendAdminOrderNotification STARTED =====');
+  console.log('📧 Sending admin notification to: info@binmukhtarretail.com');
+  console.log('📧 Order number:', data.orderNumber);
+  
+  if (!process.env.RESEND_API_KEY || !resend) {
+    console.error('❌ Email service not configured');
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  try {
+    const formatPrice = (cents: number) => {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: data.currency || 'USD',
+      }).format(cents / 100);
+    };
+
+    const emailPayload = {
+      from: FROM_EMAIL,
+      to: 'info@binmukhtarretail.com', // Admin email
+      reply_to: data.customerEmail, // Reply to customer
+      subject: `🔔 New Order Received - ${data.orderNumber}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>New Order - ${data.orderNumber}</title>
+          </head>
+          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #000000; background-color: #F7F3EF;">
+            <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #F7F3EF; padding: 0; margin: 0;">
+              <tr>
+                <td align="center" style="padding: 40px 20px 30px;">
+                  <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #FFFFFF; border-radius: 8px; overflow: hidden; border: 3px solid #C8A94E;">
+                    <!-- Admin Alert Header -->
+                    <tr>
+                      <td align="center" style="padding: 30px; background: linear-gradient(135deg, #C8A94E 0%, #D4B962 100%);">
+                        <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #FFFFFF; text-align: center;">🔔 NEW ORDER RECEIVED</h1>
+                        <p style="margin: 8px 0 0; font-size: 18px; color: #FFFFFF; font-weight: 600;">Order #${data.orderNumber}</p>
+                      </td>
+                    </tr>
+
+                    <!-- Order Info -->
+                    <tr>
+                      <td style="padding: 30px; background-color: #FFFFFF;">
+                        <h2 style="margin: 0 0 20px; font-size: 18px; font-weight: 600; color: #000000; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #F7F3EF; padding-bottom: 10px;">Customer Information</h2>
+                        <div style="font-size: 15px; line-height: 1.8;">
+                          <p style="margin: 0 0 10px;"><strong>Name:</strong> ${data.customerName}</p>
+                          <p style="margin: 0 0 10px;"><strong>Email:</strong> <a href="mailto:${data.customerEmail}" style="color: #C8A94E; text-decoration: none;">${data.customerEmail}</a></p>
+                          <p style="margin: 0;"><strong>Fulfillment:</strong> ${data.fulfillmentMethod === 'pickup' ? '📦 PICKUP' : '🚚 DELIVERY'}</p>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <!-- Order Items with SKU -->
+                    <tr>
+                      <td style="padding: 0 30px 30px; background-color: #FFFFFF;">
+                        <h2 style="margin: 0 0 20px; font-size: 18px; font-weight: 600; color: #000000; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #F7F3EF; padding-bottom: 10px;">Items to Fulfill</h2>
+                        ${data.items.map(item => `
+                          <div style="margin-bottom: 20px; padding: 15px; background-color: #F7F3EF; border-radius: 4px; border-left: 3px solid #C8A94E;">
+                            <h3 style="margin: 0 0 10px; font-size: 16px; font-weight: 600; color: #000000;">${item.title}</h3>
+                            <div style="font-size: 14px; line-height: 1.8; color: #333;">
+                              ${item.sku ? `<p style="margin: 0 0 6px;"><strong style="color: #C8A94E;">🏷️ SKU:</strong> <span style="font-family: monospace; background-color: #FFFFFF; padding: 2px 8px; border-radius: 3px; font-weight: 600;">${item.sku}</span></p>` : ''}
+                              ${item.size ? `<p style="margin: 0 0 6px;"><strong>📏 Size:</strong> ${item.size}</p>` : ''}
+                              ${item.color ? `<p style="margin: 0 0 6px;"><strong>🎨 Color:</strong> ${item.color}</p>` : ''}
+                              <p style="margin: 0 0 6px;"><strong>📦 Quantity:</strong> ${item.qty} ${item.qty > 1 ? 'units' : 'unit'}</p>
+                              <p style="margin: 0;"><strong>💰 Price:</strong> ${formatPrice(item.unitPrice * item.qty)}</p>
+                            </div>
+                          </div>
+                        `).join('')}
+                      </td>
+                    </tr>
+
+                    <!-- Order Summary -->
+                    <tr>
+                      <td style="padding: 0 30px 30px; background-color: #FFFFFF;">
+                        <h2 style="margin: 0 0 20px; font-size: 18px; font-weight: 600; color: #000000; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #F7F3EF; padding-bottom: 10px;">Order Total</h2>
+                        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                          <tr>
+                            <td style="padding: 8px 0; font-size: 15px; color: #666666;">Subtotal</td>
+                            <td align="right" style="padding: 8px 0; font-size: 15px; color: #000000; font-weight: 600;">${formatPrice(data.subtotal)}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 8px 0; font-size: 15px; color: #666666;">Shipping</td>
+                            <td align="right" style="padding: 8px 0; font-size: 15px; color: #000000; font-weight: 600;">${data.shipping > 0 ? formatPrice(data.shipping) : 'FREE'}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 8px 0; font-size: 15px; color: #666666;">Tax</td>
+                            <td align="right" style="padding: 8px 0; font-size: 15px; color: #000000; font-weight: 600;">${formatPrice(data.tax)}</td>
+                          </tr>
+                          <tr>
+                            <td colspan="2" style="padding: 16px 0 8px; border-top: 3px solid #C8A94E;"></td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 8px 0; font-size: 20px; font-weight: 700; color: #000000;">TOTAL</td>
+                            <td align="right" style="padding: 8px 0; font-size: 20px; font-weight: 700; color: #C8A94E;">${formatPrice(data.total)}</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+
+                    <!-- Shipping Address -->
+                    ${data.fulfillmentMethod === 'delivery' && data.shippingAddress ? `
+                      <tr>
+                        <td style="padding: 0 30px 30px; background-color: #FFFFFF;">
+                          <h2 style="margin: 0 0 20px; font-size: 18px; font-weight: 600; color: #000000; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #F7F3EF; padding-bottom: 10px;">🚚 Shipping Address</h2>
+                          <div style="background-color: #F7F3EF; padding: 15px; border-radius: 4px; font-size: 15px; line-height: 1.8;">
+                            <div style="font-weight: 600; margin-bottom: 4px;">${data.shippingAddress.fullName}</div>
+                            <div>${data.shippingAddress.address}</div>
+                            ${data.shippingAddress.address2 ? `<div>${data.shippingAddress.address2}</div>` : ''}
+                            <div>${data.shippingAddress.city}, ${data.shippingAddress.state} ${data.shippingAddress.zip}</div>
+                            <div>${data.shippingAddress.country}</div>
+                          </div>
+                        </td>
+                      </tr>
+                    ` : ''}
+
+                    <!-- Pickup Note -->
+                    ${data.fulfillmentMethod === 'pickup' ? `
+                      <tr>
+                        <td style="padding: 0 30px 30px; background-color: #FFFFFF;">
+                          <div style="background-color: #FFF3CD; padding: 15px; border-radius: 4px; border-left: 4px solid #FFC107;">
+                            <p style="margin: 0; font-size: 15px; color: #856404;"><strong>📦 PICKUP ORDER:</strong> Customer will arrange pickup via Instagram DM or email.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ` : ''}
+
+                    <!-- Quick Actions -->
+                    <tr>
+                      <td style="padding: 0 30px 30px; background-color: #FFFFFF;">
+                        <div style="text-align: center;">
+                          <a href="https://binmukhtarretail.com/admin/orders/${data.orderId}" 
+                             style="display: inline-block; padding: 14px 32px; background-color: #C8A94E; color: #FFFFFF; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 16px; margin-right: 10px;">
+                            View Order Details
+                          </a>
+                          <a href="mailto:${data.customerEmail}" 
+                             style="display: inline-block; padding: 14px 32px; background-color: #000000; color: #FFFFFF; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 16px;">
+                            Contact Customer
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                      <td style="padding: 20px 30px; background-color: #F7F3EF; text-align: center; border-top: 1px solid #E0E0E0;">
+                        <p style="margin: 0; font-size: 13px; color: #666666;">This is an automated notification from your Bin Mukhtar Retail store.</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+        </html>
+      `,
+    };
+
+    console.log('📧 Calling resend.emails.send for ADMIN notification...');
+    const emailData = await resend.emails.send(emailPayload);
+    
+    console.log('✅ Admin notification email sent successfully');
+    console.log('✅ Email ID:', (emailData as any)?.id);
+    return { success: true, emailId: (emailData as any)?.id };
+  } catch (error: any) {
+    console.error('❌ Admin notification email failed:', error);
     return { success: false, error: error?.message || 'Unknown error' };
   }
 }
