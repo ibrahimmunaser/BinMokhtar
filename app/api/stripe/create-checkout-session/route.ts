@@ -208,6 +208,9 @@ export async function POST(request: NextRequest) {
           variantId: i.variantId,
           sku: i.sku,
           qty: i.qty,
+          size: i.size, // Added size
+          color: i.color, // Added color
+          imageUrl: i.imageUrl, // Added imageUrl
         }))),
       },
       allow_promotion_codes: true, // Enable promo codes
