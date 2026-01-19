@@ -3,8 +3,14 @@
 ## Problem
 Users were getting "Failed to create checkout session" error when trying to buy Moroccan thobes (and potentially other products).
 
-## Root Cause
-The error message was too generic and didn't show the actual problem. Possible causes:
+## Root Cause (FOUND!)
+**Stripe Metadata Limit Exceeded:** The `cartItems` metadata field was 677 characters when customer had 3 items with Firebase Storage image URLs. Stripe's limit is 500 characters per metadata value.
+
+See `STRIPE_METADATA_LIMIT_FIX.md` for the complete fix.
+
+## Additional Improvements Made
+
+Generic error handling improvements for other potential causes:
 1. Invalid price data (negative, zero, or non-integer prices)
 2. Missing required product data (productId, variantId, SKU)
 3. Invalid metadata

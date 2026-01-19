@@ -240,9 +240,10 @@ export async function POST(request: NextRequest) {
           variantId: i.variantId,
           sku: i.sku,
           qty: i.qty,
-          size: i.size, // Added size
-          color: i.color, // Added color
-          imageUrl: i.imageUrl, // Added imageUrl
+          size: i.size,
+          color: i.color,
+          // imageUrl removed to stay under Stripe's 500 char metadata limit
+          // Images are already in line_items and can be fetched from DB in webhook
         }))),
       },
       allow_promotion_codes: true, // Enable promo codes

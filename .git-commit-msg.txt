@@ -1,0 +1,32 @@
+Add review management + fix shipping checkout errors
+
+FEATURES:
+- Add admin interface to delete all reviews with one click
+- Add review deletion scripts for command line use
+- Add product validation script for checkout compatibility
+- Update admin dashboard with review management link
+
+FIXES:
+- Fix "Failed to create checkout session" error for USPS Ground Advantage
+- Add triple-layer validation for Shippo shipping rates
+- Validate shipping amounts before sending to Stripe (must be positive integers)
+- Add frontend validation for selected shipping rates
+- Improve error messages with specific guidance instead of generic errors
+- Add comprehensive logging for debugging shipping/checkout issues
+
+IMPROVEMENTS:
+- Enhanced error handling in Stripe checkout session creation
+- Better validation of product prices and quantities
+- Detailed console logs for troubleshooting
+- User-friendly error messages with actionable guidance
+
+FILES ADDED:
+- app/admin/reviews/delete/page.tsx - Admin UI for deleting reviews
+- app/api/admin/reviews/delete-all/route.ts - API endpoint for bulk deletion
+- scripts/delete-all-reviews*.ts - Command line deletion scripts
+- scripts/test-checkout-products.ts - Product validation utility
+- CHECKOUT_ERROR_FIX.md - Error handling documentation
+- SHIPPING_CHECKOUT_ERROR_FIX.md - Shipping-specific fix documentation
+- DELETE_*_REVIEWS*.md - Review deletion documentation
+
+This ensures a clean website launch with no test data and reliable checkout flow.
