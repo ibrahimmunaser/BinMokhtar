@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAdminAuthenticated, clearAdminSession } from '@/lib/adminAuth';
 import Link from 'next/link';
-import { Package, Tag, ShoppingCart, FileText, LogOut, Plus, Edit, Trash2, Receipt } from 'lucide-react';
+import { Package, Tag, ShoppingCart, FileText, LogOut, Plus, Edit, Trash2, Receipt, Star } from 'lucide-react';
 import { getAllProducts, deleteProduct, updateCategoryProductCounts } from '@/lib/firebaseAdminStore';
 
 export default function AdminDashboard() {
@@ -155,6 +155,21 @@ export default function AdminDashboard() {
             >
               <FileText className="w-5 h-5" />
               <span className="font-medium">Store Settings</span>
+            </Link>
+          </div>
+          
+          {/* Danger Zone - Delete Reviews */}
+          <div className="mt-6 pt-6 border-t border-line">
+            <h3 className="text-sm font-medium text-bmr-muted mb-3">Maintenance</h3>
+            <Link
+              href="/admin/reviews/delete"
+              className="flex items-center gap-3 p-4 border-2 border-red-200 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+            >
+              <Star className="w-5 h-5" />
+              <div className="flex-1">
+                <span className="font-medium block">Delete All Reviews</span>
+                <span className="text-xs text-red-600">Remove test reviews before launch</span>
+              </div>
             </Link>
           </div>
         </div>

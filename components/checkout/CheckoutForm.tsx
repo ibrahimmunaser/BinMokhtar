@@ -296,7 +296,17 @@ export function CheckoutForm() {
         setError('Please select a shipping option.');
         return;
       }
-      console.log('✅ CheckoutForm: Shipping validation passed');
+      // Validate shipping amount
+      if (!selectedRate.amount || selectedRate.amount <= 0 || isNaN(selectedRate.amount)) {
+        console.error('❌ CheckoutForm: Shipping validation failed - invalid amount:', selectedRate);
+        setError('Invalid shipping cost. Please refresh the page and try selecting a shipping option again.');
+        return;
+      }
+      console.log('✅ CheckoutForm: Shipping validation passed:', {
+        carrier: selectedRate.carrier,
+        service: selectedRate.serviceLevelName,
+        amount: selectedRate.amount,
+      });
     }
 
     if (fulfillmentMethod === 'pickup') {

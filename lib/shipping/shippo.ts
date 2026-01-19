@@ -113,24 +113,57 @@ export async function getShippingRates(
   const rates: ShippingRate[] = shipment.rates
     .filter((rate: any) => {
       // Must have an amount
-      if (!rate.amount) return false;
+      if (!rate.amount) {
+        console.warn('⚠️ Rate has no amount:', rate.servicelevel?.name);
+        return false;
+      }
+      
+      // Amount must be valid
+      const parsedAmount = parseFloat(rate.amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        console.warn('⚠️ Rate has invalid amount:', rate.servicelevel?.name, rate.amount);
+        return false;
+      }
       
       // Must be in our allowed service levels
       const serviceToken = rate.servicelevel?.token || '';
-      return ALLOWED_SERVICE_LEVELS.includes(serviceToken);
+      if (!ALLOWED_SERVICE_LEVELS.includes(serviceToken)) {
+        return false;
+      }
+      
+      return true;
     })
-    .map((rate: any) => ({
-      id: rate.object_id,
-      carrier: rate.provider,
-      carrierAccount: rate.carrier_account,
-      serviceLevelName: rate.servicelevel?.name || rate.servicelevel_name || 'Standard',
-      serviceLevelToken: rate.servicelevel?.token || '',
-      amount: Math.round(parseFloat(rate.amount) * 100), // Convert to cents
-      currency: rate.currency?.toUpperCase() || 'USD',
-      estimatedDays: rate.estimated_days || null,
-      estimatedDeliveryDate: rate.duration_terms || null,
-      durationTerms: rate.duration_terms || null,
-    }))
+    .map((rate: any) => {
+      const amountInCents = Math.round(parseFloat(rate.amount) * 100);
+      
+      console.log('✅ Shipping rate:', {
+        service: rate.servicelevel?.name,
+        amount: rate.amount,
+        amountInCents,
+        carrier: rate.provider,
+      });
+      
+      return {
+        id: rate.object_id,
+        carrier: rate.provider,
+        carrierAccount: rate.carrier_account,
+        serviceLevelName: rate.servicelevel?.name || rate.servicelevel_name || 'Standard',
+        serviceLevelToken: rate.servicelevel?.token || '',
+        amount: amountInCents, // In cents
+        currency: rate.currency?.toUpperCase() || 'USD',
+        estimatedDays: rate.estimated_days || null,
+        estimatedDeliveryDate: rate.duration_terms || null,
+        durationTerms: rate.duration_terms || null,
+      };
+    })
+    .filter((rate: ShippingRate) => {
+      // Final validation: ensure amount is positive integer
+      if (!Number.isInteger(rate.amount) || rate.amount <= 0) {
+        console.error('❌ Rate has invalid final amount:', rate.serviceLevelName, rate.amount);
+        return false;
+      }
+      return true;
+    })
     .sort((a: ShippingRate, b: ShippingRate) => a.amount - b.amount); // Sort by price
 
   console.log('📦 Got', rates.length, 'shipping rates (filtered from', shipment.rates?.length || 0, 'total)');

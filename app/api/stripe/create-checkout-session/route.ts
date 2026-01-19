@@ -115,11 +115,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert cart items to Stripe line items
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((item: any) => {
+    // Convert cart items to Stripe line items with validation
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((item: any, index: number) => {
       const unitAmount = item.priceAtAdd || item.price || 0; // Already in cents
       const title = item.title || item.name || 'Product';
       const description = [item.size, item.color].filter(Boolean).join(' • ');
+
+      // Validate price
+      if (!unitAmount || unitAmount <= 0) {
+        console.error(`❌ Item ${index} has invalid price:`, { item, unitAmount });
+        throw new Error(`Invalid price for "${title}". Please refresh and try again.`);
+      }
+
+      // Validate quantity
+      if (!item.qty || item.qty < 1) {
+        console.error(`❌ Item ${index} has invalid quantity:`, { item });
+        throw new Error(`Invalid quantity for "${title}".`);
+      }
+
+      // Log item for debugging
+      console.log(`✅ Item ${index}:`, {
+        title,
+        price: unitAmount,
+        qty: item.qty,
+        size: item.size,
+        color: item.color,
+      });
 
       return {
         price_data: {
@@ -129,12 +150,12 @@ export async function POST(request: NextRequest) {
             description: description || undefined,
             images: item.imageUrl ? [item.imageUrl] : undefined,
             metadata: {
-              productId: item.productId,
-              variantId: item.variantId,
-              sku: item.sku,
+              productId: item.productId || '',
+              variantId: item.variantId || '',
+              sku: item.sku || '',
             },
           },
-          unit_amount: unitAmount, // Price in cents
+          unit_amount: Math.round(unitAmount), // Ensure integer
         },
         quantity: item.qty,
       };
@@ -150,8 +171,19 @@ export async function POST(request: NextRequest) {
       shippingAmountRaw,
       shippingAmount,
       fulfillmentMethod: metadata?.fulfillmentMethod,
+      shippingRateId: metadata?.shippingRateId,
       hasMetadata: !!metadata,
     });
+    
+    // Validate shipping amount
+    if (metadata?.fulfillmentMethod === 'shipping' && (!shippingAmount || shippingAmount <= 0 || isNaN(shippingAmount))) {
+      console.error('❌ Invalid shipping amount for shipping method:', {
+        shippingAmountRaw,
+        shippingAmount,
+        shippingRateId: metadata?.shippingRateId,
+      });
+      throw new Error('Invalid shipping cost. Please refresh the page and try selecting a shipping option again.');
+    }
     
     if (shippingAmount > 0 && !isNaN(shippingAmount)) {
       const fulfillmentMethod = metadata?.fulfillmentMethod || 'shipping';
@@ -228,12 +260,39 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Stripe Checkout Session Error:', error);
+    console.error('❌ Stripe Checkout Session Error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      type: error.type,
+      code: error.code,
+      param: error.param,
+      stack: error.stack,
+    });
+    
+    // Provide more specific error messages
+    let userMessage = 'Failed to create checkout session';
+    
+    if (error.type === 'StripeInvalidRequestError') {
+      if (error.message?.includes('amount')) {
+        userMessage = 'Invalid price amount detected. Please contact support.';
+      } else if (error.message?.includes('metadata')) {
+        userMessage = 'Product information error. Please try again or contact support.';
+      } else {
+        userMessage = `Stripe error: ${error.message}`;
+      }
+    } else if (error.message?.includes('API key')) {
+      userMessage = 'Payment system configuration error. Please contact support.';
+    }
     
     return NextResponse.json(
       { 
-        error: 'Failed to create checkout session',
-        message: error.message 
+        error: userMessage,
+        message: error.message,
+        details: process.env.NODE_ENV === 'development' ? {
+          type: error.type,
+          code: error.code,
+          param: error.param,
+        } : undefined
       },
       { status: 500 }
     );
