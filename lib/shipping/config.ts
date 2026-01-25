@@ -3,19 +3,19 @@
  * Central configuration for all shipping-related settings
  */
 
-// Store location coordinates (Modesto, California)
+// Store location coordinates (Taylor, Michigan)
 export const STORE_COORDINATES = {
-  lat: parseFloat(process.env.STORE_LAT || '37.6391'),
-  lng: parseFloat(process.env.STORE_LNG || '-120.9969'),
+  lat: parseFloat(process.env.STORE_LAT || '42.23870'),
+  lng: parseFloat(process.env.STORE_LNG || '-83.26968'),
 };
 
 // Store address for Shippo
 export const STORE_ADDRESS = {
   name: 'Bin Mukhtar Retail',
-  street1: '508 Dimensions St',
-  city: 'Modesto',
-  state: 'CA',
-  zip: '95351',
+  street1: '15600 Michael St',
+  city: 'Taylor',
+  state: 'MI',
+  zip: '48180',
   country: 'US',
   phone: '', // Add store phone if available
   email: 'support@binmukhtarretail.com',
