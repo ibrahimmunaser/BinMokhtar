@@ -3,19 +3,19 @@
  * Central configuration for all shipping-related settings
  */
 
-// Store location coordinates (Dearborn, Michigan)
+// Store location coordinates (Modesto, California)
 export const STORE_COORDINATES = {
-  lat: parseFloat(process.env.STORE_LAT || '42.28427428899192'),
-  lng: parseFloat(process.env.STORE_LNG || '-83.17141110211989'),
+  lat: parseFloat(process.env.STORE_LAT || '37.6391'),
+  lng: parseFloat(process.env.STORE_LNG || '-120.9969'),
 };
 
 // Store address for Shippo
 export const STORE_ADDRESS = {
   name: 'Bin Mukhtar Retail',
-  street1: '10015 Burley Street', // Update with actual address
-  city: 'Dearborn',
-  state: 'MI',
-  zip: '48120',
+  street1: '508 Dimensions St',
+  city: 'Modesto',
+  state: 'CA',
+  zip: '95351',
   country: 'US',
   phone: '', // Add store phone if available
   email: 'support@binmukhtarretail.com',
