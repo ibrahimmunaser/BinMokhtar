@@ -17,7 +17,7 @@ export const STORE_ADDRESS = {
   state: 'MI',
   zip: '48180',
   country: 'US',
-  phone: '', // Add store phone if available
+  phone: '+1 734-785-2726',
   email: 'support@binmukhtarretail.com',
 };
 

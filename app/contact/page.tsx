@@ -172,8 +172,8 @@ export default function ContactPage() {
             
             <div>
               <h3 className="font-medium mb-2">Phone</h3>
-              <a href="tel:+1234567890" className="text-muted hover:text-bmr-black">
-                +1 (234) 567-890
+              <a href="tel:+17347852726" className="text-muted hover:text-bmr-black">
+                +1 (734) 785-2726
               </a>
             </div>
           </div>
