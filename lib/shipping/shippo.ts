@@ -16,17 +16,22 @@ import {
 import { shippoRequest } from './shippoApi';
 
 /**
- * Allowed shipping service levels
- * Only these services will be shown to customers
+ * Shipping carrier filtering
+ * 
+ * IMPORTANT: We filter by CARRIER (usps, ups) instead of exact service tokens
+ * because Shippo's service token names can vary and exact matching causes
+ * UPS rates to be filtered out even when they're available.
+ * 
+ * Previous approach (BROKEN):
+ *   - Hardcoded service tokens like 'ups_ground', 'ups_3_day_select'
+ *   - Required EXACT match
+ *   - Failed when Shippo returned 'ups_standard' or other variations
+ * 
+ * Current approach (FIXED):
+ *   - Filter by carrier: 'usps' or 'ups'
+ *   - Allows ANY domestic service from these carriers
+ *   - Filters out international services
  */
-const ALLOWED_SERVICE_LEVELS = [
-  // USPS
-  'usps_priority',           // USPS Priority Mail
-  'usps_ground_advantage',   // USPS Ground Advantage
-  // UPS
-  'ups_ground',              // UPS Ground
-  'ups_3_day_select',        // UPS 3 Day Select
-];
 
 /**
  * Calculate parcel dimensions from cart items
@@ -125,12 +130,34 @@ export async function getShippingRates(
         return false;
       }
       
-      // Must be in our allowed service levels
+      // Filter by carrier (USPS or UPS) instead of exact service token match
+      const provider = rate.provider?.toLowerCase() || '';
       const serviceToken = rate.servicelevel?.token || '';
-      if (!ALLOWED_SERVICE_LEVELS.includes(serviceToken)) {
+      
+      // Log ALL rates from Shippo for debugging
+      console.log('📦 Shippo rate received:', {
+        provider,
+        serviceToken,
+        serviceName: rate.servicelevel?.name,
+        amount: rate.amount,
+      });
+      
+      // Allow USPS and UPS carriers
+      // This is more flexible than exact token matching
+      if (provider !== 'usps' && provider !== 'ups') {
+        console.log('   ❌ Filtered out: Not USPS or UPS');
         return false;
       }
       
+      // Optional: Filter out international or premium services
+      const isInternational = serviceToken.includes('international') || 
+                             serviceToken.includes('express_worldwide');
+      if (isInternational) {
+        console.log('   ❌ Filtered out: International service');
+        return false;
+      }
+      
+      console.log('   ✅ Included in checkout options');
       return true;
     })
     .map((rate: any) => {
