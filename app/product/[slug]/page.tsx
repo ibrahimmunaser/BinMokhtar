@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Container } from '@/components/layout/Container';
 import { Breadcrumbs } from '@/components/products/Breadcrumbs';
@@ -158,6 +158,14 @@ export default function ProductPage() {
     
     return true;
   }, [totalStock, product, selectedSize, selectedColor, selectedVariantStock, qty]);
+
+  // Auto-adjust quantity when max stock changes
+  useEffect(() => {
+    if (selectedVariantStock > 0 && qty > selectedVariantStock) {
+      console.log(`⚠️ Quantity (${qty}) exceeds max stock (${selectedVariantStock}), adjusting to ${selectedVariantStock}`);
+      setQty(selectedVariantStock);
+    }
+  }, [selectedVariantStock, qty]);
 
   // Log product view
   if (product && !isLoading) {
