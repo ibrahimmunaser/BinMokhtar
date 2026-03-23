@@ -14,10 +14,11 @@ const DEFAULT_SUBCATEGORIES = [
 ];
 
 // Ensure default subcategories exist (adds missing ones without removing existing data)
+// IMPORTANT: Does NOT re-add deleted categories (active: false or deletedAt exists)
 async function ensureDefaultsExist() {
   const subcategoriesRef = adminDb().collection('subcategories');
   
-  // Get all existing subcategories
+  // Get all existing subcategories (including deleted ones)
   const snapshot = await subcategoriesRef.get();
   const existingBySlug = new Map<string, any>();
   snapshot.docs.forEach(doc => {
@@ -36,7 +37,7 @@ async function ensureDefaultsExist() {
     const existing = existingBySlug.get(sub.slug);
     
     if (!existing) {
-      // Add new subcategory
+      // Add new subcategory ONLY if it doesn't exist at all
       console.log(`Adding missing default subcategory: ${sub.name} (${sub.slug})`);
       const docRef = subcategoriesRef.doc();
       batch.set(docRef, {
@@ -45,8 +46,11 @@ async function ensureDefaultsExist() {
         updatedAt: new Date(),
       });
       addedCount++;
+    } else if (existing.deletedAt || existing.active === false) {
+      // SKIP: Do not re-add deleted categories
+      console.log(`Skipping deleted subcategory: ${sub.name} (${sub.slug})`);
     } else if (sub.imageUrl && !existing.imageUrl) {
-      // Update existing subcategory with imageUrl if it doesn't have one
+      // Update existing ACTIVE subcategory with imageUrl if it doesn't have one
       console.log(`Updating subcategory ${sub.name} (${sub.slug}) with imageUrl`);
       const docRef = subcategoriesRef.doc(existing.id);
       batch.update(docRef, {
@@ -183,7 +187,16 @@ export async function DELETE(request: NextRequest) {
       });
     }
     
-    return NextResponse.json({ success: true, hardDelete });
+    // Return success with cache-busting headers to force homepage refresh
+    return NextResponse.json(
+      { success: true, hardDelete },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'X-Cache-Invalidated': 'true',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('Error deleting subcategory:', error);
     return NextResponse.json({ error: error.message, success: false }, { status: 500 });
