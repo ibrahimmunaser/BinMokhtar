@@ -236,16 +236,37 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     });
     console.log('✅ Step 1: Session retrieved successfully');
 
-    // Parse cart items from metadata
+    // Parse cart items from metadata (if available)
+    // Note: For orders with 5+ items, metadata may only contain sample/summary
+    // Full cart data is always available from line_items
     const cartItemsStr = session.metadata?.cartItems;
+    const cartItemsSampleStr = session.metadata?.cartItemsSample;
     let cartItems: any[] = [];
     
     if (cartItemsStr) {
       try {
         cartItems = JSON.parse(cartItemsStr);
       } catch (e) {
-        console.error('Failed to parse cart items from metadata');
+        console.warn('Failed to parse cartItems from metadata');
       }
+    } else if (cartItemsSampleStr) {
+      try {
+        // Parse sample items (shortened format)
+        const sampleItems = JSON.parse(cartItemsSampleStr);
+        cartItems = sampleItems.map((item: any) => ({
+          productId: item.id,
+          variantId: item.v,
+          qty: item.q,
+        }));
+        console.log('ℹ️ Using cart items sample from metadata (full data in line_items)');
+      } catch (e) {
+        console.warn('Failed to parse cartItemsSample from metadata');
+      }
+    }
+    
+    // Note: If cartItems is empty, we'll reconstruct from line_items below
+    if (cartItems.length === 0) {
+      console.log('ℹ️ No cart items in metadata - will reconstruct from line_items');
     }
 
     // Extract customer details

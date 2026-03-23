@@ -235,15 +235,15 @@ export async function POST(request: NextRequest) {
       metadata: {
         ...metadata,
         userId: userId || undefined, // Link order to user if authenticated
-        cartItems: JSON.stringify(items.map((i: any) => ({
-          productId: i.productId,
-          variantId: i.variantId,
-          sku: i.sku,
-          qty: i.qty,
-          size: i.size,
-          color: i.color,
-          // imageUrl removed to stay under Stripe's 500 char metadata limit
-          // Images are already in line_items and can be fetched from DB in webhook
+        // cartItems stored as minimal JSON to avoid Stripe's 500 char metadata limit
+        // With 5+ items, even minimal data can exceed limit, so we store item count only
+        // Full cart data is in line_items and can be reconstructed from there in webhook
+        itemCount: items.length.toString(),
+        // Store first 3 items for reference (typically enough for most orders)
+        cartItemsSample: JSON.stringify(items.slice(0, 3).map((i: any) => ({
+          id: i.productId,
+          v: i.variantId,
+          q: i.qty,
         }))),
       },
       allow_promotion_codes: true, // Enable promo codes
