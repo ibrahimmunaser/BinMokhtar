@@ -96,7 +96,12 @@ export default function ProductPage() {
       selectedColor,
       productHasSizes: !!product?.sizes?.length,
       productHasColors: !!product?.colors?.length,
-      allVariants: variants.map(v => ({ size: v.size, color: v.color, stock: v.stock })),
+      allVariants: variants.map(v => ({ 
+        size: v.size, 
+        sizeType: typeof v.size,
+        color: v.color, 
+        stock: v.stock 
+      })),
     });
     
     // If we need both size and color
@@ -105,24 +110,57 @@ export default function ProductPage() {
         console.log('⚠️ Both size and color required, but not selected');
         return 0; // Need both selected
       }
-      const variant = variants.find(v => v.size === selectedSize && v.color === selectedColor);
+      
+      // Convert both to strings for comparison (variants might store size as number)
+      const selectedSizeStr = String(selectedSize);
+      const selectedColorStr = String(selectedColor);
+      
+      const variant = variants.find(v => {
+        const variantSizeStr = String(v.size);
+        const variantColorStr = String(v.color);
+        const matches = variantSizeStr === selectedSizeStr && variantColorStr === selectedColorStr;
+        
+        console.log('🔍 Checking variant:', {
+          variantSize: v.size,
+          variantSizeStr,
+          variantColor: v.color,
+          variantColorStr,
+          selectedSizeStr,
+          selectedColorStr,
+          matches,
+          stock: v.stock
+        });
+        
+        return matches;
+      });
+      
       console.log('✅ Found exact variant (size+color):', { 
         size: selectedSize, 
         color: selectedColor, 
-        variant: variant ? { size: variant.size, color: variant.color, stock: variant.stock } : null,
+        variant: variant ? { 
+          size: variant.size, 
+          color: variant.color, 
+          stock: variant.stock 
+        } : null,
         stock: variant?.stock ?? 0 
       });
+      
       return variant?.stock ?? 0;
     }
     
     // If we only have sizes
     if (product?.sizes?.length && selectedSize) {
-      const sizeVariants = variants.filter(v => v.size === selectedSize);
+      const selectedSizeStr = String(selectedSize);
+      const sizeVariants = variants.filter(v => String(v.size) === selectedSizeStr);
       const total = sizeVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
       console.log('📏 Size-only stock:', { 
         size: selectedSize, 
         variants: sizeVariants.length, 
-        sizeVariants: sizeVariants.map(v => ({ size: v.size, color: v.color, stock: v.stock })),
+        sizeVariants: sizeVariants.map(v => ({ 
+          size: v.size, 
+          color: v.color, 
+          stock: v.stock 
+        })),
         total 
       });
       return total;
@@ -130,9 +168,14 @@ export default function ProductPage() {
     
     // If we only have colors
     if (product?.colors?.length && selectedColor) {
-      const colorVariants = variants.filter(v => v.color === selectedColor);
+      const selectedColorStr = String(selectedColor);
+      const colorVariants = variants.filter(v => String(v.color) === selectedColorStr);
       const total = colorVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
-      console.log('🎨 Color-only stock:', { color: selectedColor, variants: colorVariants.length, total });
+      console.log('🎨 Color-only stock:', { 
+        color: selectedColor, 
+        variants: colorVariants.length, 
+        total 
+      });
       return total;
     }
     
