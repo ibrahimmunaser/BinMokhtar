@@ -184,11 +184,40 @@ export default function ProductPage() {
     }
     
     // Final check: Make sure we have a valid variant with stock
-    const selectedVariant = variants.find(v => 
-      (!product.sizes?.length || v.size === selectedSize) && 
-      (!product.colors?.length || v.color === selectedColor)
-    );
+    let selectedVariant;
     
+    // If product has both sizes and colors
+    if (product.sizes?.length && product.colors?.length) {
+      selectedVariant = variants.find(v => 
+        v.size === selectedSize && v.color === selectedColor
+      );
+    }
+    // If product has only sizes
+    else if (product.sizes?.length) {
+      selectedVariant = variants.find(v => v.size === selectedSize);
+    }
+    // If product has only colors
+    else if (product.colors?.length) {
+      selectedVariant = variants.find(v => v.color === selectedColor);
+    }
+    // No variants (simple product)
+    else {
+      selectedVariant = variants[0]; // Use first variant if exists
+    }
+
+    console.log('🔍 Selected variant lookup:', {
+      hasSizes: !!product.sizes?.length,
+      hasColors: !!product.colors?.length,
+      selectedSize,
+      selectedColor,
+      foundVariant: selectedVariant ? { 
+        id: selectedVariant.id, 
+        size: selectedVariant.size, 
+        color: selectedVariant.color, 
+        stock: selectedVariant.stock 
+      } : null
+    });
+
     if (!selectedVariant) {
       alert('Could not find the selected product variant. Please try again.');
       return;
