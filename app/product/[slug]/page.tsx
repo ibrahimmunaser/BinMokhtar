@@ -86,25 +86,47 @@ export default function ProductPage() {
   const selectedVariantStock = useMemo(() => {
     if (!variants.length) return totalStock; // Fall back to total stock if no variants
     
+    // Debug: Log variants for troubleshooting
+    console.log('🔍 Stock calculation debug:', {
+      totalVariants: variants.length,
+      selectedSize,
+      selectedColor,
+      allVariants: variants.map(v => ({ size: v.size, color: v.color, stock: v.stock })),
+    });
+    
     // If we need both size and color
     if (product?.sizes?.length && product?.colors?.length) {
-      if (!selectedSize || !selectedColor) return 0; // Need both selected
+      if (!selectedSize || !selectedColor) {
+        console.log('⚠️ Both size and color required, but not selected');
+        return 0; // Need both selected
+      }
       const variant = variants.find(v => v.size === selectedSize && v.color === selectedColor);
+      console.log('✅ Found exact variant:', { 
+        size: selectedSize, 
+        color: selectedColor, 
+        variant: variant ? { size: variant.size, color: variant.color, stock: variant.stock } : null,
+        stock: variant?.stock ?? 0 
+      });
       return variant?.stock ?? 0;
     }
     
     // If we only have sizes
     if (product?.sizes?.length && selectedSize) {
       const sizeVariants = variants.filter(v => v.size === selectedSize);
-      return sizeVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
+      const total = sizeVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
+      console.log('📏 Size-only stock:', { size: selectedSize, variants: sizeVariants.length, total });
+      return total;
     }
     
     // If we only have colors
     if (product?.colors?.length && selectedColor) {
       const colorVariants = variants.filter(v => v.color === selectedColor);
-      return colorVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
+      const total = colorVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
+      console.log('🎨 Color-only stock:', { color: selectedColor, variants: colorVariants.length, total });
+      return total;
     }
     
+    console.log('⚠️ Fallback to total stock:', totalStock);
     return totalStock;
   }, [variants, selectedSize, selectedColor, product, totalStock]);
 
