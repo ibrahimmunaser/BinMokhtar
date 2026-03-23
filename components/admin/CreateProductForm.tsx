@@ -279,8 +279,19 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
       });
       
       // Convert price from cents to dollars
+      // If compareAtPrice exists, it means product is on sale:
+      // - price = current selling price (sale price)
+      // - compareAtPrice = original price (regular price)
+      // Form fields should show:
+      // - "Regular Price" = compareAtPrice (or price if no sale)
+      // - "Sale Price" = price (only if compareAtPrice exists)
+      const hasActivePromo = product.compareAtPrice && product.compareAtPrice > product.price;
       const priceInDollars = product.price ? product.price / 100 : 0;
       const compareAtPriceInDollars = product.compareAtPrice ? product.compareAtPrice / 100 : undefined;
+      
+      // Set form values correctly:
+      const regularPrice = hasActivePromo ? compareAtPriceInDollars : priceInDollars;
+      const salePrice = hasActivePromo ? priceInDollars : undefined;
 
       // Prepare variants - convert prices from cents to dollars
       const variants = (product.variants || []).map((v: any) => ({
@@ -320,8 +331,8 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
         slug: product.slug || '',
         brand: product.brand || 'Bin Mukhtar Retail',
         status: product.status || 'DRAFT',
-        price: priceInDollars,
-        salePrice: compareAtPriceInDollars,
+        price: regularPrice,  // Regular/base price
+        salePrice: salePrice,  // Sale price (if on sale)
         weight: weightInOz ? Math.round(weightInOz * 100) / 100 : undefined, // Round to 2 decimals
         images: product.galleryImageUrls || product.images || [],
         primaryImageUrl: product.primaryImageUrl || product.images?.[0] || undefined,
@@ -367,8 +378,8 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
         name: data.title,
         slug: slug,
         subtitle: '',
-        price: data.salePrice ? data.salePrice.toString() : data.price.toString(), // Use sale price if provided, otherwise regular price
-        compareAtPrice: data.salePrice ? data.price.toString() : undefined, // If there's a sale price, the regular price becomes compareAt
+        price: data.salePrice ? data.salePrice.toString() : data.price.toString(), // Use sale price if provided, otherwise regular price (this is the SELLING price)
+        compareAtPrice: data.salePrice ? data.price.toString() : undefined, // If there's a sale price, regular price becomes "was $X"
         weight_grams: data.weight ? Math.round(data.weight * 28.35) : undefined, // Convert oz to grams (1 oz = 28.35g)
         images: data.images,
         thumbnail: data.images[0],
