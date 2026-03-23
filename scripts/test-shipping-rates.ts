@@ -23,9 +23,12 @@ const TEST_ADDRESS: LocationZone = {
   state: 'CA',
   zip: '90015',
   country: 'US',
+  lat: 34.0407,
+  lng: -118.2670,
   formattedAddress: '1111 S Figueroa St, Los Angeles, CA 90015',
-  coords: { lat: 34.0407, lng: -118.2670 },
-  zone: 'shipping',
+  distanceMiles: 1950,
+  zone: 'shippo',
+  source: 'manual',
 };
 
 // Test cart items (minimal product for testing)
