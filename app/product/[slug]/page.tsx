@@ -157,6 +157,12 @@ export default function ProductPage() {
   const handleAddToCart = () => {
     if (!product) return;
 
+    // STRICT VALIDATION: Check stock FIRST before anything else
+    if (selectedVariantStock === 0) {
+      alert('This item is out of stock. Please select a different size or color.');
+      return;
+    }
+
     if (product.sizes && product.sizes.length > 0 && !selectedSize) {
       alert('Please select a size');
       return;
@@ -166,7 +172,7 @@ export default function ProductPage() {
       return;
     }
 
-    // Check stock for the selected variant
+    // Check stock for the selected variant AGAIN (double-check)
     if (selectedVariantStock === 0) {
       alert('Sorry, this item is out of stock');
       return;
@@ -176,15 +182,25 @@ export default function ProductPage() {
       alert(`Sorry, only ${selectedVariantStock} items available`);
       return;
     }
-
-    const itemTitle = product.titleEn || (product as any).name;
-    const itemImage = product.primaryImageUrl || (product as any).thumbnail || galleryImages[0];
     
-    // Find the specific variant SKU if available
+    // Final check: Make sure we have a valid variant with stock
     const selectedVariant = variants.find(v => 
       (!product.sizes?.length || v.size === selectedSize) && 
       (!product.colors?.length || v.color === selectedColor)
     );
+    
+    if (!selectedVariant) {
+      alert('Could not find the selected product variant. Please try again.');
+      return;
+    }
+    
+    if (selectedVariant.stock === 0) {
+      alert('This variant is out of stock. Please select a different option.');
+      return;
+    }
+
+    const itemTitle = product.titleEn || (product as any).name;
+    const itemImage = product.primaryImageUrl || (product as any).thumbnail || galleryImages[0];
     
     // Convert weight from grams to ounces (1 gram = 0.035274 oz)
     const weightInOz = product.weight_grams ? product.weight_grams * 0.035274 : undefined;
