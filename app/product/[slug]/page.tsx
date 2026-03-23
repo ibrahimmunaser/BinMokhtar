@@ -84,13 +84,18 @@ export default function ProductPage() {
 
   // Get stock for the currently selected size+color combination
   const selectedVariantStock = useMemo(() => {
-    if (!variants.length) return totalStock; // Fall back to total stock if no variants
+    if (!variants.length) {
+      console.log('⚠️ No variants found, using totalStock:', totalStock);
+      return totalStock; // Fall back to total stock if no variants
+    }
     
     // Debug: Log variants for troubleshooting
     console.log('🔍 Stock calculation debug:', {
       totalVariants: variants.length,
       selectedSize,
       selectedColor,
+      productHasSizes: !!product?.sizes?.length,
+      productHasColors: !!product?.colors?.length,
       allVariants: variants.map(v => ({ size: v.size, color: v.color, stock: v.stock })),
     });
     
@@ -101,7 +106,7 @@ export default function ProductPage() {
         return 0; // Need both selected
       }
       const variant = variants.find(v => v.size === selectedSize && v.color === selectedColor);
-      console.log('✅ Found exact variant:', { 
+      console.log('✅ Found exact variant (size+color):', { 
         size: selectedSize, 
         color: selectedColor, 
         variant: variant ? { size: variant.size, color: variant.color, stock: variant.stock } : null,
@@ -114,7 +119,12 @@ export default function ProductPage() {
     if (product?.sizes?.length && selectedSize) {
       const sizeVariants = variants.filter(v => v.size === selectedSize);
       const total = sizeVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
-      console.log('📏 Size-only stock:', { size: selectedSize, variants: sizeVariants.length, total });
+      console.log('📏 Size-only stock:', { 
+        size: selectedSize, 
+        variants: sizeVariants.length, 
+        sizeVariants: sizeVariants.map(v => ({ size: v.size, color: v.color, stock: v.stock })),
+        total 
+      });
       return total;
     }
     
