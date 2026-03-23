@@ -57,6 +57,12 @@ service cloud.firestore {
         allow read: if true;
         allow write: if isAdmin();
       }
+      
+      // Product variants subcollection (allow public read)
+      match /variants/{variantId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
     }
 
     match /variants/{variantId} {
