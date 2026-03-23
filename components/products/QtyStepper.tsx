@@ -1,14 +1,15 @@
 'use client';
 
-import { Minus, Plus } from 'lucide-react';
+import { Minus, Plus, AlertCircle } from 'lucide-react';
 
 interface QtyStepperProps {
   value: number;
   onChange: (value: number) => void;
   max?: number;
+  showStockWarning?: boolean;
 }
 
-export function QtyStepper({ value, onChange, max = 99 }: QtyStepperProps) {
+export function QtyStepper({ value, onChange, max = 99, showStockWarning = true }: QtyStepperProps) {
   const decrease = () => {
     if (value > 1) onChange(value - 1);
   };
@@ -16,6 +17,9 @@ export function QtyStepper({ value, onChange, max = 99 }: QtyStepperProps) {
   const increase = () => {
     if (value < max) onChange(value + 1);
   };
+  
+  const isAtMaxStock = value >= max;
+  const showWarning = showStockWarning && max <= 10 && max > 0;
 
   return (
     <div>
@@ -35,25 +39,25 @@ export function QtyStepper({ value, onChange, max = 99 }: QtyStepperProps) {
           disabled={value >= max}
           className="px-4 py-3 hover:bg-border transition-colors disabled:opacity-30"
           aria-label="Increase quantity"
+          title={value >= max ? `Maximum available: ${max}` : undefined}
         >
           <Plus className="w-4 h-4" />
         </button>
       </div>
+      
+      {/* Stock limit warning */}
+      {showWarning && (
+        <div className="mt-2 flex items-start gap-2 text-xs text-muted">
+          <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+          <span>
+            {isAtMaxStock ? (
+              <span className="text-yellow-600 font-medium">Maximum {max} available</span>
+            ) : (
+              <span>Only {max} available</span>
+            )}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
