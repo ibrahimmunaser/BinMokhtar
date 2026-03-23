@@ -158,19 +158,32 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// DELETE - Delete subcategory
+// DELETE - Delete subcategory (soft delete by setting active: false)
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const subcategoryId = searchParams.get('id');
+    const hardDelete = searchParams.get('hard') === 'true'; // Allow hard delete with ?hard=true
 
     if (!subcategoryId) {
       return NextResponse.json({ error: 'Subcategory ID required', success: false }, { status: 400 });
     }
 
-    await adminDb().collection('subcategories').doc(subcategoryId).delete();
+    if (hardDelete) {
+      // HARD DELETE: Permanently remove from database
+      console.log(`⚠️ Hard deleting subcategory ${subcategoryId}`);
+      await adminDb().collection('subcategories').doc(subcategoryId).delete();
+    } else {
+      // SOFT DELETE: Mark as inactive (recommended - preserves data)
+      console.log(`✅ Soft deleting subcategory ${subcategoryId} (setting active: false)`);
+      await adminDb().collection('subcategories').doc(subcategoryId).update({
+        active: false,
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
     
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, hardDelete });
   } catch (error: any) {
     console.error('Error deleting subcategory:', error);
     return NextResponse.json({ error: error.message, success: false }, { status: 500 });
