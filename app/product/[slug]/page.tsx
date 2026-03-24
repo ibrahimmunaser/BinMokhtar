@@ -396,7 +396,7 @@ export default function ProductPage() {
               </h1>
 
               <div className="flex items-baseline gap-3 mb-6">
-                {product.compareAtPrice && product.compareAtPrice > product.price ? (
+                {product.compareAtPrice && product.compareAtPrice > (product.price || product.basePrice) ? (
                   <>
                     <span className="font-display text-3xl text-bmr-acc-red">
                       {formatPrice(product.price || product.basePrice, currency)}
