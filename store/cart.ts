@@ -40,7 +40,7 @@ export const useCartStore = create<CartState>()(
             ),
           });
         } else {
-          set({ items: [...get().items, sanitizedItem, id }] });
+          set({ items: [...get().items, { ...sanitizedItem, id }] });
         }
       },
 
