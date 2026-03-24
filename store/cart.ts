@@ -25,8 +25,20 @@ export const useCartStore = create<CartState>()(
         const id = generateCartItemId(item.productId, item.size, item.color, item.sleeve);
         const existing = get().items.find((i) => i.id === id);
 
-        // Validate and sanitize price before adding (protect against corrupted data)
-        const sanitizedPrice = Math.min(item.priceAtAdd || item.price || 0, 1000000); // Max $10,000
+        // STRICT price validation - prevent unrealistic thobe prices
+        // Maximum reasonable price for a thobe: $500 (50000 cents)
+        const MAX_REASONABLE_PRICE = 50000;
+        const rawPrice = item.priceAtAdd || item.price || 0;
+        
+        // If price is over $500, something is wrong - cap it or reject it
+        let sanitizedPrice = rawPrice;
+        if (rawPrice > MAX_REASONABLE_PRICE) {
+          console.error(`🚨 UNREALISTIC PRICE DETECTED: $${rawPrice / 100} for ${item.name || item.title}`);
+          console.error('Product ID:', item.productId, 'Variant ID:', item.variantId);
+          console.error('This price is likely a database error. Capping at $500.');
+          sanitizedPrice = MAX_REASONABLE_PRICE;
+        }
+        
         const sanitizedItem = {
           ...item,
           priceAtAdd: sanitizedPrice,
@@ -65,8 +77,14 @@ export const useCartStore = create<CartState>()(
       total: () => {
         return get().items.reduce((sum, item) => {
           const unit = (item.price ?? item.priceAtAdd);
-          // Sanitize prices during calculation too
-          const sanitizedPrice = Math.min(unit, 1000000);
+          // Sanitize prices during calculation - max $500 per item
+          const MAX_REASONABLE_PRICE = 50000;
+          const sanitizedPrice = Math.min(unit, MAX_REASONABLE_PRICE);
+          
+          if (unit > MAX_REASONABLE_PRICE) {
+            console.error(`⚠️ Item in cart has unrealistic price: $${unit / 100}`);
+          }
+          
           return sum + sanitizedPrice * item.qty;
         }, 0);
       },
@@ -80,13 +98,20 @@ export const useCartStore = create<CartState>()(
       // Add migration to fix corrupted prices
       migrate: (persistedState: any, version: number) => {
         if (persistedState?.items) {
-          // Fix corrupted prices (anything over $10,000 is corrupted)
+          // Fix corrupted prices
+          // Maximum reasonable price for a thobe: $500 (50000 cents)
+          const MAX_REASONABLE_PRICE = 50000;
+          
           persistedState.items = persistedState.items.map((item: any) => {
             const price = item.price ?? item.priceAtAdd ?? 0;
-            if (price > 1000000) {
-              console.warn(`⚠️ Corrupted price detected: ${price}, resetting to 0`);
+            
+            // If price is unrealistic (over $500), reset to 0 and log error
+            if (price > MAX_REASONABLE_PRICE) {
+              console.error(`⚠️ Corrupted/unrealistic price detected: $${price / 100} for ${item.name || item.title}`);
+              console.error('Product ID:', item.productId, '- Resetting price to $0');
               return { ...item, price: 0, priceAtAdd: 0 };
             }
+            
             return item;
           });
         }
