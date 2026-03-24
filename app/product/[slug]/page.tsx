@@ -396,9 +396,23 @@ export default function ProductPage() {
               </h1>
 
               <div className="flex items-baseline gap-3 mb-6">
-                <span className="font-display text-3xl">
-                  {formatPrice(product.price || product.basePrice, currency)}
-                </span>
+                {product.compareAtPrice && product.compareAtPrice > product.price ? (
+                  <>
+                    <span className="font-display text-3xl text-bmr-acc-red">
+                      {formatPrice(product.price || product.basePrice, currency)}
+                    </span>
+                    <span className="text-xl text-bmr-muted line-through">
+                      {formatPrice(product.compareAtPrice, currency)}
+                    </span>
+                    <span className="px-3 py-1 bg-bmr-acc-red text-white text-xs font-medium uppercase tracking-wide rounded-full">
+                      Sale
+                    </span>
+                  </>
+                ) : (
+                  <span className="font-display text-3xl">
+                    {formatPrice(product.price || product.basePrice, currency)}
+                  </span>
+                )}
               </div>
 
               {/* Reviews Summary (clickable to scroll to reviews) */}
