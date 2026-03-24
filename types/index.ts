@@ -128,6 +128,7 @@ export interface Product {
   status: ProductStatus; // Enforced: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'
   basePrice: number; // in cents - default price for variants
   price?: number; // in cents (alias for basePrice or computed price)
+  compareAtPrice?: number; // in cents - original price before sale (for showing strikethrough)
   currency: Currency;
   featured: boolean;
   tags: string[]; // slugified tags
