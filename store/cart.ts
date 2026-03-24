@@ -25,6 +25,14 @@ export const useCartStore = create<CartState>()(
         const id = generateCartItemId(item.productId, item.size, item.color, item.sleeve);
         const existing = get().items.find((i) => i.id === id);
 
+        // Validate and sanitize price before adding (protect against corrupted data)
+        const sanitizedPrice = Math.min(item.priceAtAdd || item.price || 0, 1000000); // Max $10,000
+        const sanitizedItem = {
+          ...item,
+          priceAtAdd: sanitizedPrice,
+          price: sanitizedPrice,
+        };
+
         if (existing) {
           set({
             items: get().items.map((i) =>
@@ -32,7 +40,7 @@ export const useCartStore = create<CartState>()(
             ),
           });
         } else {
-          set({ items: [...get().items, { ...item, id }] });
+          set({ items: [...get().items, sanitizedItem, id }] });
         }
       },
 
@@ -57,7 +65,9 @@ export const useCartStore = create<CartState>()(
       total: () => {
         return get().items.reduce((sum, item) => {
           const unit = (item.price ?? item.priceAtAdd);
-          return sum + unit * item.qty;
+          // Sanitize prices during calculation too
+          const sanitizedPrice = Math.min(unit, 1000000);
+          return sum + sanitizedPrice * item.qty;
         }, 0);
       },
 
@@ -67,6 +77,21 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: 'bmr-cart-storage',
+      // Add migration to fix corrupted prices
+      migrate: (persistedState: any, version: number) => {
+        if (persistedState?.items) {
+          // Fix corrupted prices (anything over $10,000 is corrupted)
+          persistedState.items = persistedState.items.map((item: any) => {
+            const price = item.price ?? item.priceAtAdd ?? 0;
+            if (price > 1000000) {
+              console.warn(`⚠️ Corrupted price detected: ${price}, resetting to 0`);
+              return { ...item, price: 0, priceAtAdd: 0 };
+            }
+            return item;
+          });
+        }
+        return persistedState;
+      },
     }
   )
 );
