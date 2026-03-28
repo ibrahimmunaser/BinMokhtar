@@ -257,8 +257,10 @@ export async function POST(request: NextRequest) {
       
       variantsToCreate.forEach((v: any) => {
         const variantRef = variantsCol.doc();
-        const variantPrice = v.price !== undefined ? Math.round(parseFloat(v.price) * 100) : Math.round(parseFloat(body.price) * 100);
-        const variantSalePrice = v.salePrice ? Math.round(parseFloat(v.salePrice) * 100) : null;
+        // CRITICAL: Form already converts variant prices to cents (line 392 of CreateProductForm.tsx)
+        // Do NOT multiply by 100 again or you'll get double conversion bug ($19.99 → 1999 → 199900)
+        const variantPrice = v.price !== undefined ? Math.round(parseFloat(v.price)) : Math.round(parseFloat(body.price) * 100);
+        const variantSalePrice = v.salePrice ? Math.round(parseFloat(v.salePrice)) : null;
         
         batch.set(variantRef, {
           size: v.size || undefined,
@@ -451,8 +453,10 @@ export async function PUT(request: NextRequest) {
       const batch = adminDb().batch();
       variantsToCreate.forEach((v: any) => {
         const ref = variantsColRef.doc();
-        const variantPrice = v.price !== undefined ? Math.round(parseFloat(v.price) * 100) : Math.round(parseFloat(body.price) * 100);
-        const variantSalePrice = v.salePrice ? Math.round(parseFloat(v.salePrice) * 100) : null;
+        // CRITICAL: Form already converts variant prices to cents (line 392 of CreateProductForm.tsx)
+        // Do NOT multiply by 100 again or you'll get double conversion bug ($19.99 → 1999 → 199900)
+        const variantPrice = v.price !== undefined ? Math.round(parseFloat(v.price)) : Math.round(parseFloat(body.price) * 100);
+        const variantSalePrice = v.salePrice ? Math.round(parseFloat(v.salePrice)) : null;
         
         batch.set(ref, {
           size: v.size || undefined,
