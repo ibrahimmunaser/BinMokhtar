@@ -298,60 +298,23 @@ export default function AdminOrdersPage() {
   }
 
   function getLabelStatusBadge(order: OrderWithId) {
-    const fulfillmentMethod = order.fulfillmentMethod || 'shipping';
-    const status = order.shippo_label_status || 
-                   (order.shippo_label_url ? 'success' : 
-                    order.internal_label_url ? 'success' : 
-                    'none');
-    
-    // For pickup/local_delivery, check internal label
-    if ((fulfillmentMethod === 'pickup' || fulfillmentMethod === 'local_delivery') && order.internal_label_url) {
+    const orderAny = order as any;
+    const hasPackingSlip = !!(order.packingSlipUrl || orderAny.packing_slip_url || order.internal_label_url);
+
+    if (hasPackingSlip) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800" title="Internal label (not Shippo)">
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
           <CheckCircle className="w-3 h-3" />
-          Internal
+          Ready
         </span>
       );
     }
-    
-    // For shipping orders, check Shippo label
-    switch (status) {
-      case 'success':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800" title="Shippo carrier label">
-            <CheckCircle className="w-3 h-3" />
-            Shippo
-          </span>
-        );
-      case 'pending':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800" title="Creating Shippo label...">
-            <Clock className="w-3 h-3" />
-            Pending
-          </span>
-        );
-      case 'failed':
-        return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800" title={order.shippo_error_message || 'Shippo label creation failed'}>
-            <AlertCircle className="w-3 h-3" />
-            Failed
-          </span>
-        );
-      default:
-        if (fulfillmentMethod === 'shipping') {
-          return (
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800" title="No Shippo label yet">
-              None
-            </span>
-          );
-        } else {
-          return (
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800" title="Shippo not used for pickup/local delivery">
-              N/A
-            </span>
-          );
-        }
-    }
+
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
+        None
+      </span>
+    );
   }
 
   function getFulfillmentMethodLabel(method?: string) {
@@ -403,40 +366,39 @@ export default function AdminOrdersPage() {
     }
 
     // Prepare data for Excel export
-    const excelData = orders.map(order => ({
-      'Order Number': order.orderNumber || order.id.slice(-8).toUpperCase(),
-      'Order ID': order.id,
-      'Customer Name': order.customerName || 'Customer',
-      'Customer Email': order.email,
-      'Fulfillment Method': getFulfillmentMethodLabel(order.fulfillmentMethod),
-      'Order Status': order.status,
-      'Payment Status': order.paymentStatus || 'N/A',
-      'Shippo Label Status': order.shippo_label_status || 'none',
-      'Has Shippo Label': order.shippo_label_url ? 'Yes' : 'No',
-      'Has Internal Label': order.internal_label_url ? 'Yes' : 'No',
-      'Shippo Tracking Number': order.shippo_tracking_number || 'N/A',
-      'Shippo Tracking URL': order.trackingUrl || 'N/A',
-      'Subtotal': formatPrice(order.subtotal || 0),
-      'Shipping Cost': formatPrice(order.shipping || 0),
-      'Tax': formatPrice(order.tax || 0),
-      'Total': formatPrice(order.total),
-      'Items Count': order.items?.length || 0,
-      'Items': order.items?.map(item => {
-        const parts = [item.title];
-        if (item.size || item.color) parts.push(`[${[item.size, item.color].filter(Boolean).join('/')}]`);
-        if (item.sku) parts.push(`SKU: ${item.sku}`);
-        parts.push(`Qty: ${item.qty}`);
-        return parts.join(' ');
-      }).join('; ') || 'N/A',
-      'Shipping Address': order.shippingAddress ? 
-        `${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.zip}, ${order.shippingAddress.country}` : 
-        'N/A',
-      'Phone': order.shippingAddress?.phone || 'N/A',
-      'Created At': formatDate(order.createdAt),
-      'Updated At': formatDate(order.updatedAt),
-      'Paid At': formatDate(order.paidAt),
-      'Shippo Error': order.shippo_error_message || 'N/A',
-    }));
+    const excelData = orders.map(order => {
+      const orderAny = order as any;
+      const hasPackingSlip = !!(order.packingSlipUrl || orderAny.packing_slip_url || order.internal_label_url);
+      return {
+        'Order Number': order.orderNumber || order.id.slice(-8).toUpperCase(),
+        'Order ID': order.id,
+        'Customer Name': order.customerName || 'Customer',
+        'Customer Email': order.email,
+        'Fulfillment Method': getFulfillmentMethodLabel(order.fulfillmentMethod),
+        'Order Status': order.status,
+        'Payment Status': order.paymentStatus || 'N/A',
+        'Has Packing Slip': hasPackingSlip ? 'Yes' : 'No',
+        'Subtotal': formatPrice(order.subtotal || 0),
+        'Shipping Cost': formatPrice(order.shipping || 0),
+        'Tax': formatPrice(order.tax || 0),
+        'Total': formatPrice(order.total),
+        'Items Count': order.items?.length || 0,
+        'Items': order.items?.map(item => {
+          const parts = [item.title];
+          if (item.size || item.color) parts.push(`[${[item.size, item.color].filter(Boolean).join('/')}]`);
+          if (item.sku) parts.push(`SKU: ${item.sku}`);
+          parts.push(`Qty: ${item.qty}`);
+          return parts.join(' ');
+        }).join('; ') || 'N/A',
+        'Shipping Address': order.shippingAddress ?
+          `${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.state} ${order.shippingAddress.zip}, ${order.shippingAddress.country}` :
+          'N/A',
+        'Phone': order.shippingAddress?.phone || 'N/A',
+        'Created At': formatDate(order.createdAt),
+        'Updated At': formatDate(order.updatedAt),
+        'Paid At': formatDate(order.paidAt),
+      };
+    });
 
     // Create worksheet
     const ws = XLSX.utils.json_to_sheet(excelData);
@@ -450,11 +412,7 @@ export default function AdminOrdersPage() {
       { wch: 18 }, // Fulfillment Method
       { wch: 12 }, // Order Status
       { wch: 15 }, // Payment Status
-      { wch: 18 }, // Shippo Label Status
-      { wch: 15 }, // Has Shippo Label
-      { wch: 18 }, // Has Internal Label
-      { wch: 25 }, // Tracking Number
-      { wch: 50 }, // Tracking URL
+      { wch: 15 }, // Has Packing Slip
       { wch: 12 }, // Subtotal
       { wch: 12 }, // Shipping Cost
       { wch: 10 }, // Tax
@@ -466,7 +424,6 @@ export default function AdminOrdersPage() {
       { wch: 20 }, // Created At
       { wch: 20 }, // Updated At
       { wch: 20 }, // Paid At
-      { wch: 40 }, // Shippo Error
     ];
 
     // Create workbook

@@ -4,6 +4,7 @@ import { FieldValue } from '@/lib/firebase/server';
 import { createFulfillmentLabel } from '@/lib/shipping/fulfillment';
 import {
   LOCAL_DELIVERY_FEE_CENTS,
+  STANDARD_SHIPPING_FEE_CENTS,
   FulfillmentMethod,
   LocationZone,
 } from '@/lib/shipping/config';
@@ -34,11 +35,9 @@ interface CreateOrderRequest {
   locationZone: LocationZone | null;
   fulfillmentMethod: FulfillmentMethod;
   
-  // For shipping orders
+  // For shipping orders (kept for backward compat, not required)
   selectedRateId?: string;
   selectedRateAmount?: number; // in cents
-  selectedRateCarrier?: string;
-  selectedRateService?: string;
   
   // Optional
   giftMessage?: string;
@@ -96,14 +95,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (body.fulfillmentMethod === 'shipping') {
-      if (!body.selectedRateId) {
-        return NextResponse.json(
-          { success: false, error: 'Shipping rate must be selected' },
-          { status: 400 }
-        );
-      }
-    }
 
     // Calculate totals
     const subtotal = body.items.reduce(
@@ -114,8 +105,8 @@ export async function POST(request: NextRequest) {
     let shippingAmount = 0;
     if (body.fulfillmentMethod === 'local_delivery') {
       shippingAmount = LOCAL_DELIVERY_FEE_CENTS;
-    } else if (body.fulfillmentMethod === 'shipping' && body.selectedRateAmount) {
-      shippingAmount = body.selectedRateAmount;
+    } else if (body.fulfillmentMethod === 'shipping') {
+      shippingAmount = STANDARD_SHIPPING_FEE_CENTS;
     }
 
     // Tax calculation (could be enhanced with actual tax API)
@@ -175,10 +166,6 @@ export async function POST(request: NextRequest) {
         country: body.locationZone.country,
       } : null,
       
-      // Shipping rate info (for shipping orders)
-      shippingRateId: body.selectedRateId || null,
-      shippingCarrier: body.selectedRateCarrier || null,
-      shippingService: body.selectedRateService || null,
       
       // Totals
       subtotal,
@@ -240,7 +227,6 @@ export async function POST(request: NextRequest) {
         fulfillment: {
           method: body.fulfillmentMethod,
           locationZone: body.locationZone!,
-          shippingRateId: body.selectedRateId,
           shippingAmount,
           localDeliveryFee: body.fulfillmentMethod === 'local_delivery' ? LOCAL_DELIVERY_FEE_CENTS : undefined,
         },
@@ -257,11 +243,7 @@ export async function POST(request: NextRequest) {
 
       // Update order with fulfillment info
       await orderRef.update({
-        labelUrl: labelData.labelUrl || null,
-        trackingNumber: labelData.trackingNumber || null,
-        trackingUrl: labelData.trackingUrl || null,
         packingSlipUrl: labelData.packingSlipUrl || null,
-        shippoTransactionId: labelData.shippoTransactionId || null,
         updatedAt: new Date(),
       });
 

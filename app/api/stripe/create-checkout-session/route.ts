@@ -175,28 +175,10 @@ export async function POST(request: NextRequest) {
       hasMetadata: !!metadata,
     });
     
-    // Validate shipping amount
-    if (metadata?.fulfillmentMethod === 'shipping' && (!shippingAmount || shippingAmount <= 0 || isNaN(shippingAmount))) {
-      console.error('❌ Invalid shipping amount for shipping method:', {
-        shippingAmountRaw,
-        shippingAmount,
-        shippingRateId: metadata?.shippingRateId,
-      });
-      throw new Error('Invalid shipping cost. Please refresh the page and try selecting a shipping option again.');
-    }
-    
     if (shippingAmount > 0 && !isNaN(shippingAmount)) {
       const fulfillmentMethod = metadata?.fulfillmentMethod || 'shipping';
-      let shippingLabel = 'Shipping';
-      
-      if (fulfillmentMethod === 'local_delivery') {
-        shippingLabel = 'Local Delivery';
-      } else if (fulfillmentMethod === 'shipping' && metadata?.shippingCarrier && metadata?.shippingService) {
-        shippingLabel = `Shipping (${metadata.shippingCarrier} ${metadata.shippingService})`;
-      } else if (fulfillmentMethod === 'shipping' && metadata?.shippingCarrier) {
-        shippingLabel = `Shipping (${metadata.shippingCarrier})`;
-      }
-      
+      const shippingLabel = fulfillmentMethod === 'local_delivery' ? 'Local Delivery' : 'Standard Shipping';
+
       lineItems.push({
         price_data: {
           currency: 'usd',
@@ -204,16 +186,12 @@ export async function POST(request: NextRequest) {
             name: shippingLabel,
             description: 'Shipping and handling',
           },
-          unit_amount: shippingAmount, // Already in cents
+          unit_amount: shippingAmount,
         },
         quantity: 1,
       });
-      
-      console.log('✅ Added shipping as line item:', {
-        label: shippingLabel,
-        amount: shippingAmount,
-        fulfillmentMethod,
-      });
+
+      console.log('✅ Added shipping as line item:', { label: shippingLabel, amount: shippingAmount });
     } else {
       console.log('ℹ️ No shipping cost to add (amount:', shippingAmount, ')');
     }

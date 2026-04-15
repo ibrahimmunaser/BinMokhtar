@@ -219,7 +219,7 @@ export function AddressModal({ isOpen, onClose }: AddressModalProps) {
             {/* Address Autocomplete - Google Maps dropdown */}
             <div>
               <p className="text-sm text-bmr-muted mb-3">
-                Enter your full street address (not just ZIP code). Shippo requires a complete address for shipping labels.
+                Enter your full street address (including street number) for accurate shipping.
               </p>
               <AddressAutocomplete
                 onAddressSelect={async (result) => {

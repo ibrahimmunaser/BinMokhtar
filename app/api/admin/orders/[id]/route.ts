@@ -59,16 +59,10 @@ export async function GET(
       paidAt: convertTimestamp(data?.paidAt),
     };
     
-    // Log label-related fields for debugging
     console.log('📋 Order detail API - Label fields:', {
       orderId: orderDoc.id,
-      shippo_label_url: data?.shippo_label_url,
-      labelUrl: data?.labelUrl,
-      shippo_label_status: data?.shippo_label_status,
-      shippo_tracking_number: data?.shippo_tracking_number,
-      allLabelFields: Object.keys(data || {}).filter(k => 
-        k.toLowerCase().includes('label') || k.toLowerCase().includes('url')
-      ),
+      packingSlipUrl: data?.packingSlipUrl,
+      internal_label_url: data?.internal_label_url,
     });
     
     return NextResponse.json({ order, success: true });

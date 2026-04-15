@@ -2,7 +2,7 @@
  * Internal Label Generation
  * 
  * Creates internal labels (PDF/HTML) for pickup and local_delivery orders.
- * These are not Shippo labels - they're simple printable labels for store use.
+ * Simple printable labels for store use.
  */
 
 import type { Order } from '@/types';

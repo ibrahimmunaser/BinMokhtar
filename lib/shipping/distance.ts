@@ -54,7 +54,7 @@ export function calculateDistanceFromStore(lat: number, lng: number): number {
  * Determine delivery zone based on distance
  */
 export function getDeliveryZone(distanceMiles: number): DeliveryZone {
-  return distanceMiles <= LOCAL_DELIVERY_RADIUS_MILES ? 'local' : 'shippo';
+  return distanceMiles <= LOCAL_DELIVERY_RADIUS_MILES ? 'local' : 'standard';
 }
 
 /**

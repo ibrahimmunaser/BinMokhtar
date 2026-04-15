@@ -1,15 +1,8 @@
 /**
- * Fulfillment Label & Packing Slip Generation
- * Handles creating shipping labels and internal packing slips
+ * Fulfillment & Packing Slip Generation
  */
 
-import { createShippingLabel } from './shippo';
-import {
-  USE_SHIPPO_LABELS_FOR_ALL_FULFILLMENT,
-  FulfillmentMethod,
-  OrderFulfillment,
-  STORE_ADDRESS,
-} from './config';
+import { FulfillmentMethod, STORE_ADDRESS } from './config';
 
 interface OrderData {
   id: string;
@@ -23,7 +16,6 @@ interface OrderData {
       zip: string;
       country: string;
     } | null;
-    shippingRateId?: string;
     shippingAmount?: number;
     localDeliveryFee?: number;
   };
@@ -45,101 +37,27 @@ interface OrderData {
 }
 
 /**
- * Create fulfillment documents for an order
- * - For shipping: Creates Shippo shipping label
- * - For pickup/local: Creates internal packing slip
+ * Create fulfillment documents for an order (packing slip for all methods)
  */
 export async function createFulfillmentLabel(
   order: OrderData
-): Promise<{
-  labelUrl?: string;
-  trackingNumber?: string;
-  trackingUrl?: string;
-  packingSlipUrl?: string;
-  shippoTransactionId?: string;
-}> {
-  const { fulfillment } = order;
-
-  console.log('📦 Creating fulfillment label for order:', order.orderNumber);
-  console.log('📦 Fulfillment method:', fulfillment.method);
-
-  // Case 1: Shipping - Create Shippo label
-  if (fulfillment.method === 'shipping' && fulfillment.shippingRateId) {
-    try {
-      console.log('📦 Creating Shippo shipping label...');
-      
-      const label = await createShippingLabel(fulfillment.shippingRateId);
-      
-      console.log('✅ Shipping label created:', label.trackingNumber);
-      
-      return {
-        labelUrl: label.labelUrl,
-        trackingNumber: label.trackingNumber,
-        trackingUrl: label.trackingUrl,
-        shippoTransactionId: label.transactionId,
-      };
-    } catch (error: any) {
-      console.error('❌ Failed to create shipping label:', error);
-      throw new Error(`Failed to create shipping label: ${error.message}`);
-    }
-  }
-
-  // Case 2: Pickup or Local Delivery
-  if (fulfillment.method === 'pickup' || fulfillment.method === 'local_delivery') {
-    // Option A: Route through Shippo if configured
-    if (USE_SHIPPO_LABELS_FOR_ALL_FULFILLMENT && fulfillment.shippingRateId) {
-      try {
-        console.log('📦 Creating Shippo label for local fulfillment...');
-        
-        const label = await createShippingLabel(fulfillment.shippingRateId);
-        
-        return {
-          labelUrl: label.labelUrl,
-          trackingNumber: label.trackingNumber,
-          trackingUrl: label.trackingUrl,
-          shippoTransactionId: label.transactionId,
-        };
-      } catch (error: any) {
-        console.error('❌ Shippo label failed, falling back to packing slip:', error);
-        // Fall through to packing slip generation
-      }
-    }
-
-    // Option B: Generate internal packing slip
-    console.log('📦 Generating internal packing slip...');
-    
-    const packingSlipUrl = generatePackingSlipUrl(order);
-    
-    return {
-      packingSlipUrl,
-    };
-  }
-
-  // Fallback: Generate packing slip
-  console.log('📦 Generating fallback packing slip...');
-  return {
-    packingSlipUrl: generatePackingSlipUrl(order),
-  };
+): Promise<{ packingSlipUrl?: string }> {
+  console.log('📦 Creating packing slip for order:', order.orderNumber);
+  return { packingSlipUrl: generatePackingSlipUrl(order) };
 }
 
-/**
- * Generate URL for internal packing slip
- * This creates a URL that can be used to view/print the packing slip
- */
 function generatePackingSlipUrl(order: OrderData): string {
-  // The packing slip will be generated on-demand when this URL is accessed
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
   return `${baseUrl}/api/orders/packing-slip/${order.id}`;
 }
 
 /**
  * Generate HTML for packing slip
- * This can be rendered as a printable page or converted to PDF
  */
 export function generatePackingSlipHtml(order: OrderData): string {
   const { fulfillment, items, customerName, customerEmail } = order;
-  
-  const fulfillmentLabel = 
+
+  const fulfillmentLabel =
     fulfillment.method === 'pickup' ? 'PICKUP' :
     fulfillment.method === 'local_delivery' ? 'LOCAL DELIVERY' : 'SHIPPING';
 
@@ -187,14 +105,8 @@ export function generatePackingSlipHtml(order: OrderData): string {
       padding-bottom: 20px;
       border-bottom: 2px solid #000;
     }
-    .logo {
-      font-size: 32px;
-      font-weight: bold;
-      letter-spacing: 2px;
-    }
-    .order-info {
-      text-align: right;
-    }
+    .logo { font-size: 32px; font-weight: bold; letter-spacing: 2px; }
+    .order-info { text-align: right; }
     .badge {
       display: inline-block;
       padding: 6px 16px;
@@ -205,14 +117,8 @@ export function generatePackingSlipHtml(order: OrderData): string {
       letter-spacing: 1px;
       margin-bottom: 10px;
     }
-    .addresses {
-      display: flex;
-      gap: 40px;
-      margin-bottom: 40px;
-    }
-    .address-box {
-      flex: 1;
-    }
+    .addresses { display: flex; gap: 40px; margin-bottom: 40px; }
+    .address-box { flex: 1; }
     .address-box h3 {
       font-size: 12px;
       text-transform: uppercase;
@@ -220,11 +126,7 @@ export function generatePackingSlipHtml(order: OrderData): string {
       color: #666;
       margin-bottom: 10px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 30px;
-    }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
     th {
       text-align: left;
       padding: 12px;
@@ -234,16 +136,8 @@ export function generatePackingSlipHtml(order: OrderData): string {
       letter-spacing: 1px;
     }
     th:last-child { text-align: right; }
-    .totals {
-      text-align: right;
-      margin-top: 20px;
-    }
-    .totals-row {
-      display: flex;
-      justify-content: flex-end;
-      gap: 40px;
-      padding: 8px 0;
-    }
+    .totals { text-align: right; margin-top: 20px; }
+    .totals-row { display: flex; justify-content: flex-end; gap: 40px; padding: 8px 0; }
     .totals-row.total {
       font-size: 18px;
       font-weight: bold;
@@ -358,4 +252,3 @@ export function generatePackingSlipHtml(order: OrderData): string {
 </html>
   `.trim();
 }
-

@@ -15,6 +15,7 @@ import { useStockValidation, StockValidationResult } from '@/hooks/useStockValid
 import {
   FulfillmentMethod,
   LOCAL_DELIVERY_FEE_CENTS,
+  STANDARD_SHIPPING_FEE_CENTS,
   ShippingRate,
   LocationZone,
 } from '@/lib/shipping/config';
@@ -68,9 +69,8 @@ export function CheckoutForm() {
   const [addressData, setAddressData] = useState<AddressData | null>(null);
   const [isDeliverable, setIsDeliverable] = useState<boolean>(true);
   
-  // Shipping rate selection
+  // Shipping rate selection (auto-set to flat rate)
   const [selectedRate, setSelectedRate] = useState<ShippingRate | null>(null);
-  const [isLoadingRates, setIsLoadingRates] = useState(false);
   
   const [formData, setFormData] = useState({
     email: '',
@@ -189,8 +189,8 @@ export function CheckoutForm() {
     let shippingCost = 0;
     if (fulfillmentMethod === 'local_delivery') {
       shippingCost = LOCAL_DELIVERY_FEE_CENTS;
-    } else if (fulfillmentMethod === 'shipping' && selectedRate) {
-      shippingCost = selectedRate.amount;
+    } else if (fulfillmentMethod === 'shipping') {
+      shippingCost = STANDARD_SHIPPING_FEE_CENTS;
     }
     console.log('🔄 CheckoutForm: Shipping cost calculated:', shippingCost);
     setCheckoutShippingCost(shippingCost);
@@ -229,13 +229,13 @@ export function CheckoutForm() {
 
   const calculateTotal = () => {
     let calculatedTotal = total;
-    
+
     if (fulfillmentMethod === 'local_delivery') {
       calculatedTotal += LOCAL_DELIVERY_FEE_CENTS;
-    } else if (fulfillmentMethod === 'shipping' && selectedRate) {
-      calculatedTotal += selectedRate.amount;
+    } else if (fulfillmentMethod === 'shipping') {
+      calculatedTotal += STANDARD_SHIPPING_FEE_CENTS;
     }
-    
+
     return calculatedTotal;
   };
 
@@ -291,22 +291,7 @@ export function CheckoutForm() {
         setShowAddressModal(true);
         return;
       }
-      if (!selectedRate) {
-        console.error('❌ CheckoutForm: Shipping validation failed - no selectedRate');
-        setError('Please select a shipping option.');
-        return;
-      }
-      // Validate shipping amount
-      if (!selectedRate.amount || selectedRate.amount <= 0 || isNaN(selectedRate.amount)) {
-        console.error('❌ CheckoutForm: Shipping validation failed - invalid amount:', selectedRate);
-        setError('Invalid shipping cost. Please refresh the page and try selecting a shipping option again.');
-        return;
-      }
-      console.log('✅ CheckoutForm: Shipping validation passed:', {
-        carrier: selectedRate.carrier,
-        service: selectedRate.serviceLevelName,
-        amount: selectedRate.amount,
-      });
+      console.log('✅ CheckoutForm: Shipping validation passed');
     }
 
     if (fulfillmentMethod === 'pickup') {
@@ -370,11 +355,8 @@ export function CheckoutForm() {
               zone: locationZoneObj.zone,
               distanceMiles: locationZoneObj.distanceMiles,
             }) : undefined,
-            shippingRateId: selectedRate?.id,
-            shippingAmount: fulfillmentMethod === 'shipping' ? selectedRate?.amount : 
+            shippingAmount: fulfillmentMethod === 'shipping' ? STANDARD_SHIPPING_FEE_CENTS :
                            fulfillmentMethod === 'local_delivery' ? LOCAL_DELIVERY_FEE_CENTS : 0,
-            shippingCarrier: selectedRate?.carrier,
-            shippingService: selectedRate?.serviceLevelName,
           },
         }),
       });
@@ -553,7 +535,7 @@ export function CheckoutForm() {
                 Address Required
               </p>
               <p className="text-sm text-yellow-700">
-                Please enter your full street address (not just ZIP code) to see available shipping options and rates. Shippo requires a complete address for shipping labels.
+                Please enter your address to see available delivery options.
               </p>
             </div>
             
@@ -825,14 +807,12 @@ export function CheckoutForm() {
                       </span>
                     )}
                   </div>
-                  <span className="text-sm text-muted">
-                    {selectedRate ? formatPrice(selectedRate.amount) : 'Select rate below'}
-                  </span>
+                  <span className="font-medium">{formatPrice(STANDARD_SHIPPING_FEE_CENTS)}</span>
                 </div>
                 <p className="text-sm text-bmr-muted mt-1">
                   {!locationZone
                     ? 'Click to enter your shipping address'
-                    : 'Ship anywhere in the US via USPS, UPS, or FedEx'}
+                    : 'Ship anywhere in the US · 2–7 business days'}
                 </p>
               </div>
             </div>
@@ -876,14 +856,10 @@ export function CheckoutForm() {
         </div>
       </div>
 
-      {/* Shipping Rate Selector - Only show for shipping method */}
+      {/* Shipping Rate - flat $9.99 for all shipping orders */}
       {fulfillmentMethod === 'shipping' && locationZone && (
         <ShippingRateSelector
-          destination={locationZone}
-          items={items}
-          selectedRate={selectedRate}
           onSelectRate={handleRateSelect}
-          onLoadingChange={setIsLoadingRates}
         />
       )}
 
@@ -912,12 +888,10 @@ export function CheckoutForm() {
                 <span>{formatPrice(LOCAL_DELIVERY_FEE_CENTS)}</span>
               </div>
             )}
-            {fulfillmentMethod === 'shipping' && selectedRate && (
+            {fulfillmentMethod === 'shipping' && (
               <div className="flex justify-between">
-                <span className="text-muted">
-                  Shipping ({selectedRate.carrier} {selectedRate.serviceLevelName})
-                </span>
-                <span>{formatPrice(selectedRate.amount)}</span>
+                <span className="text-muted">Standard Shipping</span>
+                <span>{formatPrice(STANDARD_SHIPPING_FEE_CENTS)}</span>
               </div>
             )}
             <div className="border-t border-line pt-2 mt-2">
@@ -963,12 +937,10 @@ export function CheckoutForm() {
       <button
         type="submit"
         disabled={
-          isSubmitting || 
-          items.length === 0 || 
-          isLoadingRates ||
+          isSubmitting ||
+          items.length === 0 ||
           isValidatingStock ||
-          hasOutOfStockItems ||
-          (fulfillmentMethod === 'shipping' && !selectedRate)
+          hasOutOfStockItems
         }
         className="w-full px-8 py-4 bg-bmr-night text-surface-2 font-medium uppercase tracking-wideish rounded-lg hover:bg-bmr-night/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-sm"
       >

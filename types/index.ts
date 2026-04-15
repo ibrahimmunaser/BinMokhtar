@@ -275,21 +275,15 @@ export interface Order {
   fulfillmentMethod?: 'pickup' | 'local_delivery' | 'shipping';
   // Order weight (sum of all items' weights in grams)
   total_weight_grams?: number;
-  // Shippo integration fields
-  shippo_shipment_id?: string | null;
-  shippo_transaction_id?: string | null;
+  // Packing slip
+  packingSlipUrl?: string | null;
+  internal_label_url?: string | null;
+  // Legacy fields kept for backward compatibility with existing Firestore documents
   shippo_label_url?: string | null;
   shippo_tracking_number?: string | null;
-  shippo_label_status?: 'none' | 'pending' | 'success' | 'failed';
-  shippo_error_message?: string | null;
-  // Internal label for pickup/local_delivery
-  internal_label_url?: string | null;
-  // Legacy Shippo fields (for backward compatibility)
   labelUrl?: string | null;
   trackingNumber?: string | null;
   trackingUrl?: string | null;
-  packingSlipUrl?: string | null;
-  shippoTransactionId?: string | null;
   createdAt: Timestamp | Date;
   updatedAt: Timestamp | Date;
   paidAt?: Timestamp | Date;

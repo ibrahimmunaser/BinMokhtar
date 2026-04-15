@@ -1,6 +1,5 @@
 /**
  * Shipping & Delivery Configuration
- * Central configuration for all shipping-related settings
  */
 
 // Store location coordinates (Taylor, Michigan)
@@ -9,7 +8,7 @@ export const STORE_COORDINATES = {
   lng: parseFloat(process.env.STORE_LNG || '-83.26968'),
 };
 
-// Store address for Shippo
+// Store address
 export const STORE_ADDRESS = {
   name: 'Bin Mukhtar Retail',
   street1: '15600 Michael St',
@@ -29,29 +28,22 @@ export const LOCAL_DELIVERY_RADIUS_MILES = parseFloat(
 // Local delivery flat fee (in cents)
 export const LOCAL_DELIVERY_FEE_CENTS = 300; // $3.00
 
-// Default shipping estimate for display before Shippo rates
-export const DEFAULT_SHIPPING_ESTIMATE_DAYS = {
-  min: 2,
-  max: 5,
-};
+// Standard shipping flat fee (in cents)
+export const STANDARD_SHIPPING_FEE_CENTS = 999; // $9.99
 
-// Whether to use Shippo labels for all fulfillment methods
-// Set to true if you want shipping labels even for pickup/local delivery
-export const USE_SHIPPO_LABELS_FOR_ALL_FULFILLMENT = false;
-
-// Default parcel dimensions for shipping calculations (in inches and ounces)
-export const DEFAULT_PARCEL = {
-  length: 14,
-  width: 10,
-  height: 3,
-  weight: 16, // 1 lb in ounces
+// The single flat-rate shipping option shown at checkout
+export const FLAT_SHIPPING_RATE: ShippingRate = {
+  id: 'standard-flat-rate',
+  carrier: 'Standard',
+  serviceLevelName: 'Shipping',
+  amount: STANDARD_SHIPPING_FEE_CENTS,
 };
 
 // Fulfillment method types
 export type FulfillmentMethod = 'pickup' | 'local_delivery' | 'shipping';
 
 // Zone types based on distance
-export type DeliveryZone = 'local' | 'shippo';
+export type DeliveryZone = 'local' | 'standard';
 
 // Location source types
 export type LocationSource = 'geolocation' | 'manual';
@@ -71,49 +63,20 @@ export interface LocationZone {
   source: LocationSource;
 }
 
-// Shipping rate from Shippo
+// Simplified shipping rate
 export interface ShippingRate {
   id: string;
   carrier: string;
-  carrierAccount: string;
   serviceLevelName: string;
-  serviceLevelToken: string;
   amount: number; // in cents
-  currency: string;
-  estimatedDays: number | null;
-  estimatedDeliveryDate: string | null;
-  durationTerms: string | null;
-}
-
-// Cart item for shipping calculations
-export interface ShippingCartItem {
-  productId: string;
-  variantId: string;
-  sku: string;
-  name: string;
-  qty: number;
-  weight?: number; // in ounces
-  dimensions?: {
-    length: number;
-    width: number;
-    height: number;
-  };
 }
 
 // Order fulfillment data
 export interface OrderFulfillment {
   method: FulfillmentMethod;
   locationZone: LocationZone;
-  shippingRateId?: string; // Shippo rate ID for shipping orders
   shippingAmount?: number; // in cents
   localDeliveryFee?: number; // in cents
-  // Shippo tracking info (populated after label creation)
-  shippoShipmentId?: string;
-  shippoTransactionId?: string;
-  labelUrl?: string;
-  trackingNumber?: string;
-  trackingUrl?: string;
-  // Internal packing slip (for pickup/local)
   packingSlipUrl?: string;
 }
 
@@ -134,10 +97,9 @@ export function getFulfillmentMethodLabel(method: FulfillmentMethod): string {
 // Helper to get zone display text
 export function getZoneDisplayText(zone: DeliveryZone, city?: string, state?: string): string {
   const location = city && state ? `${city}, ${state}` : 'your location';
-  
+
   if (zone === 'local') {
     return `Delivering to ${location} · Local delivery available ($3)`;
   }
-  return `Delivering to ${location} · Shipping only (no local delivery)`;
+  return `Delivering to ${location} · Standard shipping ($9.99)`;
 }
-

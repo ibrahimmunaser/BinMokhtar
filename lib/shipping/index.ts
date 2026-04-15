@@ -11,9 +11,5 @@ export * from './distance';
 // Geocoding
 export * from './geocoding';
 
-// Shippo integration
-export * from './shippo';
-
 // Fulfillment
 export * from './fulfillment';
-

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     // Calculate totals
     const subtotal = items.reduce((sum: number, item: any) => 
       sum + (item.unitPrice || 0) * (item.qty || 1), 0);
-    const shipping = fulfillmentMethod === 'shipping' ? 1200 : 0; // $12 default
+    const shipping = fulfillmentMethod === 'shipping' ? 999 : 0; // $9.99 flat rate
     const tax = Math.round(subtotal * 0.06); // 6% tax
     const total = subtotal + shipping + tax;
     
@@ -97,8 +97,6 @@ export async function POST(request: NextRequest) {
       stripeSessionId: `cs_test_manual_${Date.now()}`,
       stripePaymentIntentId: `pi_test_manual_${Date.now()}`,
       
-      // Label status
-      shippo_label_status: 'none',
       
       // Timestamps
       createdAt: FieldValue.serverTimestamp(),

@@ -7,7 +7,6 @@ import { formatPrice } from '@/lib/utils';
 import { useLocale } from '@/contexts/LocaleContext';
 import { CheckCircle2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { LOCAL_DELIVERY_FEE_CENTS } from '@/lib/shipping/config';
 
 interface OrderSummaryProps {
   showCheckoutButton?: boolean;
@@ -103,9 +102,9 @@ export function OrderSummary({ showCheckoutButton = true }: OrderSummaryProps) {
           </div>
           <div className="flex justify-between">
             <span className="text-bmr-muted">
-              {fulfillmentMethod === 'pickup' ? 'Pickup' : 
-               fulfillmentMethod === 'local_delivery' ? 'Local Delivery' : 
-               selectedRate ? `Shipping (${selectedRate.carrier})` : 'Shipping'}
+              {fulfillmentMethod === 'pickup' ? 'Pickup' :
+               fulfillmentMethod === 'local_delivery' ? 'Local Delivery' :
+               'Standard Shipping'}
             </span>
             <span className={shippingCost === 0 ? 'text-green-700 font-medium' : ''}>
               {shippingCost === 0 ? 'FREE' : formatPrice(shippingCost, currency)}
