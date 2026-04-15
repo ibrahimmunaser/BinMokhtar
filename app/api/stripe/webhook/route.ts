@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe, STRIPE_WEBHOOK_SECRET } from '@/lib/stripe/config';
 import { adminDb, FieldValue, Timestamp } from '@/lib/firebase/server';
 import { sendOrderConfirmationEmail, sendAdminOrderNotification } from '@/lib/email';
-import { createShippingArtifactsForOrder } from '@/lib/shipping/createShippingArtifacts';
 import { calculateOrderWeight } from '@/lib/shipping/calculateOrderWeight';
 import { decrementInventoryForOrder } from '@/lib/inventory';
 import Stripe from 'stripe';
@@ -807,35 +806,16 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       }
     }
 
-    // Create shipping artifacts (labels) for the order
-    console.log('📦 ===== CREATING SHIPPING ARTIFACTS =====');
+    // Generate packing slip URL for the order
+    console.log('📦 ===== GENERATING PACKING SLIP =====');
     try {
-      const artifactsResult = await createShippingArtifactsForOrder(orderRef.id);
-      
-      if (artifactsResult.success && artifactsResult.labelCreated) {
-        console.log('✅ Shipping artifacts created successfully');
-        if (artifactsResult.labelUrl) {
-          console.log('✅ Label URL:', artifactsResult.labelUrl);
-        }
-        if (artifactsResult.trackingNumber) {
-          console.log('✅ Tracking number:', artifactsResult.trackingNumber);
-        }
-        if (artifactsResult.internalLabelUrl) {
-          console.log('✅ Internal label URL:', artifactsResult.internalLabelUrl);
-        }
-      } else if (artifactsResult.success && !artifactsResult.labelCreated) {
-        console.log('ℹ️ Label already exists for this order (idempotency check passed)');
-      } else {
-        console.error('❌ Failed to create shipping artifacts:', artifactsResult.error);
-        // Don't throw - allow webhook to succeed even if label creation fails
-        // The label can be created manually later via admin UI
-      }
-    } catch (labelError: any) {
-      console.error('❌ Error creating shipping artifacts:', labelError);
-      console.error('❌ Error message:', labelError?.message);
-      console.error('❌ Error stack:', labelError?.stack);
-      // Don't throw - allow webhook to succeed even if label creation fails
-      // The label can be created manually later via admin UI
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const packingSlipUrl = `${baseUrl}/api/orders/packing-slip/${orderRef.id}`;
+      await orderRef.update({ packingSlipUrl, updatedAt: Timestamp.now() });
+      console.log('✅ Packing slip URL saved:', packingSlipUrl);
+    } catch (slipError: any) {
+      console.error('❌ Error saving packing slip URL:', slipError?.message);
+      // Non-critical — don't fail the webhook
     }
 
     // TODO: Update product inventory
