@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Truck, Package, MapPin } from 'lucide-react';
 import { useLocationStore } from '@/store/location';
-import { LOCAL_DELIVERY_FEE_CENTS, DEFAULT_SHIPPING_ESTIMATE_DAYS } from '@/lib/shipping/config';
+import { LOCAL_DELIVERY_FEE_CENTS } from '@/lib/shipping/config';
 
 interface DeliveryInfoProps {
   compact?: boolean;
@@ -118,12 +118,11 @@ export function DeliveryInfo({ compact = false, onSetAddress }: DeliveryInfoProp
       <div className="flex items-center gap-1.5 text-muted">
         <Truck className="w-3.5 h-3.5" />
         <span>
-          Shipping to {locationZone.city}, {locationZone.state} · 
-          Est. {DEFAULT_SHIPPING_ESTIMATE_DAYS.min}-{DEFAULT_SHIPPING_ESTIMATE_DAYS.max} days
+          Shipping to {locationZone.city}, {locationZone.state} · $9.99 · Est. 2–7 days
         </span>
       </div>
       <p className="text-muted/70 text-[10px]">
-        Exact shipping cost at checkout
+        Flat rate shipping — $9.99
       </p>
     </div>
   );
