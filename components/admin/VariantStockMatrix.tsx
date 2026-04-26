@@ -151,6 +151,13 @@ export function VariantStockMatrix({ sizes, colors, value, onChange, basePrice, 
         </div>
       </div>
 
+      {/* Auto-decrement info */}
+      <div className="px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <p className="text-sm text-blue-900">
+          <strong>💡 Automatic Inventory:</strong> Stock quantities automatically decrease when customers place orders. This page auto-refreshes every 30 seconds to show the latest inventory levels. You can also click "Refresh Now" for instant updates.
+        </p>
+      </div>
+
       {/* Quick Actions */}
       <div className="flex items-center gap-3 p-4 bg-surface-3 rounded-lg">
         <label className="text-sm font-medium">Quick Set All:</label>

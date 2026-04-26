@@ -11,7 +11,7 @@ import { MultiImageUpload } from './MultiImageUpload';
 import { MultiSelect } from './MultiSelect';
 import { VariantStockMatrix } from './VariantStockMatrix';
 import { ColorImageMapper } from './ColorImageMapper';
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { getAllSubcategories } from '@/lib/firebaseAdminStore';
 
 // Category options (main categories)
@@ -165,6 +165,8 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
   const [isLoading, setIsLoading] = useState(!!productId);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
   const isEditMode = !!productId;
   
   // Dynamic subcategories state
@@ -236,6 +238,33 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
     if (productId) {
       loadProduct();
     }
+  }, [productId]);
+
+  // Auto-refresh stock data every 30 seconds in edit mode
+  useEffect(() => {
+    if (!productId) return;
+
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Auto-refreshing stock data...');
+      loadProduct();
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [productId]);
+
+  // Refresh when user returns to the tab
+  useEffect(() => {
+    if (!productId) return;
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('👀 Tab became visible - refreshing stock data');
+        loadProduct();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [productId]);
 
   // Get subcategories for the selected category (from Firebase, with fallback)
@@ -349,12 +378,36 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
         rating: product.rating || undefined,
         numReviews: product.numReviews || undefined,
       });
+      
+      setLastRefreshTime(new Date());
     } catch (error: any) {
       console.error('Error loading product:', error);
       setSubmitStatus('error');
       setErrorMessage(error.message || 'Failed to load product');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const refreshProductData = async () => {
+    if (!productId) return;
+    
+    try {
+      setIsRefreshing(true);
+      await loadProduct();
+      // Show brief success message
+      const originalStatus = submitStatus;
+      setSubmitStatus('success');
+      setErrorMessage('');
+      setTimeout(() => {
+        setSubmitStatus(originalStatus);
+      }, 2000);
+    } catch (error: any) {
+      console.error('Error refreshing product:', error);
+      setErrorMessage('Failed to refresh product data');
+      setSubmitStatus('error');
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -673,7 +726,28 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
         {/* Variants */}
         {isBasicInfoComplete && (
           <div className="bg-surface-2 rounded-lg border border-line p-6 lg:p-8">
-            <h2 className="font-display text-xl mb-6">Product Variants</h2>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="font-display text-xl">Product Variants</h2>
+                {isEditMode && lastRefreshTime && (
+                  <p className="text-xs text-bmr-muted mt-1">
+                    Last updated: {lastRefreshTime.toLocaleTimeString()} • Auto-refreshes every 30s
+                  </p>
+                )}
+              </div>
+              {isEditMode && (
+                <button
+                  type="button"
+                  onClick={refreshProductData}
+                  disabled={isRefreshing}
+                  className="flex items-center gap-2 px-4 py-2 text-sm border border-line rounded hover:bg-surface-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Reload stock data from database"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? 'Refreshing...' : 'Refresh Now'}
+                </button>
+              )}
+            </div>
             
             <div className="space-y-6">
               {/* Size and Color Selection */}
