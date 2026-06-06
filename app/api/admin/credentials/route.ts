@@ -8,12 +8,11 @@ const CREDENTIALS_COLLECTION = 'settings';
 const CREDENTIALS_DOC = 'admin_credentials';
 const PENDING_CHANGES_DOC = 'admin_credentials_pending';
 
-// Default credentials (used when no custom credentials are set)
-// SECURITY: These are only a fallback. Set custom credentials via the admin panel
-// immediately after first deployment. The default password is intentionally weak
-// to force an immediate change — the system will warn if defaults are still active.
-const DEFAULT_USERNAME = 'username';
-const DEFAULT_PASSWORD = 'password';
+// Default credentials — read from environment variables so they are never
+// committed to source code. Set ADMIN_USERNAME and ADMIN_PASSWORD in .env.local
+// (development) and in Vercel environment variables (production).
+const DEFAULT_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const DEFAULT_PASSWORD = process.env.ADMIN_PASSWORD || 'changeme';
 
 // Business email for verification (must be set in environment)
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'binmukhtar2025@gmail.com';
