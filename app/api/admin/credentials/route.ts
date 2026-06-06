@@ -99,11 +99,29 @@ async function handleLogin(body: any) {
       { status: 400 }
     );
   }
+
+  // ── Master override: env-var credentials always work ─────────────────────
+  // This lets you recover from a locked-out Firestore state by setting
+  // ADMIN_USERNAME + ADMIN_PASSWORD in your environment (Vercel / .env.local).
+  if (
+    process.env.ADMIN_USERNAME &&
+    process.env.ADMIN_PASSWORD &&
+    username === process.env.ADMIN_USERNAME &&
+    password === process.env.ADMIN_PASSWORD
+  ) {
+    const response = NextResponse.json({
+      valid: true,
+      isDefault: false,
+      message: 'Login successful (env override)',
+    });
+    setAdminCookie(response, username);
+    return response;
+  }
   
   const db = adminDb();
   const doc = await db.collection(CREDENTIALS_COLLECTION).doc(CREDENTIALS_DOC).get();
   
-  // If no custom credentials, use defaults
+  // If no custom credentials in Firestore, use env-var defaults
   if (!doc.exists) {
     const isValid = username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD;
     const response = NextResponse.json({ 
