@@ -10,6 +10,9 @@ export const dynamic = 'force-dynamic';
  * Use this to test email sending directly
  */
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  }
   console.log('🧪 ===== TEST WEBHOOK DIRECT - STARTED =====');
   console.log('🧪 Timestamp:', new Date().toISOString());
   

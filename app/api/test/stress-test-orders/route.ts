@@ -8,6 +8,9 @@ export const dynamic = 'force-dynamic';
  * Creates 10 test orders and verifies they all have timestamps
  */
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  }
   console.log('🧪 ===== STRESS TEST: Creating 10 orders =====');
   
   const results: any[] = [];

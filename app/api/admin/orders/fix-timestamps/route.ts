@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb, Timestamp } from '@/lib/firebase/server';
+import { requireAdminSession } from '@/lib/adminSessionToken';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +10,8 @@ export const dynamic = 'force-dynamic';
  * Sets createdAt to current time for orders that don't have it
  */
 export async function POST(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   console.log('🔧 ===== FIX TIMESTAMPS MIGRATION STARTED =====');
   console.log('🔧 Timestamp:', new Date().toISOString());
   

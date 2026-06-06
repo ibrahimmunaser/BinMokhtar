@@ -322,11 +322,14 @@ export function CreateProductForm({ productId }: CreateProductFormProps = {}) {
       const regularPrice = hasActivePromo ? compareAtPriceInDollars : priceInDollars;
       const salePrice = hasActivePromo ? priceInDollars : undefined;
 
-      // Prepare variants - convert prices from cents to dollars
+      // Prepare variants - convert prices from cents to dollars.
+      // loadedStock records the DB value at load time so the API can compute
+      // a delta rather than blindly overwriting (prevents reverting order decrements).
       const variants = (product.variants || []).map((v: any) => ({
         size: v.size || '',
         color: v.color || '',
         stock: v.stock || 0,
+        loadedStock: v.stock || 0, // snapshot of DB value when form was opened
         sku: v.sku || '',
         barcode: v.barcode || undefined,
         price: v.price ? v.price / 100 : undefined,

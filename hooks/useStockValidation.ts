@@ -70,6 +70,9 @@ export function useStockValidation() {
     } catch (err: any) {
       console.error('Stock validation error:', err);
       setError(err.message || 'Failed to validate stock');
+      // Fail closed: treat a network/server error as "stock unavailable"
+      // so the checkout button stays disabled until we can confirm stock.
+      setHasOutOfStockItems(true);
       return null;
     } finally {
       setIsValidating(false);

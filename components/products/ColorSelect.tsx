@@ -28,19 +28,24 @@ export function ColorSelect({
 
   // Get stock for a specific color (considering selected size if applicable)
   const getStockForColor = (color: string): number => {
+    const normColor = String(color ?? '').trim();
     if (variants && variants.length > 0) {
       if (selectedSize) {
-        // Find the specific size+color variant
-        const variant = variants.find(v => v.color === color && v.size === selectedSize);
+        const normSize = String(selectedSize ?? '').trim();
+        const variant = variants.find(
+          v =>
+            String(v.color ?? '').trim() === normColor &&
+            String(v.size ?? '').trim() === normSize
+        );
         return variant?.stock ?? 0;
       } else {
-        // No size selected, sum stock across all sizes for this color
-        const colorVariants = variants.filter(v => v.color === color);
+        const colorVariants = variants.filter(
+          v => String(v.color ?? '').trim() === normColor
+        );
         return colorVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
       }
     }
     
-    // Default: assume available
     return 999;
   };
 

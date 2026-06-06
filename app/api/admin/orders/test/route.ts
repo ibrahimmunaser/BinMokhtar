@@ -8,6 +8,9 @@ import { adminDb } from '@/lib/firebase/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  }
   console.log('🧪 ===== TEST ORDERS ENDPOINT CALLED =====');
   
   try {

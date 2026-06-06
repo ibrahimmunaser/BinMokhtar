@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/server';
 import { generateInternalLabelHtml } from '@/lib/shipping/internalLabel';
+import { requireAdminSession } from '@/lib/adminSessionToken';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { orderId: string } }
 ) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const orderId = params.orderId;
 

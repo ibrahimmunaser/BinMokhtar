@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminSession } from '@/lib/adminSessionToken';
 
 export const dynamic = 'force-dynamic';
 
@@ -6,7 +7,9 @@ export const dynamic = 'force-dynamic';
  * GET /api/webhook-status
  * Comprehensive diagnostic endpoint for webhook configuration
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   // Determine Stripe mode
   let stripeMode = 'unknown';
   if (process.env.STRIPE_SECRET_KEY) {

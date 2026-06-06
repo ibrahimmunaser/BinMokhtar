@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/server';
 import { FIREBASE_IMAGES } from '@/lib/firebase-images';
+import { requireAdminSession } from '@/lib/adminSessionToken';
 
 // Default subcategories - these should always exist
 const DEFAULT_SUBCATEGORIES = [
@@ -102,6 +103,8 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new subcategory
 export async function POST(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const body = await request.json();
     
@@ -138,6 +141,8 @@ export async function POST(request: NextRequest) {
 
 // PATCH - Update subcategory
 export async function PATCH(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const body = await request.json();
     const { id, ...updates } = body;
@@ -164,6 +169,8 @@ export async function PATCH(request: NextRequest) {
 
 // DELETE - Delete subcategory (soft delete by setting active: false)
 export async function DELETE(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const { searchParams } = new URL(request.url);
     const subcategoryId = searchParams.get('id');

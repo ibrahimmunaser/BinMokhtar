@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -34,6 +34,14 @@ const HERO_IMAGES = [
 ];
 
 export default function MensCollectionPage() {
+  return (
+    <Suspense>
+      <MensCollectionPageInner />
+    </Suspense>
+  );
+}
+
+function MensCollectionPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   

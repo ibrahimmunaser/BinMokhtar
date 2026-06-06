@@ -59,6 +59,7 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       aria-label="Hero carousel"
+      aria-roledescription="carousel"
     >
       {/* Slide Content */}
       <div className={`absolute inset-0 transition-opacity duration-700 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`} key={slide.src}>
@@ -80,6 +81,7 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
             className="object-cover object-[70%_center] sm:object-[65%_center] lg:object-center"
             priority={currentSlide === 0}
             sizes="100vw"
+            unoptimized={slide.src.includes('firebasestorage') || slide.src.includes('storage.googleapis')}
             onLoadingComplete={() => {
               setImgLoaded(true);
               setHasInitialLoad(true);
@@ -93,8 +95,8 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
 
       {/* Content */}
       <div className="relative h-full flex items-center">
-        <div className="container-wide">
-          <div className="max-w-xl text-white text-left">
+        <div className="container-wide" aria-live="polite" aria-atomic="true">
+          <div className="max-w-xl text-white text-left pl-14 sm:pl-0">
             {slide.eyebrow && (
               <p className="text-sm uppercase tracking-wideish mb-4 opacity-90">
                 {slide.eyebrow}
@@ -125,17 +127,17 @@ export function HeroCarousel({ slides }: HeroCarouselProps) {
         <>
           <button
             onClick={prevSlide}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 flex items-center justify-center bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full transition-all duration-200"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full transition-all duration-200"
             aria-label="Previous slide"
           >
-            <ChevronLeft className="w-6 h-6 text-white" />
+            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </button>
           <button
             onClick={nextSlide}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 flex items-center justify-center bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full transition-all duration-200"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full transition-all duration-200"
             aria-label="Next slide"
           >
-            <ChevronRight className="w-6 h-6 text-white" />
+            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </button>
 
           {/* Dots */}

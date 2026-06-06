@@ -74,7 +74,8 @@ export default function SettingsPage() {
     }
   }, [credentialStep, codeExpiresIn]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
     clearAdminSession();
     router.push('/admin/login');
   };
@@ -184,7 +185,8 @@ export default function SettingsPage() {
             type: 'success', 
             text: 'Password updated successfully! You will be logged out in 3 seconds...' 
           });
-          setTimeout(() => {
+          setTimeout(async () => {
+            await fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
             clearAdminSession();
             router.push('/admin/login');
           }, 3000);

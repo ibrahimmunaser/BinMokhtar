@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Container } from '@/components/layout/Container';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
-export default function SignUpPage() {
+function SignUpPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const finalRedirect = searchParams?.get('redirect') || '/profile';
@@ -385,3 +385,10 @@ function PasswordCheck({ passed, label }: { passed: boolean; label: string }) {
   );
 }
 
+export default function SignUpPage() {
+  return (
+    <Suspense>
+      <SignUpPageInner />
+    </Suspense>
+  );
+}

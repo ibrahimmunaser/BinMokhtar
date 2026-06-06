@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/server';
+import { requireAdminSession } from '@/lib/adminSessionToken';
 
 // GET all products or single product by ID
 export async function GET(request: NextRequest) {
@@ -102,6 +103,8 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new product
 export async function POST(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const body = await request.json();
     
@@ -290,6 +293,8 @@ export async function POST(request: NextRequest) {
 
 // PUT - Update product
 export async function PUT(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const body = await request.json();
     const productId = body.id;
@@ -397,81 +402,129 @@ export async function PUT(request: NextRequest) {
 
     await adminDb().collection('products').doc(productId).update(productData);
     
-    // Replace variants subcollection
+    // ── Update variants subcollection (update in-place by SKU, preserve doc IDs) ──
+    // This prevents carts that reference a variantId from going stale after every admin save.
     const variantsColRef = adminDb().collection('products').doc(productId).collection('variants');
-    const existing = await variantsColRef.get();
-    if (!existing.empty) {
-      const delBatch = adminDb().batch();
-      existing.docs.forEach((d) => delBatch.delete(d.ref));
-      await delBatch.commit();
+    const existingVariantsSnap = await variantsColRef.get();
+
+    // Build a map of SKU → existing doc reference
+    const existingBySku = new Map<string, FirebaseFirestore.DocumentReference>();
+    existingVariantsSnap.docs.forEach((d) => {
+      const sku = d.data()?.sku;
+      if (sku) existingBySku.set(sku, d.ref);
+    });
+
+    const incomingSkus = new Set<string>();
+    const finalVariantStocks: number[] = []; // collect delta-adjusted stocks for aggregate recompute
+
+    // Guard: if variants array is explicitly provided but empty AND the product already has
+    // variants in Firestore, reject the request — this almost certainly indicates a form
+    // serialisation bug that would wipe the entire subcollection.
+    if (Array.isArray(body.variants) && body.variants.length === 0 && existingVariantsSnap.size > 0) {
+      return NextResponse.json(
+        {
+          error:
+            'Cannot remove all variants via this endpoint. If you intended to remove specific variants, send the remaining variants explicitly.',
+          success: false,
+        },
+        { status: 400 }
+      );
     }
 
-    if (normalizedVariants.length > 0 || (Array.isArray(body.variants) && body.variants.length > 0)) {
-      const variantsToCreate = Array.isArray(body.variants) && body.variants.length > 0 
-        ? body.variants 
-        : normalizedVariants;
-
-      // Validate each variant has required fields
+    if (Array.isArray(body.variants) && body.variants.length > 0) {
+      // Validate
       const skuSet = new Set();
-      for (const v of variantsToCreate) {
-        // SKU is required
+      for (const v of body.variants) {
         if (!v.sku || v.sku.trim() === '') {
-          return NextResponse.json({ 
-            error: 'Each variant must have a SKU', 
-            success: false 
-          }, { status: 400 });
+          return NextResponse.json({ error: 'Each variant must have a SKU', success: false }, { status: 400 });
         }
-        
-        // Check for duplicate SKUs within this product
         if (skuSet.has(v.sku)) {
-          return NextResponse.json({ 
-            error: `Duplicate SKU found: ${v.sku}. Each variant must have a unique SKU.`, 
-            success: false 
-          }, { status: 400 });
+          return NextResponse.json({ error: `Duplicate SKU: ${v.sku}`, success: false }, { status: 400 });
         }
         skuSet.add(v.sku);
 
-        // Validate price
         const variantPrice = v.price !== undefined ? parseFloat(v.price) : parseFloat(body.price);
         if (isNaN(variantPrice) || variantPrice < 0) {
-          return NextResponse.json({ 
-            error: 'Variant price must be a non-negative number', 
-            success: false 
-          }, { status: 400 });
+          return NextResponse.json({ error: 'Variant price must be a non-negative number', success: false }, { status: 400 });
         }
-
-        // Validate stock
         const variantStock = parseInt(String(v.stock || 0));
         if (isNaN(variantStock) || variantStock < 0) {
-          return NextResponse.json({ 
-            error: 'Variant stock must be a non-negative integer', 
-            success: false 
-          }, { status: 400 });
+          return NextResponse.json({ error: 'Variant stock must be a non-negative integer', success: false }, { status: 400 });
         }
       }
 
       const batch = adminDb().batch();
-      variantsToCreate.forEach((v: any) => {
-        const ref = variantsColRef.doc();
-        // CRITICAL: Form already converts variant prices to cents (line 392 of CreateProductForm.tsx)
-        // Do NOT multiply by 100 again or you'll get double conversion bug ($19.99 → 1999 → 199900)
+      for (const v of body.variants) {
+        // CRITICAL: Form already converts variant prices to cents
         const variantPrice = v.price !== undefined ? Math.round(parseFloat(v.price)) : Math.round(parseFloat(body.price) * 100);
         const variantSalePrice = v.salePrice ? Math.round(parseFloat(v.salePrice)) : null;
-        
-        batch.set(ref, {
+        const variantStock = Math.max(0, parseInt(String(v.stock || 0)));
+        const sku = v.sku.trim();
+        incomingSkus.add(sku);
+
+        // Delta-based stock: use the difference between the admin's new value and what
+        // they saw when the form loaded (loadedStock), applied to the current DB value.
+        // This prevents stale form data from reverting order-decrements while still
+        // allowing genuine restocking.
+        // Formula: finalStock = currentDB + (incomingStock - loadedStock)
+        let finalStock = variantStock;
+        if (existingBySku.has(sku) && v.loadedStock !== undefined) {
+          const existingDoc = existingVariantsSnap.docs.find(d => d.data()?.sku === sku);
+          const currentDbStock: number = existingDoc?.data()?.stock ?? variantStock;
+          const delta = variantStock - Math.max(0, parseInt(String(v.loadedStock || 0)));
+          finalStock = Math.max(0, currentDbStock + delta);
+        }
+
+        const variantData = {
           size: v.size || undefined,
           color: v.color || undefined,
-          stock: Math.max(0, parseInt(String(v.stock || 0))),
-          sku: v.sku.trim(),
+          stock: finalStock,
+          sku,
           barcode: v.barcode ? v.barcode.trim() : null,
-          price: variantPrice, // in cents
-          salePrice: variantSalePrice, // in cents, optional
-          active: parseInt(String(v.stock || 0)) > 0,
-          createdAt: new Date(),
+          price: variantPrice,
+          salePrice: variantSalePrice,
+          active: finalStock > 0,
           updatedAt: new Date(),
-        });
+        };
+
+        finalVariantStocks.push(finalStock);
+
+        if (existingBySku.has(sku)) {
+          // Update existing doc — preserve its ID
+          batch.update(existingBySku.get(sku)!, variantData);
+        } else {
+          // New SKU → create new doc
+          const newRef = variantsColRef.doc();
+          batch.set(newRef, { ...variantData, createdAt: new Date() });
+        }
+      }
+
+      // Delete variants whose SKUs are no longer in the incoming list
+      existingVariantsSnap.docs.forEach((d) => {
+        if (!incomingSkus.has(d.data()?.sku)) {
+          batch.delete(d.ref);
+        }
       });
+
       await batch.commit();
+
+      // Recompute product aggregate with delta-adjusted stocks
+      const realTotalStock = finalVariantStocks.reduce((sum, s) => sum + s, 0);
+      const realActiveVariants = finalVariantStocks.filter(s => s > 0).length;
+      await adminDb().collection('products').doc(productId).update({
+        stock: realTotalStock,
+        'counts.totalStock': realTotalStock,
+        'counts.activeVariants': realActiveVariants,
+        'counts.variants': finalVariantStocks.length,
+        updatedAt: new Date(),
+      });
+    } else {
+      // No variants sent — delete all existing variants
+      if (!existingVariantsSnap.empty) {
+        const delBatch = adminDb().batch();
+        existingVariantsSnap.docs.forEach((d) => delBatch.delete(d.ref));
+        await delBatch.commit();
+      }
     }
     
     return NextResponse.json({ 
@@ -486,6 +539,8 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - Delete product
 export async function DELETE(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get('id');

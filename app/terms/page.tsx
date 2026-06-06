@@ -1,4 +1,10 @@
+import type { Metadata } from 'next';
 import { Container } from '@/components/layout/Container';
+
+export const metadata: Metadata = {
+  title: 'Terms of Service',
+  description: 'Terms of service for Bin Mukhtar Retail — our policies on purchases, returns, and use of our website.',
+};
 
 export default function TermsPage() {
   return (

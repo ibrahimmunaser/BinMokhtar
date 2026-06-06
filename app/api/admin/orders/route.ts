@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb, Timestamp } from '@/lib/firebase/server';
 import { Order } from '@/types';
+import { requireAdminSession } from '@/lib/adminSessionToken';
 
 /**
  * GET /api/admin/orders
@@ -10,6 +11,9 @@ import { Order } from '@/types';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
+
   const startTime = Date.now();
   console.log('📋 ===== ADMIN ORDERS API CALLED =====');
   console.log('📋 Timestamp:', new Date().toISOString());

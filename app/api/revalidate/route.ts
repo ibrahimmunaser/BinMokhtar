@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath, revalidateTag } from 'next/cache';
+import { requireAdminSession } from '@/lib/adminSessionToken';
 
 export async function POST(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const body = await request.json();
     const { type, slug, path } = body;

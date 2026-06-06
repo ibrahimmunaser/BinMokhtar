@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 
 const FROM_EMAIL = process.env.FROM_EMAIL || 'Bin Mukhtar Retail <orders@binmukhtarretail.com>';
 const CONTACT_EMAIL = process.env.CONTACT_EMAIL || 'info@binmukhtarretail.com';
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 5 submissions per 10 minutes per IP
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`contact:${ip}`, { limit: 5, windowMs: 10 * 60 * 1000 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please wait a few minutes before trying again.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetMs - Date.now()) / 1000)) } }
+    );
+  }
+
   try {
     const body = await request.json();
     const { name, email, phone, message } = body;

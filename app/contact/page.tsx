@@ -76,6 +76,7 @@ export default function ContactPage() {
               value={formData.name}
               onChange={handleChange}
               required
+              autoComplete="name"
               className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-night focus:border-transparent"
             />
           </div>
@@ -91,6 +92,7 @@ export default function ContactPage() {
               value={formData.email}
               onChange={handleChange}
               required
+              autoComplete="email"
               className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-night focus:border-transparent"
             />
           </div>
@@ -105,6 +107,7 @@ export default function ContactPage() {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
+              autoComplete="tel"
               className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-bmr-night focus:border-transparent"
             />
           </div>

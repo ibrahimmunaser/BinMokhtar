@@ -8,6 +8,9 @@ export const dynamic = 'force-dynamic';
  * Test endpoint to verify order creation with timestamps works correctly
  */
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  }
   console.log('🧪 ===== TEST ORDER CREATION =====');
   
   try {

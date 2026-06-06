@@ -23,7 +23,9 @@ export default function AdminDashboard() {
     }
   }, [router, refreshKey]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Clear server-side cookie
+    await fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
     clearAdminSession();
     router.push('/admin/login');
   };
@@ -111,7 +113,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between mb-4">
               <ShoppingCart className="w-8 h-8 text-bmr-stone" />
             </div>
-            <p className="text-3xl font-display mb-2">{products.filter(p => p.stock > 0).length}</p>
+            <p className="text-3xl font-display mb-2">{products.filter(p => (p.counts?.totalStock ?? p.stock ?? 0) > 0).length}</p>
             <p className="text-sm text-bmr-muted">In Stock</p>
           </div>
 

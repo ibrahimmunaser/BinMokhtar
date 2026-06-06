@@ -473,11 +473,20 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           imageUrl: matchingCartItem?.imageUrl || product.images?.[0] || '',
         };
 
-        // Only add size and color if they exist (avoid undefined)
-        if (matchingCartItem?.size) {
+        // Prefer size/color from per-line-item metadata (Fix: stored in product_data.metadata),
+        // fall back to cartItemsSample match for backwards compatibility.
+        const sizeFromMeta = product.metadata?.size;
+        const colorFromMeta = product.metadata?.color;
+
+        if (sizeFromMeta) {
+          item.size = sizeFromMeta;
+        } else if (matchingCartItem?.size) {
           item.size = matchingCartItem.size;
         }
-        if (matchingCartItem?.color) {
+
+        if (colorFromMeta) {
+          item.color = colorFromMeta;
+        } else if (matchingCartItem?.color) {
           item.color = matchingCartItem.color;
         }
 
@@ -668,19 +677,33 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
           sku: item.sku,
         }))
       );
-      
+
       if (!inventoryResult.success) {
         console.warn('⚠️ Some inventory updates failed:', inventoryResult.errors);
-        // Log errors but don't fail the webhook - inventory can be manually adjusted
+        // Flag the order so admin can see it needs manual inventory review
+        const flagData: Record<string, any> = {
+          inventoryWarning: true,
+          inventoryErrors: inventoryResult.errors,
+          updatedAt: Timestamp.now(),
+        };
+        if (inventoryResult.oversoldItems.length > 0) {
+          flagData.oversoldItems = inventoryResult.oversoldItems;
+          console.error('🚨 OVERSELL recorded on order', orderRef!.id, inventoryResult.oversoldItems);
+        }
+        await orderRef!.update(flagData).catch((e: any) =>
+          console.error('❌ Failed to flag order with inventory warning:', e)
+        );
       } else {
         console.log('✅ Inventory decremented successfully for all items');
       }
     } catch (inventoryError: any) {
       console.error('❌ Inventory decrement failed:', inventoryError);
-      console.error('❌ Error message:', inventoryError?.message);
-      console.error('❌ Error stack:', inventoryError?.stack);
-      // Don't fail the webhook if inventory update fails - can be fixed manually
-      // This prevents Stripe from retrying the webhook
+      // Flag the order so admin can investigate manually
+      await orderRef!.update({
+        inventoryWarning: true,
+        inventoryErrors: [inventoryError?.message || 'Unknown inventory error'],
+        updatedAt: Timestamp.now(),
+      }).catch(() => {});
     }
 
     // Send order confirmation email

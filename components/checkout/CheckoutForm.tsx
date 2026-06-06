@@ -298,12 +298,23 @@ export function CheckoutForm() {
       console.log('✅ CheckoutForm: Pickup validation passed (no address required)');
     }
 
-    console.log('🚀 CheckoutForm: All validations passed, proceeding with checkout...');
+    console.log('🚀 CheckoutForm: All validations passed, re-validating stock...');
+    // Re-validate stock at checkout time to catch any changes since the page loaded
+    const freshValidation = await validateStock(items);
+    if (freshValidation === null) {
+      // Network error — fail closed, do not proceed
+      setError('Unable to verify stock availability. Please try again.');
+      return;
+    }
+    if (freshValidation.hasOutOfStockItems) {
+      setError('Some items in your cart are no longer available. Please review your cart.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
-    
+
     // Track begin checkout
-    console.log('🚀 CheckoutForm: Tracking begin checkout event...');
     logBeginCheckout(items, total);
 
     try {

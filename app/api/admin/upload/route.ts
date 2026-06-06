@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminStorage } from '@/lib/firebase/server';
+import { requireAdminSession } from '@/lib/adminSessionToken';
 
 export async function POST(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;

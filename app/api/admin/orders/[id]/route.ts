@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/server';
+import { requireAdminSession } from '@/lib/adminSessionToken';
 
 /**
  * GET /api/admin/orders/[id]
@@ -10,6 +11,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const orderId = params.id;
     

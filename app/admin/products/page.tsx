@@ -68,7 +68,8 @@ export default function AdminProductsPage() {
     setFilteredProducts(filtered);
   }, [products, searchQuery, statusFilter]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
     clearAdminSession();
     router.push('/admin/login');
   };

@@ -8,6 +8,9 @@ import { FieldValue } from 'firebase-admin/firestore';
  * This is useful for local development when webhooks don't reach localhost
  */
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  }
   const timestamp = new Date().toISOString();
   console.log('📦 ===== MANUAL ORDER CREATION STARTED =====');
   console.log('📦 Timestamp:', timestamp);

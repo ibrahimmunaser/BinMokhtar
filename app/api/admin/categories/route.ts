@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/server';
+import { requireAdminSession } from '@/lib/adminSessionToken';
 
 // GET all categories
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const categoriesRef = adminDb().collection('categories');
     const snapshot = await categoriesRef.orderBy('name').get();
@@ -21,6 +24,8 @@ export async function GET() {
 
 // POST - Create new category
 export async function POST(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const body = await request.json();
     
@@ -65,6 +70,8 @@ export async function PATCH(request: NextRequest) {
 
 // DELETE - Delete category
 export async function DELETE(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get('id');

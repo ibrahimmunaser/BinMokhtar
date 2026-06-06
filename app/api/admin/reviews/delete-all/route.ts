@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/server';
+import { requireAdminSession } from '@/lib/adminSessionToken';
 
 /**
  * DELETE /api/admin/reviews/delete-all
@@ -8,6 +9,8 @@ import { adminDb } from '@/lib/firebase/server';
  * This is an admin-only endpoint for cleaning up test data.
  */
 export async function DELETE(req: NextRequest) {
+  const authError = requireAdminSession(req);
+  if (authError) return authError;
   try {
     const db = adminDb();
 

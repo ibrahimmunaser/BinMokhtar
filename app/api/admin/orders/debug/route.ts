@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/server';
+import { requireAdminSession } from '@/lib/adminSessionToken';
 
 /**
  * GET /api/admin/orders/debug
@@ -8,6 +9,8 @@ import { adminDb } from '@/lib/firebase/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   console.log('🔍 ===== DEBUG ORDERS ENDPOINT CALLED =====');
   
   try {

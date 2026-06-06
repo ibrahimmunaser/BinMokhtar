@@ -183,24 +183,25 @@ export default function ProductPage() {
     return totalStock;
   }, [variants, selectedSize, selectedColor, product, totalStock]);
 
+  // Whether all required variant options have been chosen
+  const allOptionsSelected = useMemo(() => {
+    const needsSize = !!product?.sizes?.length;
+    const needsColor = !!product?.colors?.length;
+    return (!needsSize || !!selectedSize) && (!needsColor || !!selectedColor);
+  }, [product, selectedSize, selectedColor]);
+
+  // Max qty for the stepper: once all options are selected use the exact variant stock
+  // (may be 0 — intentional); before selection fall back to totalStock as a placeholder.
+  const qtyMax = allOptionsSelected ? selectedVariantStock : totalStock;
+
   // Check if add to cart should be disabled
   const canAddToCart = useMemo(() => {
     if (totalStock === 0) return false;
-    
-    // If product has sizes, require size selection
-    if (product?.sizes?.length && !selectedSize) return false;
-    
-    // If product has colors, require color selection
-    if (product?.colors?.length && !selectedColor) return false;
-    
-    // Check variant stock
+    if (!allOptionsSelected) return false;
     if (selectedVariantStock === 0) return false;
-    
-    // Check quantity doesn't exceed stock
     if (qty > selectedVariantStock) return false;
-    
     return true;
-  }, [totalStock, product, selectedSize, selectedColor, selectedVariantStock, qty]);
+  }, [totalStock, allOptionsSelected, selectedVariantStock, qty]);
 
   // Auto-adjust quantity when max stock changes
   useEffect(() => {
@@ -249,17 +250,22 @@ export default function ProductPage() {
     
     // If product has both sizes and colors
     if (product.sizes?.length && product.colors?.length) {
-      selectedVariant = variants.find(v => 
-        v.size === selectedSize && v.color === selectedColor
+      selectedVariant = variants.find(v =>
+        String(v.size ?? '').trim() === String(selectedSize ?? '').trim() &&
+        String(v.color ?? '').trim() === String(selectedColor ?? '').trim()
       );
     }
     // If product has only sizes
     else if (product.sizes?.length) {
-      selectedVariant = variants.find(v => v.size === selectedSize);
+      selectedVariant = variants.find(v =>
+        String(v.size ?? '').trim() === String(selectedSize ?? '').trim()
+      );
     }
     // If product has only colors
     else if (product.colors?.length) {
-      selectedVariant = variants.find(v => v.color === selectedColor);
+      selectedVariant = variants.find(v =>
+        String(v.color ?? '').trim() === String(selectedColor ?? '').trim()
+      );
     }
     // No variants (simple product)
     else {
@@ -479,19 +485,32 @@ export default function ProductPage() {
                 </div>
               )}
 
-              {/* Selected variant stock warning */}
-              {selectedSize && selectedColor && selectedVariantStock > 0 && selectedVariantStock <= 5 && (
+              {/* Selected variant stock warning — covers size+color, size-only, and color-only */}
+              {allOptionsSelected && selectedVariantStock > 0 && selectedVariantStock <= 5 && (
                 <div className="mb-4 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded">
                   <p className="text-sm font-medium text-yellow-800">
-                    Only {selectedVariantStock} left in this size & color
+                    Only {selectedVariantStock} left
+                    {selectedSize && selectedColor
+                      ? ` in this size & color`
+                      : selectedSize
+                      ? ` in this size`
+                      : selectedColor
+                      ? ` in this color`
+                      : ''}
                   </p>
                 </div>
               )}
               
-              {selectedSize && selectedColor && selectedVariantStock === 0 && (
+              {allOptionsSelected && selectedVariantStock === 0 && (
                 <div className="mb-4 px-4 py-2 bg-bmr-acc-red/10 border border-bmr-acc-red/30 rounded">
                   <p className="text-sm font-medium text-bmr-acc-red">
-                    This size & color combination is out of stock
+                    {selectedSize && selectedColor
+                      ? 'This size & color combination is out of stock'
+                      : selectedSize
+                      ? 'This size is out of stock'
+                      : selectedColor
+                      ? 'This color is out of stock'
+                      : 'This item is out of stock'}
                   </p>
                 </div>
               )}
@@ -499,7 +518,7 @@ export default function ProductPage() {
               {/* Quantity & Add to Cart */}
               <div className="mb-6">
                 <div className="flex gap-3 mb-4">
-                  <QtyStepper value={qty} onChange={setQty} max={selectedVariantStock || totalStock} />
+                  <QtyStepper value={qty} onChange={setQty} max={qtyMax} />
                 </div>
                 <AddToCartButton
                   onClick={handleAddToCart}

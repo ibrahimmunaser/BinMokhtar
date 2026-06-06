@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Minus, Plus, X, Heart, Share2, Package, Truck } from 'lucide-react';
+import { Minus, Plus, X, Heart, Share2, Package, Truck, AlertTriangle } from 'lucide-react';
 import { useCartStore } from '@/store/cart';
 import { formatPrice } from '@/lib/utils';
 import { useLocale } from '@/contexts/LocaleContext';
@@ -18,6 +18,8 @@ export function CartTable() {
   const [savedForLater, setSavedForLater] = useState<string[]>([]);
   const [giftItems, setGiftItems] = useState<string[]>([]);
   const [deliveryDate, setDeliveryDate] = useState<string>('');
+  const [stockWarnings, setStockWarnings] = useState<Record<string, string>>({});
+  const [availableStocks, setAvailableStocks] = useState<Record<string, number>>({});
 
   // Calculate delivery date only on client side to prevent hydration mismatch
   useEffect(() => {
@@ -27,6 +29,39 @@ export function CartTable() {
       setDeliveryDate(date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
     }
   }, []);
+
+  // Live stock validation — runs whenever cart changes
+  useEffect(() => {
+    if (items.length === 0) {
+      setStockWarnings({});
+      return;
+    }
+    const controller = new AbortController();
+    fetch('/api/cart/validate-stock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items }),
+      signal: controller.signal,
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        const warnings: Record<string, string> = {};
+        const stocks: Record<string, number> = {};
+        if (data.results) {
+          data.results.forEach((r: any) => {
+            const key = `${r.productId}-${r.size || ''}-${r.color || ''}`;
+            stocks[key] = r.availableStock ?? Infinity;
+            if (!r.isAvailable && r.message) {
+              warnings[key] = r.message;
+            }
+          });
+        }
+        setStockWarnings(warnings);
+        setAvailableStocks(stocks);
+      })
+      .catch(() => {/* network error — silent */});
+    return () => controller.abort();
+  }, [items]);
 
   // Calculate free shipping threshold
   const total = useCartStore((state) => state.total());
@@ -168,7 +203,7 @@ export function CartTable() {
       {/* Deselect all items link */}
       {items.length > 1 && (
         <div className="flex justify-between items-center">
-          <h2 className="text-lg font-medium">Shopping Cart ({items.length} items)</h2>
+          <h2 className="text-lg font-medium">Shopping Cart ({items.reduce((acc, item) => acc + item.qty, 0)} items)</h2>
           <button
             onClick={() => {
               if (confirm('Remove all items from cart?')) {
@@ -187,9 +222,21 @@ export function CartTable() {
         const itemTotal = (item.price || item.priceAtAdd) * item.qty;
         const unitPrice = item.price || item.priceAtAdd;
         const isGift = giftItems.includes(item.id);
+        const stockWarnKey = `${item.productId}-${item.size || ''}-${item.color || ''}`;
+        const stockWarning = stockWarnings[stockWarnKey];
+        const avail = availableStocks[stockWarnKey]; // may be undefined (not yet validated)
+        const maxQty = avail !== undefined ? avail : Infinity;
+        const isOOS = avail === 0;
+        const isLow = avail !== undefined && avail > 0 && avail <= 5;
 
         return (
           <div key={item.id} className="pb-6 border-b border-border last:border-0">
+            {stockWarning && (
+              <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span>{stockWarning} — please update or remove this item before checkout.</span>
+              </div>
+            )}
             <div className="flex gap-6">
               {/* Larger Thumbnail - Amazon style */}
               <Link
@@ -217,12 +264,24 @@ export function CartTable() {
                   {getProductName(item)}
                 </Link>
 
-                {/* Stock Status - Amazon style */}
+                {/* Stock Status — driven by live validation */}
                 <div className="mb-2">
-                  <span className="inline-flex items-center text-sm font-medium text-green-700">
-                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                    In Stock
-                  </span>
+                  {isOOS ? (
+                    <span className="inline-flex items-center text-sm font-medium text-red-600">
+                      <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                      Out of Stock
+                    </span>
+                  ) : isLow ? (
+                    <span className="inline-flex items-center text-sm font-medium text-yellow-700">
+                      <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
+                      Only {avail} left
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center text-sm font-medium text-green-700">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                      In Stock
+                    </span>
+                  )}
                 </div>
 
                 {/* Delivery Info */}
@@ -273,14 +332,16 @@ export function CartTable() {
                       value={item.qty}
                       onChange={(e) => {
                         const qty = parseInt(e.target.value) || 1;
-                        setQty(item.id, Math.max(1, qty));
+                        setQty(item.id, Math.min(Math.max(1, qty), maxQty));
                       }}
                       className="w-12 py-1.5 text-center text-sm border-x-2 border-border bg-surface-2 focus:outline-none focus:bg-white"
                       min="1"
+                      max={maxQty === Infinity ? undefined : maxQty}
                     />
                     <button
-                      onClick={() => setQty(item.id, item.qty + 1)}
-                      className="px-3 py-1.5 hover:bg-surface-3 transition-colors"
+                      onClick={() => setQty(item.id, Math.min(item.qty + 1, maxQty))}
+                      disabled={item.qty >= maxQty}
+                      className="px-3 py-1.5 hover:bg-surface-3 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                       aria-label="Increase quantity"
                     >
                       <Plus className="w-4 h-4" />

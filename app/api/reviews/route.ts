@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb, FieldValue } from '@/lib/firebase/server';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 
 // GET - Fetch reviews for a product or homepage
 export async function GET(req: NextRequest) {
@@ -137,6 +138,15 @@ export async function GET(req: NextRequest) {
 
 // POST - Create a new review
 export async function POST(req: NextRequest) {
+  // Rate limit: 10 reviews per hour per IP
+  const ip = getClientIp(req);
+  const rl = checkRateLimit(`reviews:${ip}`, { limit: 10, windowMs: 60 * 60 * 1000 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.', success: false },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetMs - Date.now()) / 1000)) } }
+    );
+  }
   try {
     const body = await req.json();
     const {

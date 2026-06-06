@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { generatePackingSlipHtml } from '@/lib/shipping/fulfillment';
+import { requireAdminSession } from '@/lib/adminSessionToken';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { orderId: string } }
 ) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const { orderId } = params;
 

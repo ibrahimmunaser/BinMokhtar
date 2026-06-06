@@ -1,6 +1,8 @@
 /**
  * Inventory Management
- * Handles stock decrements when orders are placed
+ * Handles stock validation and decrements when orders are placed.
+ *
+ * All writes use Firestore transactions to prevent race conditions / oversell.
  */
 
 import { adminDb } from './firebase-admin';
@@ -16,171 +18,251 @@ export interface OrderItemForInventory {
 }
 
 /**
- * Decrement inventory for all items in an order
- * This should be called after an order is created/paid
+ * Normalise a size value so that numeric sizes stored as different types
+ * ("56" vs 56) still match correctly.
  */
-export async function decrementInventoryForOrder(
-  items: OrderItemForInventory[]
-): Promise<{ success: boolean; errors: string[] }> {
-  const errors: string[] = [];
-  
-  console.log(`📦 Decrementing inventory for ${items.length} items`);
-  
-  for (const item of items) {
-    try {
-      await decrementInventoryForItem(item);
-      console.log(`✅ Inventory decremented for item: ${item.sku || item.productId}`);
-    } catch (error: any) {
-      const errorMsg = `Failed to update stock for product ${item.productId}: ${error.message}`;
-      console.error(`❌ ${errorMsg}`);
-      errors.push(errorMsg);
-      // Continue processing other items even if one fails
-    }
+function normaliseSize(value: string | number | undefined | null): string {
+  return value == null ? '' : String(value).trim();
+}
+
+/** Thrown inside the transaction when the requested qty exceeds available stock. */
+export class InsufficientStockError extends Error {
+  constructor(
+    public readonly productId: string,
+    public readonly available: number,
+    public readonly requested: number,
+    public readonly descriptor: string
+  ) {
+    super(
+      `Insufficient stock for "${descriptor}": requested ${requested}, available ${available}`
+    );
+    this.name = 'InsufficientStockError';
   }
-  
-  const success = errors.length === 0;
-  if (success) {
-    console.log(`✅ Successfully decremented inventory for all ${items.length} items`);
-  } else {
-    console.warn(`⚠️ Completed with ${errors.length} error(s) out of ${items.length} items`);
-  }
-  
-  return { success, errors };
 }
 
 /**
- * Decrement inventory for a single item
+ * Decrement inventory for all items in a paid order.
+ * Continues processing even if individual items fail, collecting errors.
+ * Returns oversold items separately so callers can flag the order.
+ */
+export async function decrementInventoryForOrder(items: OrderItemForInventory[]): Promise<{
+  success: boolean;
+  errors: string[];
+  oversoldItems: string[];
+}> {
+  const errors: string[] = [];
+  const oversoldItems: string[] = [];
+
+  for (const item of items) {
+    try {
+      await decrementInventoryForItem(item);
+    } catch (error: any) {
+      if (error instanceof InsufficientStockError) {
+        // Payment already captured — log the oversell, flag the order, do NOT re-throw
+        const msg = error.message;
+        console.error(`🚨 OVERSELL DETECTED: ${msg}`);
+        oversoldItems.push(msg);
+        errors.push(msg);
+      } else {
+        const msg = `Failed to update stock for product ${item.productId}: ${error.message}`;
+        console.error(`❌ ${msg}`);
+        errors.push(msg);
+      }
+    }
+  }
+
+  if (errors.length === 0) {
+    console.log(`✅ Inventory decremented for all ${items.length} items`);
+  } else {
+    console.warn(`⚠️ Inventory decrement finished with ${errors.length} error(s)`);
+  }
+
+  return { success: errors.length === 0, errors, oversoldItems };
+}
+
+/**
+ * Decrement inventory for a single order item using a Firestore transaction
+ * to prevent oversell under concurrent orders.
+ *
+ * Throws InsufficientStockError if the available stock is less than qty requested.
+ *
+ * Steps:
+ *  1. Outside transaction: find the matching variant doc ID (by size/color + String coercion)
+ *  2. Inside transaction: atomically read → validate (throw if insufficient) → write
  */
 async function decrementInventoryForItem(item: OrderItemForInventory): Promise<void> {
   const db = adminDb();
   const productRef = db.collection('products').doc(item.productId);
-  const productSnap = await productRef.get();
-  
-  if (!productSnap.exists) {
-    throw new Error(`Product ${item.productId} not found`);
-  }
-  
-  const productData = productSnap.data();
-  
-  // Try to decrement variant stock first (per size/color combination)
-  let variantUpdated = false;
-  if (item.size || item.color) {
-    try {
-      // Find and update the specific variant
-      const variantsCol = productRef.collection('variants');
-      const variantsSnapshot = await variantsCol.get();
-      
-      for (const variantDoc of variantsSnapshot.docs) {
-        const variantData = variantDoc.data();
-        const sizeMatch = !item.size || variantData.size === item.size;
-        const colorMatch = !item.color || variantData.color === item.color;
-        
-        if (sizeMatch && colorMatch) {
-          const currentVariantStock = variantData.stock || 0;
-          const newVariantStock = Math.max(0, currentVariantStock - item.qty);
-          
-          await variantDoc.ref.update({
-            stock: newVariantStock,
-            updatedAt: Timestamp.now(),
-          });
-          
-          variantUpdated = true;
-          console.log(`  └─ Updated variant stock: ${item.productId}/${variantDoc.id} - ${currentVariantStock} → ${newVariantStock}`);
-          break; // Found and updated the variant
-        }
+  const descriptor = item.sku || item.productId;
+
+  // ── Phase 1: locate variant doc ID outside transaction ────────────────────
+  // Using variantId directly if provided (most reliable), otherwise match by size/color.
+  let variantDocId: string | null = item.variantId ?? null;
+
+  if (!variantDocId && (item.size || item.color)) {
+    const variantsSnap = await productRef.collection('variants').get();
+    for (const doc of variantsSnap.docs) {
+      const d = doc.data();
+      const sizeMatch = !item.size || normaliseSize(d.size) === normaliseSize(item.size);
+      const colorMatch = !item.color || normaliseSize(d.color) === normaliseSize(item.color);
+      if (sizeMatch && colorMatch) {
+        variantDocId = doc.id;
+        break;
       }
-    } catch (variantError: any) {
-      console.warn(`  └─ Failed to update variant stock for ${item.productId}:`, variantError.message);
     }
   }
-  
-  // Also update the product-level totalStock in counts
-  const currentCounts = productData?.counts || { totalStock: 0 };
-  const currentTotalStock = currentCounts.totalStock || productData?.stock || 0;
-  const newTotalStock = Math.max(0, currentTotalStock - item.qty);
-  
-  await productRef.update({
-    'counts.totalStock': newTotalStock,
-    stock: newTotalStock, // Also update legacy field
-    updatedAt: Timestamp.now(),
+
+  // ── Phase 2: atomic read → validate → write ──────────────────────────────
+  await db.runTransaction(async (tx) => {
+    const productSnap = await tx.get(productRef);
+    if (!productSnap.exists) {
+      throw new Error(`Product ${item.productId} not found`);
+    }
+    const productData = productSnap.data()!;
+
+    const variantRef = variantDocId
+      ? productRef.collection('variants').doc(variantDocId)
+      : null;
+    const variantSnap = variantRef ? await tx.get(variantRef) : null;
+
+    // ── Variant path ──────────────────────────────────────────────────────
+    let variantWentToZero = false;
+    let variantUpdated = false;
+
+    if (variantRef && variantSnap?.exists) {
+      const variantData = variantSnap.data()!;
+      const currentVariantStock: number = variantData.stock ?? 0;
+
+      // HARD STOP: refuse to allow oversell inside the atomic transaction
+      if (currentVariantStock < item.qty) {
+        throw new InsufficientStockError(
+          item.productId,
+          currentVariantStock,
+          item.qty,
+          descriptor
+        );
+      }
+
+      const newVariantStock = currentVariantStock - item.qty;
+      variantWentToZero = currentVariantStock > 0 && newVariantStock === 0;
+      variantUpdated = true;
+
+      tx.update(variantRef, {
+        stock: newVariantStock,
+        active: newVariantStock > 0,
+        updatedAt: Timestamp.now(),
+      });
+
+      console.log(`  └─ variant ${variantDocId}: ${currentVariantStock} → ${newVariantStock}`);
+    } else if (item.size || item.color) {
+      // Variant was specified but not found in DB — do NOT touch the product aggregate
+      // (we have no idea which bucket to decrement).
+      console.warn(
+        `  └─ variant not found for ${descriptor} size="${item.size}" color="${item.color}" — skipping aggregate decrement`
+      );
+      return; // exit transaction without writing anything
+    }
+
+    // ── Product-level aggregate — only update if variant was found or no variants ──
+    const counts = productData.counts ?? {};
+    const currentTotal: number = counts.totalStock ?? productData.stock ?? 0;
+
+    // If a variant was specified but not found we already returned above.
+    // If no variant is specified this is a simple product — validate its stock too.
+    if (!variantUpdated && !item.size && !item.color) {
+      if (currentTotal < item.qty) {
+        throw new InsufficientStockError(item.productId, currentTotal, item.qty, descriptor);
+      }
+    }
+
+    const newTotal = Math.max(0, currentTotal - item.qty);
+    const currentActive: number = counts.activeVariants ?? 0;
+    const newActive = variantWentToZero ? Math.max(0, currentActive - 1) : currentActive;
+
+    tx.update(productRef, {
+      'counts.totalStock': newTotal,
+      'counts.activeVariants': newActive,
+      stock: newTotal,
+      updatedAt: Timestamp.now(),
+    });
+
+    console.log(`  └─ product ${item.productId} totalStock: ${currentTotal} → ${newTotal}`);
   });
-  
-  console.log(`  └─ Updated product totalStock: ${item.productId} - ${currentTotalStock} → ${newTotalStock}`);
 }
 
 /**
- * Check if items are in stock before order creation
- * Returns validation result with errors if any items are out of stock
+ * Validate that all items in a prospective order are in stock.
+ * Fails closed: any Firestore error is treated as "unavailable".
  */
 export async function validateInventoryForOrder(
   items: OrderItemForInventory[]
 ): Promise<{ valid: boolean; errors: string[] }> {
   const errors: string[] = [];
-  
+
   for (const item of items) {
     try {
       const db = adminDb();
       const productDoc = await db.collection('products').doc(item.productId).get();
-      
+
       if (!productDoc.exists) {
-        errors.push(`Product "${item.sku || item.productId}" is no longer available`);
+        errors.push(`"${item.sku || item.productId}" is no longer available`);
         continue;
       }
-      
-      const productData = productDoc.data();
-      
-      // Check variant-level stock if size/color specified
+
+      const productData = productDoc.data()!;
+
       if (item.size || item.color) {
         const variantsSnap = await db
           .collection('products')
           .doc(item.productId)
           .collection('variants')
           .get();
-        
-        let variantFound = false;
+
+        let found = false;
         for (const variantDoc of variantsSnap.docs) {
-          const variantData = variantDoc.data();
-          const sizeMatch = !item.size || variantData.size === item.size;
-          const colorMatch = !item.color || variantData.color === item.color;
-          
+          const d = variantDoc.data();
+          const sizeMatch = !item.size || normaliseSize(d.size) === normaliseSize(item.size);
+          const colorMatch =
+            !item.color || normaliseSize(d.color) === normaliseSize(item.color);
+
           if (sizeMatch && colorMatch) {
-            variantFound = true;
-            const availableStock = variantData.stock || 0;
-            
-            if (availableStock < item.qty) {
-              const variantDesc = [item.size, item.color].filter(Boolean).join(' / ');
-              if (availableStock === 0) {
-                errors.push(`"${item.sku || item.productId}" (${variantDesc}) is out of stock`);
-              } else {
-                errors.push(`"${item.sku || item.productId}" (${variantDesc}) only has ${availableStock} available (you requested ${item.qty})`);
-              }
+            found = true;
+            const avail: number = d.stock ?? 0;
+            const desc = [item.size, item.color].filter(Boolean).join(' / ');
+            if (avail === 0) {
+              errors.push(`"${item.sku || item.productId}" (${desc}) is out of stock`);
+            } else if (avail < item.qty) {
+              errors.push(
+                `"${item.sku || item.productId}" (${desc}) only has ${avail} available (requested ${item.qty})`
+              );
             }
             break;
           }
         }
-        
-        if (!variantFound) {
-          const variantDesc = [item.size, item.color].filter(Boolean).join(' / ');
-          errors.push(`"${item.sku || item.productId}" (${variantDesc}) is no longer available`);
+
+        if (!found) {
+          const desc = [item.size, item.color].filter(Boolean).join(' / ');
+          errors.push(`"${item.sku || item.productId}" (${desc}) variant no longer exists`);
         }
       } else {
-        // Check product-level stock
-        const totalStock = productData?.counts?.totalStock || productData?.stock || 0;
-        
-        if (totalStock < item.qty) {
-          if (totalStock === 0) {
-            errors.push(`"${item.sku || item.productId}" is out of stock`);
-          } else {
-            errors.push(`"${item.sku || item.productId}" only has ${totalStock} available (you requested ${item.qty})`);
-          }
+        const total: number =
+          productData.counts?.totalStock ?? productData.stock ?? 0;
+        if (total === 0) {
+          errors.push(`"${item.sku || item.productId}" is out of stock`);
+        } else if (total < item.qty) {
+          errors.push(
+            `"${item.sku || item.productId}" only has ${total} available (requested ${item.qty})`
+          );
         }
       }
-    } catch (error: any) {
-      console.error(`Error validating stock for product ${item.productId}:`, error);
-      errors.push(`Unable to verify stock for "${item.sku || item.productId}"`);
+    } catch (err: any) {
+      // Fail closed: treat DB errors as unavailable to prevent oversell
+      console.error(`Error validating stock for ${item.productId}:`, err);
+      errors.push(
+        `Unable to verify stock for "${item.sku || item.productId}". Please try again.`
+      );
     }
   }
-  
+
   return { valid: errors.length === 0, errors };
 }
-

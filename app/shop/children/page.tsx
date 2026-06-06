@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -26,7 +26,7 @@ const CATEGORIES = ['Long Sleeves', 'Short Sleeves', 'Kufis', 'Accessories'];
 const SIZES = ['2T', '3T', '4T', '5-6', '7-8', '9-10', '11-12'];
 const COLORS = ['White', 'Black', 'Beige', 'Brown', 'Navy', 'Grey'];
 
-export default function ChildrenCollectionPage() {
+function ChildrenCollectionPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -494,5 +494,13 @@ export default function ChildrenCollectionPage() {
         </Container>
       </section>
     </>
+  );
+}
+
+export default function ChildrenCollectionPage() {
+  return (
+    <Suspense>
+      <ChildrenCollectionPageInner />
+    </Suspense>
   );
 }

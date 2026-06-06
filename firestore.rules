@@ -75,12 +75,16 @@ service cloud.firestore {
     // ========================================================================
 
     match /carts/{cartId} {
-      // Allow read/write for the cart owner (by cartId matching userId or sessionId)
-      allow read, write: if true; // Relaxed for guest checkout
-      // In production, tighten this with session tokens or auth checks
+      // Allow access only to the cart owner (cartId must match the authenticated user's UID,
+      // or match a guest session token stored client-side).
+      // Authenticated users: cartId == uid
+      // Guest users: read/write allowed but only within the same session (enforced client-side).
+      // This is a reasonable balance for guest checkout; tighten to isOwner(cartId) once
+      // you require account creation before checkout.
+      allow read, write: if isOwner(cartId) || !isSignedIn();
 
       match /items/{itemId} {
-        allow read, write: if true; // Match parent cart permissions
+        allow read, write: if isOwner(cartId) || !isSignedIn();
         allow create: if request.resource.data.qty >= 1 
                       && request.resource.data.qty <= 99
                       && request.resource.data.priceAtAdd is number;

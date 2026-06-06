@@ -3,7 +3,7 @@ import { CartTable } from '@/components/cart/CartTable';
 import { OrderSummary } from '@/components/cart/OrderSummary';
 
 export const metadata = {
-  title: 'Shopping Cart | Bin Mukhtar Retail',
+  title: 'Shopping Cart',
   description: 'Review your cart and proceed to checkout',
 };
 

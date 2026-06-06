@@ -7,6 +7,7 @@ interface Variant {
   size?: string; // Optional for one-size items
   color: string;
   stock: number;
+  loadedStock?: number; // Snapshot of DB stock at form-load time (for delta writes)
   sku: string; // Required
   barcode?: string; // Optional
   price?: number; // Optional per-variant price override
@@ -38,12 +39,15 @@ export function VariantStockMatrix({ sizes, colors, value, onChange, basePrice, 
     // Handle one-size products (e.g., Shemaghs)
     if (sizes.length === 0) {
       for (const color of colors) {
-        // Check if this variant already exists (one-size)
-        const existing = variants.find(v => !v.size && v.color === color);
+        // Check if this variant already exists (one-size).
+        // DB stores size as 'One Size'; also handle legacy undefined/null.
+        const existing = variants.find(v =>
+          (!v.size || v.size === 'One Size') && v.color === color
+        );
         
         if (existing) {
-          // Keep existing data
-          newVariants.push(existing);
+          // Keep existing data, but normalise size field to 'One Size'
+          newVariants.push({ ...existing, size: 'One Size' });
         } else {
           // Create new variant with default values (no size)
           newVariants.push({
@@ -58,11 +62,14 @@ export function VariantStockMatrix({ sizes, colors, value, onChange, basePrice, 
         }
       }
     } else {
-      // Handle sized products
+      // Handle sized products — use String() normalisation to match numeric DB sizes
       for (const size of sizes) {
         for (const color of colors) {
-          // Check if this variant already exists
-          const existing = variants.find(v => v.size === size && v.color === color);
+          const existing = variants.find(
+            v =>
+              String(v.size ?? '').trim() === String(size).trim() &&
+              String(v.color ?? '').trim() === String(color).trim()
+          );
           
           if (existing) {
             // Keep existing data
@@ -89,7 +96,10 @@ export function VariantStockMatrix({ sizes, colors, value, onChange, basePrice, 
 
   const updateVariantField = (size: string | undefined, color: string, field: keyof Variant, value: any) => {
     const updatedVariants = variants.map(v => {
-      if (v.size === size && v.color === color) {
+      if (
+        String(v.size ?? 'One Size').trim() === String(size ?? 'One Size').trim() &&
+        String(v.color ?? '').trim() === String(color).trim()
+      ) {
         return { ...v, [field]: value };
       }
       return v;
@@ -104,7 +114,12 @@ export function VariantStockMatrix({ sizes, colors, value, onChange, basePrice, 
   };
 
   const deleteVariant = (size: string | undefined, color: string) => {
-    const updatedVariants = variants.filter(v => !(v.size === size && v.color === color));
+    const updatedVariants = variants.filter(
+      v => !(
+        String(v.size ?? 'One Size').trim() === String(size ?? 'One Size').trim() &&
+        String(v.color ?? '').trim() === String(color).trim()
+      )
+    );
     setVariants(updatedVariants);
     onChange(updatedVariants);
   };
@@ -116,7 +131,11 @@ export function VariantStockMatrix({ sizes, colors, value, onChange, basePrice, 
   };
 
   const getVariantStock = (size: string | undefined, color: string): number => {
-    const variant = variants.find(v => v.size === size && v.color === color);
+    const variant = variants.find(
+      v =>
+        String(v.size ?? 'One Size').trim() === String(size ?? 'One Size').trim() &&
+        String(v.color ?? '').trim() === String(color).trim()
+    );
     return variant?.stock ?? 0;
   };
 

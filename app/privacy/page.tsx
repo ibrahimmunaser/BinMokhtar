@@ -1,4 +1,10 @@
+import type { Metadata } from 'next';
 import { Container } from '@/components/layout/Container';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description: 'Privacy policy for Bin Mukhtar Retail — how we collect, use, and protect your personal information.',
+};
 
 export default function PrivacyPage() {
   return (

@@ -51,6 +51,11 @@ interface CreateOrderRequest {
  * Create a new order with fulfillment handling
  */
 export async function POST(request: NextRequest) {
+  // This route is for local development only (bypasses Stripe webhook).
+  // In production, orders are created by the Stripe webhook after payment.
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  }
   try {
     const body: CreateOrderRequest = await request.json();
 

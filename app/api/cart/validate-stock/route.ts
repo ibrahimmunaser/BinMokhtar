@@ -79,12 +79,13 @@ export async function POST(request: NextRequest) {
           let variantFound = false;
           for (const variantDoc of variantsSnap.docs) {
             const variantData = variantDoc.data();
-            const sizeMatch = !item.size || variantData.size === item.size;
-            const colorMatch = !item.color || variantData.color === item.color;
+            // Use String() coercion so numeric sizes (56) match string sizes ("56")
+            const sizeMatch = !item.size || String(variantData.size ?? '').trim() === String(item.size).trim();
+            const colorMatch = !item.color || String(variantData.color ?? '').trim() === String(item.color).trim();
             
             if (sizeMatch && colorMatch) {
               variantFound = true;
-              const availableStock = variantData.stock || 0;
+              const availableStock = variantData.stock ?? 0;
               const isAvailable = availableStock >= item.qty;
               
               let message: string | undefined;
@@ -127,7 +128,7 @@ export async function POST(request: NextRequest) {
           }
         } else {
           // Check product-level stock
-          const totalStock = productData?.counts?.totalStock || productData?.stock || 0;
+          const totalStock = productData?.counts?.totalStock ?? productData?.stock ?? 0;
           const isAvailable = totalStock >= item.qty;
           
           let message: string | undefined;
@@ -150,7 +151,7 @@ export async function POST(request: NextRequest) {
         }
       } catch (error) {
         console.error(`Error validating stock for ${item.productId}:`, error);
-        // Assume available to not block checkout due to temporary errors
+        // Fail CLOSED: block checkout if we cannot verify stock (prevents oversell on DB errors)
         results.push({
           productId: item.productId,
           variantId: item.variantId,
@@ -158,10 +159,11 @@ export async function POST(request: NextRequest) {
           size: item.size,
           color: item.color,
           requestedQty: item.qty,
-          availableStock: item.qty, // Assume available
-          isAvailable: true,
-          message: undefined,
+          availableStock: 0,
+          isAvailable: false,
+          message: 'Unable to verify stock. Please try again.',
         });
+        hasOutOfStockItems = true;
       }
     }
 

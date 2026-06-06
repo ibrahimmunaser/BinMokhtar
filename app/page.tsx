@@ -5,7 +5,6 @@ import { CategoryMosaic } from '@/components/home/CategoryMosaic';
 import { BestSellers } from '@/components/home/BestSellers';
 import { ReviewsCarousel } from '@/components/home/ReviewsCarousel';
 import { BrandStory } from '@/components/home/BrandStory';
-import { FIREBASE_IMAGES } from '@/lib/firebase-images';
 import type { HeroSlide, MosaicTile, Review, StoryBlock } from '@/types';
 
 export default function HomePage() {
@@ -13,7 +12,7 @@ export default function HomePage() {
   // Initialize with placeholder to prevent empty hero on first render
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([{
     type: 'image',
-    src: FIREBASE_IMAGES.HOME_MENS_THOBE,
+    src: '/images/hero4.png',
     titleEn: 'Luxury Thobes & Modest Fashion',
     titleAr: 'ثوب فاخر وأزياء محتشمة',
     subEn: 'Timeless elegance for every occasion',

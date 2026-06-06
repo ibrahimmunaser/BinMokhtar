@@ -1,16 +1,17 @@
 import { NextResponse } from 'next/server';
 import { adminDb, FieldValue } from '@/lib/firebase/server';
+import { NextRequest } from 'next/server';
+import { requireAdminSession } from '@/lib/adminSessionToken';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/admin/fix-order-dates
  * One-time migration to fix orders with missing/empty createdAt timestamps
- * 
- * This sets createdAt to now for any orders that have empty or missing timestamps.
- * In production, you might want to protect this with admin auth.
  */
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const db = adminDb();
     const ordersRef = db.collection('orders');

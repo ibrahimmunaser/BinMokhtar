@@ -60,7 +60,7 @@ export function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
             />
             <button
               onClick={onClose}
-              className="text-bmr-black hover:text-muted"
+              className="relative z-10 text-bmr-black hover:text-muted flex-shrink-0 p-2 -m-2 focus:outline-none focus:ring-2 focus:ring-bmr-ink rounded"
               aria-label="Close search"
             >
               <X className="w-5 h-5" />

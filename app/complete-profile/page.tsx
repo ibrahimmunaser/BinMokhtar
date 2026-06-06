@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Container } from '@/components/layout/Container';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { LOCAL_DELIVERY_FEE_CENTS } from '@/lib/shipping/config';
 
-export default function CompleteProfilePage() {
+function CompleteProfilePageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const finalRedirect = searchParams?.get('redirect') || '/';
@@ -456,3 +456,10 @@ export default function CompleteProfilePage() {
   );
 }
 
+export default function CompleteProfilePage() {
+  return (
+    <Suspense>
+      <CompleteProfilePageInner />
+    </Suspense>
+  );
+}

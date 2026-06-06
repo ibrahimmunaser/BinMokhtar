@@ -1,3 +1,10 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Size Guide',
+  description: 'Find your perfect thobe size with our comprehensive size guide. Height-based sizing chart for men\'s and boys\' thobes at Bin Mukhtar Retail.',
+};
+
 export default function SizeGuidePage() {
   // Full thobe size chart data
   const thobeSizes = [

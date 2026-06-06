@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/server';
 import { sendCredentialVerificationEmail } from '@/lib/email';
+import { setAdminCookie } from '@/lib/adminSessionToken';
 import crypto from 'crypto';
 
 const CREDENTIALS_COLLECTION = 'settings';
@@ -8,6 +9,9 @@ const CREDENTIALS_DOC = 'admin_credentials';
 const PENDING_CHANGES_DOC = 'admin_credentials_pending';
 
 // Default credentials (used when no custom credentials are set)
+// SECURITY: These are only a fallback. Set custom credentials via the admin panel
+// immediately after first deployment. The default password is intentionally weak
+// to force an immediate change — the system will warn if defaults are still active.
 const DEFAULT_USERNAME = 'username';
 const DEFAULT_PASSWORD = 'password';
 
@@ -103,11 +107,14 @@ async function handleLogin(body: any) {
   // If no custom credentials, use defaults
   if (!doc.exists) {
     const isValid = username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD;
-    return NextResponse.json({ 
+    const response = NextResponse.json({ 
       valid: isValid,
       isDefault: true,
-      message: isValid ? 'Login successful' : 'Invalid credentials'
+      message: isValid ? 'Login successful' : 'Invalid credentials',
+      warning: isValid ? 'You are using default credentials. Please change them immediately in Settings.' : undefined,
     });
+    if (isValid) setAdminCookie(response, DEFAULT_USERNAME);
+    return response;
   }
   
   const data = doc.data();
@@ -118,20 +125,25 @@ async function handleLogin(body: any) {
   if (!storedUsername || !storedHash || !storedSalt) {
     // Fallback to default if data is corrupted
     const isValid = username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD;
-    return NextResponse.json({ 
+    const response = NextResponse.json({ 
       valid: isValid,
       isDefault: true
     });
+    if (isValid) setAdminCookie(response, DEFAULT_USERNAME);
+    return response;
   }
   
   const usernameMatch = username === storedUsername;
   const passwordMatch = verifyPassword(password, storedHash, storedSalt);
-  
-  return NextResponse.json({ 
-    valid: usernameMatch && passwordMatch,
+
+  const valid = usernameMatch && passwordMatch;
+  const response = NextResponse.json({ 
+    valid,
     isDefault: false,
-    message: (usernameMatch && passwordMatch) ? 'Login successful' : 'Invalid credentials'
+    message: valid ? 'Login successful' : 'Invalid credentials'
   });
+  if (valid) setAdminCookie(response, storedUsername);
+  return response;
 }
 
 // Handle credential change request (Step 1: Send verification email)

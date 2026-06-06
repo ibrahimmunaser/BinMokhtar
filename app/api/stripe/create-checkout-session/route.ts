@@ -34,8 +34,8 @@ async function validateStock(items: any[]): Promise<{ valid: boolean; errors: st
         let variantFound = false;
         for (const variantDoc of variantsSnap.docs) {
           const variantData = variantDoc.data();
-          const sizeMatch = !item.size || variantData.size === item.size;
-          const colorMatch = !item.color || variantData.color === item.color;
+          const sizeMatch = !item.size || String(variantData.size ?? '').trim() === String(item.size).trim();
+          const colorMatch = !item.color || String(variantData.color ?? '').trim() === String(item.color).trim();
           
           if (sizeMatch && colorMatch) {
             variantFound = true;
@@ -59,7 +59,7 @@ async function validateStock(items: any[]): Promise<{ valid: boolean; errors: st
         }
       } else {
         // Check product-level stock
-        const totalStock = productData?.counts?.totalStock || productData?.stock || 0;
+        const totalStock = productData?.counts?.totalStock ?? productData?.stock ?? 0;
         
         if (totalStock < item.qty) {
           if (totalStock === 0) {
@@ -71,7 +71,8 @@ async function validateStock(items: any[]): Promise<{ valid: boolean; errors: st
       }
     } catch (error) {
       console.error(`Error validating stock for ${item.productId}:`, error);
-      // Continue checking other items
+      // Fail closed: block checkout if we cannot verify stock
+      errors.push(`Unable to verify stock for "${item.title || item.name}". Please try again.`);
     }
   }
   
@@ -153,6 +154,10 @@ export async function POST(request: NextRequest) {
               productId: item.productId || '',
               variantId: item.variantId || '',
               sku: item.sku || '',
+              // size and color stored here so webhook can decrement the correct variant
+              // even when cartItemsSample is truncated by Stripe's 500-char limit
+              size: item.size || '',
+              color: item.color || '',
             },
           },
           unit_amount: Math.round(unitAmount), // Ensure integer

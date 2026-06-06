@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase/server';
 import { stripe } from '@/lib/stripe/config';
+import { requireAdminSession } from '@/lib/adminSessionToken';
 
 /**
  * POST /api/admin/orders/[id]/retrieve-address
@@ -12,6 +13,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const authError = requireAdminSession(request);
+  if (authError) return authError;
   try {
     const orderId = params.id;
 

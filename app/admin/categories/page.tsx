@@ -128,7 +128,8 @@ export default function CategoriesPage() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
     clearAdminSession();
     router.push('/admin/login');
   };

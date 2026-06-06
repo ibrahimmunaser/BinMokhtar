@@ -1,5 +1,26 @@
 'use client';
 
+// Utility function to normalize/validate size labels
+function normalizeSizeLabel(size: string): string {
+  if (!size) return '';
+  
+  // Trim whitespace
+  const trimmed = size.trim();
+  
+  // Check for malformed sizes like "60/26" (should likely be "60/2XL" or similar)
+  // Pattern: number/number instead of number/letter
+  const malformedPattern = /^(\d+)\/(\d+)$/;
+  const match = trimmed.match(malformedPattern);
+  
+  if (match) {
+    // Log warning for debugging
+    console.warn(`⚠️ Potentially malformed size detected: "${trimmed}". Consider updating product data.`);
+    // Return as-is but could be enhanced to auto-correct common patterns
+  }
+  
+  return trimmed;
+}
+
 interface SizeSelectProps {
   sizes: string[];
   selected: string | null;
@@ -33,25 +54,29 @@ export function SizeSelect({
 
   // Get stock for a specific size (considering selected color if applicable)
   const getStockForSize = (size: string): number => {
+    const normSize = String(size ?? '').trim();
     // If we have variants and a selected color, check the specific combination
     if (variants && variants.length > 0) {
       if (selectedColor) {
-        // Find the specific size+color variant
-        const variant = variants.find(v => v.size === size && v.color === selectedColor);
+        const normColor = String(selectedColor ?? '').trim();
+        const variant = variants.find(
+          v =>
+            String(v.size ?? '').trim() === normSize &&
+            String(v.color ?? '').trim() === normColor
+        );
         return variant?.stock ?? 0;
       } else {
-        // No color selected, sum stock across all colors for this size
-        const sizeVariants = variants.filter(v => v.size === size);
+        const sizeVariants = variants.filter(
+          v => String(v.size ?? '').trim() === normSize
+        );
         return sizeVariants.reduce((sum, v) => sum + (v.stock || 0), 0);
       }
     }
     
-    // Fall back to stockBySize if provided
     if (stockBySize) {
       return stockBySize[size] ?? 0;
     }
     
-    // Default: assume available
     return 999;
   };
 
@@ -60,6 +85,7 @@ export function SizeSelect({
       <div className="text-sm font-medium mb-3 uppercase tracking-wideish">Select Size</div>
       <div className="flex flex-wrap gap-2">
         {sizes.map((size) => {
+          const normalizedSize = normalizeSizeLabel(size);
           const stock = getStockForSize(size);
           const isOutOfStock = stock === 0;
           
@@ -78,7 +104,7 @@ export function SizeSelect({
               }`}
               title={isOutOfStock ? 'Out of stock' : `${stock} in stock`}
             >
-              {size}
+              {normalizedSize}
               {isOutOfStock && (
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-bmr-acc-red rounded-full" />
               )}

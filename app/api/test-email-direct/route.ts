@@ -11,6 +11,9 @@ export const dynamic = 'force-dynamic';
  * Body: { "email": "your@email.com" }
  */
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  }
   console.log('🧪 ===== EMAIL TEST STARTED =====');
   console.log('🧪 Timestamp:', new Date().toISOString());
   

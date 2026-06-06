@@ -6,6 +6,9 @@ import { adminDb } from '@/lib/firebase/server';
  * Test page to check webhook configuration and recent orders
  */
 export async function GET(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  }
   const html = `
 <!DOCTYPE html>
 <html>

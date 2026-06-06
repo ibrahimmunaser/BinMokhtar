@@ -19,7 +19,8 @@ export default function CreateProductPage() {
     }
   }, [router]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await fetch('/api/admin/logout', { method: 'POST' }).catch(() => {});
     clearAdminSession();
     router.push('/admin/login');
   };
