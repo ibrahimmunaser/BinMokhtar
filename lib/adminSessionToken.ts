@@ -13,12 +13,13 @@ const SESSION_DURATION_MS = 8 * 60 * 60 * 1000; // 8 hours
 function getSecret(): string {
   const secret = process.env.ADMIN_SESSION_SECRET;
   if (!secret) {
-    // In production this MUST be set. In dev, fall back to a deterministic value
-    // so the server doesn't crash, but warn loudly.
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('ADMIN_SESSION_SECRET environment variable is not set');
-    }
-    return 'dev-insecure-fallback-set-in-env';
+    // Log a loud warning but do NOT crash — throwing here breaks the entire login flow.
+    // Set ADMIN_SESSION_SECRET in your hosting environment for proper security.
+    console.error(
+      '⚠️  ADMIN_SESSION_SECRET is not set. Sessions are using an insecure fallback. ' +
+      'Add ADMIN_SESSION_SECRET to your environment variables immediately.'
+    );
+    return 'bmr-fallback-secret-please-set-admin-session-secret-in-env';
   }
   return secret;
 }
