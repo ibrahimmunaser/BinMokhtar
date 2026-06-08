@@ -80,10 +80,17 @@ export async function POST(request: NextRequest) {
     
     // Default: validate credentials for login
     return handleLogin(body);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in credentials POST:', error);
+    // Surface missing-secret errors clearly so they appear in Render logs
+    if (error?.message?.includes('ADMIN_SESSION_SECRET')) {
+      return NextResponse.json(
+        { error: 'Server misconfiguration: ADMIN_SESSION_SECRET environment variable is not set. Add it in your hosting provider\'s environment variables.' },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
-      { error: 'Failed to process request' },
+      { error: 'Failed to process request', detail: error?.message },
       { status: 500 }
     );
   }
